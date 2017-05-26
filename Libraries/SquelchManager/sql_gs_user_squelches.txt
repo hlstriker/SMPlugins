@@ -1,0 +1,26 @@
+CREATE TABLE IF NOT EXISTS gs_user_squelches
+(
+	user_id		INT UNSIGNED		NOT NULL,
+	target_user_id	INT UNSIGNED		NOT NULL,
+	squelch_type	TINYINT UNSIGNED	NOT NULL,
+	expires		INT UNSIGNED		NOT NULL,
+
+	PRIMARY KEY ( user_id, target_user_id, squelch_type ),
+	INDEX ( target_user_id, user_id, expires ),
+	INDEX ( user_id, target_user_id, expires )
+) ENGINE = INNODB;
+
+
+// Query_GetWhoSquelchedThisUser
+SELECT user_id, squelch_flags
+FROM gs_user_squelches
+WHERE target_user_id = 1
+AND user_id IN (1,2,3)
+
+
+// Query_GetWhoThisUserSquelched
+SELECT target_user_id, squelch_flags
+FROM gs_user_squelches
+WHERE user_id = 1
+AND target_user_id IN (1,2,3)
+

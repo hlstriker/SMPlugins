@@ -1,0 +1,11 @@
+// This table goes on the bridge database.
+
+CREATE TABLE IF NOT EXISTS donator_packages
+(
+	package_number		SMALLINT UNSIGNED	NOT NULL,
+	package_price		VARCHAR( 8 )		NOT NULL,
+	package_coins		SMALLINT UNSIGNED	NOT NULL,
+	package_description	VARCHAR( 255 )		NOT NULL,
+
+	PRIMARY KEY ( package_number )
+) ENGINE = MYISAM;

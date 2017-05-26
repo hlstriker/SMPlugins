@@ -1,0 +1,6 @@
+DecalModulate
+{
+	$decal 1
+	$decalscale 0.09
+	$basetexture "swoobles/ultimate_jailbreak/paintballs/splat_pink"
+}

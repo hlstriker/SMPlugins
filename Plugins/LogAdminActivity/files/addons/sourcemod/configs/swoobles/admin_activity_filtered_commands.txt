@@ -1,0 +1,5 @@
+// Add command text you don't want to be logged to the admin activity database table.
+// This is not the actual admin command itself but rather the text you would see in the log files.
+// These commands are case sensitive!
+
+an example

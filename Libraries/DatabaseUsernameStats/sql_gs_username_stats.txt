@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS gs_username_stats
+(
+	user_id		INT UNSIGNED		NOT NULL,
+	user_name	VARCHAR( 48 )		NOT NULL,
+	total_time	INT UNSIGNED		NOT NULL,
+	first_utime	INT			NOT NULL,
+	last_utime	INT			NOT NULL,
+
+	PRIMARY KEY ( user_id, user_name ),
+	INDEX( user_id, total_time )		-- Used in class_Players.php
+) CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;

@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS plugin_mapvote_categories
+(
+	cat_id		SMALLINT UNSIGNED	NOT NULL	AUTO_INCREMENT,
+	server_id	SMALLINT UNSIGNED	NOT NULL,
+	cat_name	VARCHAR( 64 )		NOT NULL,
+	cat_tag		VARCHAR( 8 )		NOT NULL,
+
+	-- If the played_min/max is set to 0 then it doesn't have a min and/or max.
+	played_min	TINYINT UNSIGNED	NOT NULL,	-- The minimum number of times this category must be played before moving to the next category.
+	played_max	TINYINT UNSIGNED	NOT NULL,	-- The maximum number of times this category can be played before moving to the next category.
+
+	PRIMARY KEY ( cat_id ),
+	INDEX ( server_id )
+) ENGINE = MYISAM;

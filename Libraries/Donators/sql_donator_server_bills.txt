@@ -1,0 +1,12 @@
+-- This table goes on the bridge database.
+
+CREATE TABLE IF NOT EXISTS donator_server_bills
+(
+	server_id		SMALLINT UNSIGNED	NOT NULL,
+	funds_needed		FLOAT(11,2)		NOT NULL,	-- How much this server costs to operate.
+
+	current_funds		FLOAT(11,2)		NOT NULL,	-- How much money this server currently has before being reset.
+	latest_month_paid	TINYINT			NOT NULL,	-- The month number that was last paid. All bills are paid on the 1st of the month.
+
+	PRIMARY KEY ( server_id )
+) ENGINE = INNODB;

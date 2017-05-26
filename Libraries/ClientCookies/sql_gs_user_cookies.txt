@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS gs_user_cookies
+(
+	cookie_user_id		INT UNSIGNED		NOT NULL,
+	cookie_type		SMALLINT UNSIGNED	NOT NULL,
+	cookie_value		INT			NOT NULL,
+	PRIMARY KEY ( cookie_user_id, cookie_type )
+)
+ENGINE INNODB;

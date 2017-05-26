@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS plugin_rotating_messages
+(
+	id		INT			NOT NULL	AUTO_INCREMENT,
+	message		TEXT			NOT NULL,
+	server_id	SMALLINT UNSIGNED	NOT NULL,
+	ordering	TINYINT UNSIGNED	NOT NULL,
+	enabled		BIT( 1 )		NOT NULL	DEFAULT 1,
+	PRIMARY KEY ( id ),
+	INDEX ( enabled, server_id, ordering )
+) CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = MYISAM;

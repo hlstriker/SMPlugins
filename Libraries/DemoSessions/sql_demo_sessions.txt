@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS gs_demo_sessions
+(
+	demo_sess_id		INT UNSIGNED		NOT NULL	AUTO_INCREMENT,
+	demo_name		VARCHAR( 80 )		NOT NULL,
+	map_sess_id		INT UNSIGNED		NOT NULL,
+	PRIMARY KEY ( demo_sess_id ),
+	INDEX ( map_sess_id )
+) ENGINE = INNODB;

@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS core_users
+(
+	user_id			INT UNSIGNED		NOT NULL	AUTO_INCREMENT,
+	steam_id		VARCHAR( 16 )		NOT NULL,
+	first_utime		INT			NOT NULL,
+	last_utime		INT			NOT NULL,
+	security_token		VARCHAR( 16 )		NOT NULL,
+	PRIMARY KEY ( user_id ),
+	UNIQUE ( steam_id ),
+	INDEX ( first_utime )	-- Used in class_Players.php
+) ENGINE = INNODB;

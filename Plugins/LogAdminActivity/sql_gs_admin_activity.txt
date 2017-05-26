@@ -1,0 +1,26 @@
+CREATE TABLE IF NOT EXISTS gs_admin_activity
+(
+	activity_id		INT UNSIGNED		NOT NULL	AUTO_INCREMENT,
+
+	server_id		SMALLINT UNSIGNED	NOT NULL,
+	map_sess_id		INT UNSIGNED		NOT NULL,
+
+	demo_sess_id		INT UNSIGNED		NOT NULL,
+	demo_tick_sent		INT UNSIGNED		NOT NULL,
+
+	client_user_id		INT UNSIGNED		NOT NULL,
+	target_user_id		INT UNSIGNED		NOT NULL,
+
+	is_client_server	BIT( 1 )		NOT NULL,
+	is_target_bot		BIT( 1 )		NOT NULL,
+
+	command_text		VARCHAR( 45 )		NOT NULL,
+	command_info		VARCHAR( 255 )		NOT NULL,
+
+	activity_utime		INT			NOT NULL,
+
+	PRIMARY KEY ( activity_id ),
+	INDEX ( map_sess_id ),		-- Used in class_Servers.php
+	INDEX ( client_user_id )	-- Used in class_Servers.php
+)
+CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;

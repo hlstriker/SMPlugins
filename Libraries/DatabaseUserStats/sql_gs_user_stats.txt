@@ -1,0 +1,60 @@
+CREATE TABLE IF NOT EXISTS gs_user_stats
+(
+	user_id		INT UNSIGNED		NOT NULL,
+	server_id	SMALLINT UNSIGNED	NOT NULL,
+
+	time_played	INT UNSIGNED		NOT NULL,
+	time_afk	INT UNSIGNED		NOT NULL,
+
+	PRIMARY KEY ( server_id, user_id ),
+	INDEX ( user_id )
+) ENGINE = INNODB;
+
+
+CREATE TABLE IF NOT EXISTS gs_user_stats_ranks
+(
+	user_id		INT UNSIGNED		NOT NULL,
+	server_id	SMALLINT UNSIGNED	NOT NULL,
+	rank		INT UNSIGNED		NOT NULL,
+
+	PRIMARY KEY ( server_id, user_id ),
+	INDEX ( server_id, rank )
+) ENGINE = INNODB;
+
+
+RENAME TABLE swoobles_game_servers.gs_user_stats TO swoobles_game_servers.gs_user_stats_temp;
+
+
+INSERT INTO gs_user_stats
+(user_id, time_played, time_afk)
+SELECT user_id, time_played, time_afk
+FROM
+(
+	SELECT user_id, time_played, time_afk
+	FROM gs_user_stats_global
+	WHERE season_id=0
+) r
+
+
+INSERT INTO gs_user_stats
+(user_id, server_id, time_played, time_afk)
+SELECT user_id, server_id, time_played, time_afk
+FROM
+(
+	SELECT user_id, server_id, time_played, time_afk
+	FROM gs_user_stats_temp
+	WHERE season_id=0 AND server_id > 0
+) r
+
+
+
+-- Rename table gs_user_stats to gs_user_stats_temp.
+-- Create new gs_user_stats table that removes the season_id field.
+-- Move all season_id=0 rows from gs_user_stats_global to gs_user_stats for server_id=0.
+-- Move all season_id=0 && server_id>0 rows from gs_user_stats_temp to gs_user_stats for server_id>0.
+-- Remove tables gs_user_stats_temp and gs_user_stats_global.
+
+-- Repopulate table gs_user_stats_ranks every map change or 10 minutes.
+ + user_id 0 and server_id = x will store the last time this table was updated under time_played column.
+
+- Upload class_Player.php

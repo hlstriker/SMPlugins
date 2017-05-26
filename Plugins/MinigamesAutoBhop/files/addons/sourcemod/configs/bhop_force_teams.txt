@@ -1,0 +1,11 @@
+"BhopTriggerNames"
+{
+	"dr_princess_holyshit_v2_swbs3"		"3"
+	"deathrun_helix"		"3"
+	"dr_crashbandicoot_medieval"		"3"
+	"deathrun_deluxe_csgo_v2"		"3"
+	"deathrun_hot_desert_nf"		"3"
+	"deathrun_minecraft_v1"		"3"
+	"deathrun_tropical_island_final_csgo_v1"		"3"
+	"dr_princess_holyshit_s1"		"3"
+}

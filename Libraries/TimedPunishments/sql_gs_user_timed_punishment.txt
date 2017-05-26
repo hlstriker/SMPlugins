@@ -1,0 +1,34 @@
+CREATE TABLE IF NOT EXISTS gs_user_timed_punishment
+(
+	tp_id			INT UNSIGNED		NOT NULL	AUTO_INCREMENT,
+	tp_original_id		INT UNSIGNED		NOT NULL,
+	tp_type			TINYINT UNSIGNED	NOT NULL,	-- The punishment type (ex: mute, gag, etc)
+	map_sess_id		INT UNSIGNED		NOT NULL,
+
+	admin_id		INT UNSIGNED		NOT NULL,	-- The admin that did the punishment.
+	user_id			INT UNSIGNED		NOT NULL,	-- The user_id that got punished.
+	steam_id		VARCHAR( 16 )		NOT NULL,
+	user_ip			VARCHAR( 15 )		NOT NULL,
+	user_name		VARCHAR( 32 )		NOT NULL,
+
+	utime_start		INT			NOT NULL,
+	utime_expires		INT			NOT NULL,
+
+	demo_sess_id		INT UNSIGNED		NOT NULL,	-- The demos sess_id.
+	demo_tick		INT UNSIGNED		NOT NULL,	-- The tick in the demo the punishment happened.
+
+	reason			VARCHAR( 255 )		NOT NULL,
+	tp_is_perm		BIT( 1 )		NOT NULL,
+
+	tp_lifted		BIT( 1 )		NOT NULL,
+	tp_lifted_user_id	INT UNSIGNED		NOT NULL,
+	tp_utime_lifted		INT			NOT NULL,
+	tp_is_whitelisted	BIT( 1 )		NOT NULL,
+
+	PRIMARY KEY ( tp_id ),
+	INDEX ( steam_id, user_ip, tp_lifted, tp_is_perm, utime_expires ),
+	INDEX ( user_ip, tp_type, tp_lifted, tp_is_perm, utime_expires ),
+	INDEX ( steam_id, tp_type, tp_lifted, tp_is_perm, utime_expires ),
+	INDEX ( tp_type, utime_start )
+)
+CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE MYISAM;

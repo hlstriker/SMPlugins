@@ -1,0 +1,4 @@
+// Add admin commands here that should be allowed to use magic targeting.
+// These commands MUST be all lowercase!
+
+sm_respawn

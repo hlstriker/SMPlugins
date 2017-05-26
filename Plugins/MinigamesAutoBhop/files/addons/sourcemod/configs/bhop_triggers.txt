@@ -1,0 +1,18 @@
+"BhopTriggerNames"
+{
+	"mg_hype"		"bhoploser"
+	"mg_hype_fixed"		"bhoploser"
+	"mg_lego_multigames_go_v3_2"		"teleport_bhop"
+	"mg_thc_lego_v3fix"		"bhop"
+	"mg_hype2_v2b"		"bhopstart"
+	"mg_hype2_v2c"		"bhopstart"
+	"mg_lt_galaxy_csgo_v1"		"bhop_dest"
+	"mg_yotagames"		"bhop"
+	"mg_struses_games_csgo_v1"		"bhop_lvl"
+	"mg_wl_multigames_csgo_v1_r"		"lvl1"
+	"mg_just_multigames_v1"		"teleport_bhop_all"
+	"mg_crash_bandicoot_party_swbs"		"dest_6"
+	"mg_twisted_theme_multigames_v1_2"		"level9_dest"
+	"mg_mikis_multigames"		"bhop_green_dest"
+	"mg_pauls_multigames_csgo_v2"		"bhopwinnerteledest"
+}

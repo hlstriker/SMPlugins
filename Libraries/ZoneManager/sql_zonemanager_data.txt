@@ -1,0 +1,62 @@
+CREATE TABLE IF NOT EXISTS plugin_zonemanager_data
+(
+	game_id		SMALLINT UNSIGNED	NOT NULL,
+	map_id		MEDIUMINT UNSIGNED	NOT NULL,
+	zone_id		INT UNSIGNED		NOT NULL,
+
+	is_imported	BIT( 1 )		NOT NULL,
+	imported_name	TEXT			NOT NULL,
+
+	origin0		FLOAT( 11, 6 )		NOT NULL,
+	origin1		FLOAT( 11, 6 )		NOT NULL,
+	origin2		FLOAT( 11, 6 )		NOT NULL,
+
+	mins0		FLOAT( 11, 6 )		NOT NULL,
+	mins1		FLOAT( 11, 6 )		NOT NULL,
+	mins2		FLOAT( 11, 6 )		NOT NULL,
+
+	maxs0		FLOAT( 11, 6 )		NOT NULL,
+	maxs1		FLOAT( 11, 6 )		NOT NULL,
+	maxs2		FLOAT( 11, 6 )		NOT NULL,
+
+	angles0		FLOAT( 11, 6 )		NOT NULL,
+	angles1		FLOAT( 11, 6 )		NOT NULL,
+	angles2		FLOAT( 11, 6 )		NOT NULL,
+
+	type		SMALLINT UNSIGNED	NOT NULL,
+	data_int_1	INT			NOT NULL,
+	data_int_2	INT			NOT NULL,
+	data_string_1	VARCHAR( 255 )		NOT NULL,
+	data_string_2	VARCHAR( 255 )		NOT NULL,
+	data_string_3	VARCHAR( 255 )		NOT NULL,
+	data_string_4	VARCHAR( 255 )		NOT NULL,
+	data_string_5	VARCHAR( 255 )		NOT NULL,
+
+	PRIMARY KEY ( game_id, map_id, zone_id )
+) ENGINE = MYISAM;
+
+
+
+INSERT INTO plugin_zonemanager_data
+(game_id, map_id, zone_id, is_imported, imported_name, origin0, origin1, origin2, mins0, mins1, mins2, maxs0, maxs1, maxs2, angles0, angles1, angles2, type, data_int_1, data_int_2, data_string_1)
+VALUES
+(%i, %i, %i, %i, '%s', %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %i, %i, %i, '%s')
+
+
+
+
+SELECT CAST(is_imported AS signed) as is_imported, imported_name,
+origin0, origin1, origin2,
+mins0, mins1, mins2,
+maxs0, maxs1, maxs2,
+angles0, angles1, angles2,
+type, data_int_1, data_int_2
+
+FROM plugin_zonemanager_data
+WHERE (game_id = 1 OR game_id = 0) AND map_id = 1
+
+
+
+
+DELETE FROM plugin_zonemanager_data WHERE game_id = 1 AND map_id = 1;
+

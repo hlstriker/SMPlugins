@@ -1,0 +1,9 @@
+// This table goes on the bridge database.
+
+CREATE TABLE core_games
+(
+	game_id			SMALLINT UNSIGNED	NOT NULL	AUTO_INCREMENT,
+	game_name		VARCHAR( 64 )		NOT NULL,
+	game_engine_id		TINYINT UNSIGNED	NOT NULL,
+	PRIMARY KEY ( game_id )
+) ENGINE = MYISAM;

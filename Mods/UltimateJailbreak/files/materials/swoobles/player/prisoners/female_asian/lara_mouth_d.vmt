@@ -1,0 +1,9 @@
+VertexLitGeneric
+{
+	"$basetexture"	"swoobles\player\prisoners\female_asian\lara_mouth_d"
+
+	"$phongexponent" "20"
+	"$phongboost" "0.15"
+	"$phongfresnelranges" "[5 6 8]"
+	"$PhongAlbedoTint" "1"
+}

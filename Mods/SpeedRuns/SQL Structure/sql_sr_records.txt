@@ -1,0 +1,80 @@
+CREATE TABLE IF NOT EXISTS plugin_sr_records
+(
+	record_id		INT UNSIGNED		NOT NULL	AUTO_INCREMENT,
+
+	user_id			INT UNSIGNED		NOT NULL,
+	server_group_type	TINYINT UNSIGNED	NOT NULL,
+	server_id		SMALLINT UNSIGNED	NOT NULL,
+	map_id			MEDIUMINT UNSIGNED	NOT NULL,
+	stage_number		SMALLINT UNSIGNED	NOT NULL,	-- Stage 0 are map records.
+	stage_time		FLOAT(11,6)		NOT NULL,
+
+	demo_sess_id		INT UNSIGNED		NOT NULL,
+	demo_tick_start		INT UNSIGNED		NOT NULL,
+	demo_tick_end		INT UNSIGNED		NOT NULL,
+
+	data_int_1		INT			NOT NULL,
+	data_int_2		INT			NOT NULL,
+	style_bits		INT			NOT NULL,
+
+	checkpoints_saved	MEDIUMINT		NOT NULL,
+	checkpoints_used	MEDIUMINT		NOT NULL,
+
+	utime_complete		INT			NOT NULL,
+
+	PRIMARY KEY ( record_id ),
+	INDEX ( map_id, user_id ),
+	INDEX ( stage_number, style_bits, stage_time, map_id, user_id ),
+	INDEX ( server_group_type, map_id ),
+	INDEX ( map_id, style_bits ),
+	INDEX ( map_id, stage_number, style_bits ),
+	INDEX ( server_group_type, style_bits )
+) ENGINE = INNODB;
+
+
+
+
+
+
+// For selecting map/stage records.
+SELECT r1.user_id, r1.stage_number, r1.stage_time, r1.utime_complete, r1.style_bits
+FROM plugin_sr_records r1
+
+INNER JOIN
+(
+	SELECT stage_number, style_bits, MIN(stage_time) as min_stage_time
+	FROM plugin_sr_records
+	WHERE map_id = 1
+	GROUP BY stage_number, style_bits
+) r2
+
+ON r1.stage_number = r2.stage_number
+AND r1.style_bits = r2.style_bits
+AND r1.stage_time = r2.min_stage_time
+
+WHERE map_id = 1;
+
+
+
+// For selecting user records.
+SELECT r1.stage_number, r1.stage_time, r1.utime_complete, r1.style_bits
+FROM plugin_sr_records r1
+
+INNER JOIN
+(
+	SELECT stage_number, style_bits, MIN(stage_time) as min_stage_time
+	FROM plugin_sr_records
+	WHERE map_id = 1 AND user_id = 1
+	GROUP BY stage_number, style_bits
+) r2
+
+ON r1.stage_number = r2.stage_number
+AND r1.style_bits = r2.style_bits
+AND r1.stage_time = r2.min_stage_time
+
+WHERE map_id = 1 AND user_id = 1;
+
+
+
+
+

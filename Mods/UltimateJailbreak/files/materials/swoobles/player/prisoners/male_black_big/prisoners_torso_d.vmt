@@ -1,0 +1,9 @@
+vertexlitgeneric
+{
+	"$basetexture" 		"swoobles\player\prisoners\male_black_big\prisoners_torso_d"
+
+	$phong 1
+	$phongexponent 30
+	$phongboost .08
+	$phongfresnelranges "[5 6 8]"
+}

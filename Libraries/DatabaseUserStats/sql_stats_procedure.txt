@@ -1,0 +1,24 @@
+LOCK TABLES gs_user_stats WRITE, gs_user_stats_ranks WRITE;
+
+DELETE FROM gs_user_stats_ranks
+WHERE server_id = 3;
+
+INSERT INTO gs_user_stats_ranks
+(user_id, server_id, time_played, time_afk, rank)
+SELECT user_id, server_id, time_played, time_afk, rank
+FROM
+(
+	SELECT user_id, server_id, time_played, time_afk, @curRank := @curRank + 1 as rank
+	FROM gs_user_stats, (SELECT @curRank := 0) i
+	WHERE server_id = 3 AND user_id != 0
+	ORDER BY time_played DESC
+) r;
+
+INSERT INTO gs_user_stats_ranks
+(user_id, server_id, time_played)
+VALUES
+(0, 3, UNIX_TIMESTAMP())
+ON DUPLICATE KEY UPDATE
+time_played = UNIX_TIMESTAMP();
+
+UNLOCK TABLES;

@@ -1,0 +1,7 @@
+SpriteCard
+{
+	$basetexture "swoobles/particles/heal_cross_1"
+	$vertexcolor 1
+	vertexalpha 1
+	translucent 1
+}

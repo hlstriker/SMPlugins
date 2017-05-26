@@ -1,0 +1,10 @@
+vertexlitgeneric
+{
+	"$basetexture" 		"swoobles\player\prisoners\male_black_big\prisoner_lt_head_d"
+	"$bumpmap" 		"swoobles\player\prisoners\male_black_big\prisoner_lt_head_normal"
+
+	$phong 1
+	$phongexponent 35
+	$phongboost .04
+	$phongfresnelranges "[5 6 8]"
+}

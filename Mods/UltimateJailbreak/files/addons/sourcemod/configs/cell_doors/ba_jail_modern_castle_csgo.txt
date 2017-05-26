@@ -1,0 +1,2 @@
+map_armoury_door
+map_cells_doors

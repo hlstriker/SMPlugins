@@ -1,0 +1,9 @@
+-- This table goes on the bridge database.
+
+CREATE TABLE IF NOT EXISTS donator_titles
+(
+	user_id			INT UNSIGNED		NOT NULL,
+	title			VARCHAR( 12 )		NOT NULL,
+
+	PRIMARY KEY ( user_id )
+) CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = MYISAM;

@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS plugin_sr_map_tiers
+(
+	map_name		VARCHAR( 48 )		NOT NULL,
+	tier			TINYINT UNSIGNED	NOT NULL,
+	PRIMARY KEY ( map_name )
+) CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = MYISAM;

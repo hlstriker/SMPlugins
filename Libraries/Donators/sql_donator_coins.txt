@@ -1,0 +1,9 @@
+-- This table goes on the bridge database.
+
+CREATE TABLE IF NOT EXISTS donator_coins
+(
+	user_id			INT UNSIGNED		NOT NULL,
+	num_coins		INT UNSIGNED		NOT NULL,
+	real_money		FLOAT(11,2)		NOT NULL,	-- The amount of money the user hasn't converted to a server yet.
+	PRIMARY KEY ( user_id )
+) ENGINE = INNODB;

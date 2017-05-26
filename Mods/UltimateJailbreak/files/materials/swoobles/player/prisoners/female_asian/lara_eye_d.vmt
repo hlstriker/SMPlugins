@@ -1,0 +1,11 @@
+VertexLitGeneric
+{
+	"$basetexture"	"swoobles\player\prisoners\female_asian\lara_eye_d"
+	"$bumpmap"	"swoobles\player\prisoners\female_asian\lara_eye_normal"
+
+
+	"$phong" 			"1"
+	"$phongboost"			"50"
+	"$phongexponent"			"20"
+	"$phongfresnelranges"		"[.05 .1 .2]"
+}

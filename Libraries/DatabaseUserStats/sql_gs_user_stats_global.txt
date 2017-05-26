@@ -1,0 +1,14 @@
+// NOTE: This table is pretty much just a duplicate of gs_user_stats without the server_id field.
+// We use this separate table so we don't have to use aggregate functions in the gs_user_stats queries.
+
+
+CREATE TABLE IF NOT EXISTS gs_user_stats_global
+(
+	user_id		INT UNSIGNED		NOT NULL,
+	season_id	SMALLINT UNSIGNED	NOT NULL,
+
+	time_played	INT UNSIGNED		NOT NULL,
+	time_afk	INT UNSIGNED		NOT NULL,
+
+	PRIMARY KEY ( season_id, user_id )
+) ENGINE = INNODB;

@@ -1,0 +1,14 @@
+// This table goes on the bridge database.
+
+CREATE TABLE IF NOT EXISTS donator_servers
+(
+	user_id			INT UNSIGNED		NOT NULL,
+	server_id		SMALLINT UNSIGNED	NOT NULL,	-- server_id 0 is global.
+
+	donator_enabled		BIT( 1 )		NOT NULL,	-- Mainly used to check to see if we need to get rid of their reserved slot.
+	donator_end_utime	INT			NOT NULL,	-- The unix time the donator ends for this server.
+
+	PRIMARY KEY ( user_id, server_id ),
+	INDEX ( donator_enabled, donator_end_utime ),
+	INDEX ( user_id, donator_end_utime )
+) ENGINE = INNODB;

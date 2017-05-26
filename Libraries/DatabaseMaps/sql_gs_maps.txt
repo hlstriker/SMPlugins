@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS gs_maps
+(
+	game_id			SMALLINT UNSIGNED		NOT NULL,
+	map_name		VARCHAR( 48 )			NOT NULL,
+	map_id			MEDIUMINT UNSIGNED		NOT NULL	AUTO_INCREMENT,
+	PRIMARY KEY ( game_id, map_name ),
+	UNIQUE ( map_id )
+) CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = MYISAM;

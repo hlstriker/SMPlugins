@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS gs_map_sessions
+(
+	sess_id		INT UNSIGNED		NOT NULL	AUTO_INCREMENT,
+	game_id		SMALLINT UNSIGNED	NOT NULL,
+	server_id	SMALLINT UNSIGNED	NOT NULL,
+	map_id		MEDIUMINT UNSIGNED	NOT NULL,
+	utime_start	INT			NOT NULL,
+	utime_end	INT			NOT NULL,
+	total_time	INT UNSIGNED		NOT NULL,
+	PRIMARY KEY ( sess_id ),
+	INDEX ( utime_start ),		-- Used for class_Servers.php
+	INDEX ( server_id ),		-- Used for class_Servers.php
+	INDEX ( map_id, utime_start )	-- Used for class_Servers.php
+) ENGINE = INNODB;

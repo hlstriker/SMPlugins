@@ -1,0 +1,15 @@
+// This table goes on the bridge database.
+
+CREATE TABLE IF NOT EXISTS donator_logs
+(
+	log_id			INT UNSIGNED		NOT NULL	AUTO_INCREMENT,
+
+	log_type		TINYINT UNSIGNED	NOT NULL,
+	log_data1		INT UNSIGNED		NOT NULL,
+	log_text		TEXT			NOT NULL,
+
+	log_utime		INT			NOT NULL,
+
+	PRIMARY KEY ( log_id ),
+	INDEX ( log_type )
+) ENGINE = INNODB;
