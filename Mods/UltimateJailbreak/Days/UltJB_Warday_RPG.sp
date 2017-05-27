@@ -8,6 +8,7 @@
 #include <sdktools_trace>
 #include <sdktools_tempents>
 #include "../Includes/ultjb_last_request"
+#include "../Includes/ultjb_last_guard"
 #include "../Includes/ultjb_weapon_selection"
 #include "../Includes/ultjb_days"
 #include "../Includes/ultjb_settings"
@@ -222,19 +223,12 @@ public UltJB_Day_OnRegisterReady()
 	UltJB_Day_RegisterDay(DAY_NAME, DAY_TYPE, DAY_FLAG_STRIP_GUARDS_WEAPONS, OnDayStart, OnDayEnd, OnFreezeEnd);
 }
 
-public OnClientPutInServer(iClient)
-{
-	if(!g_bInProgress)
-		return;
-	
-	ClientHooks(iClient);
-}
-
 public UltJB_Day_OnSpawnPost(iClient)
 {
 	if(!g_bInProgress)
 		return;
 	
+	ClientHooks(iClient);	
 	PrepareClient(iClient);
 }
 
@@ -307,10 +301,17 @@ public OnFreezeEnd()
 		if(!IsClientInGame(iClient))
 			continue;
 		
-		ClientHooks(iClient);
-		
-		if(IsPlayerAlive(iClient))
-			PrepareClient(iClient);
+		if(UltJB_LR_GetLastRequestFlags(iClient) & LR_FLAG_FREEDAY)
+		{
+			UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_KNIFE);
+		}
+		else
+		{
+			ClientHooks(iClient);
+			
+			if(IsPlayerAlive(iClient))
+				PrepareClient(iClient);
+		}
 	}
 }
 
@@ -379,6 +380,10 @@ public OnPreThinkPost(iClient)
 
 bool:TryShootRocket(iClient, iLauncher)
 {
+
+	if(UltJB_LR_GetLastRequestFlags(iClient) & LR_FLAG_FREEDAY)
+		return false;
+	
 	new iClipCount = GetClipCount(iLauncher);
 	if(iClipCount < 1)
 	{
@@ -620,6 +625,9 @@ public OnStartTouchPost(iRocket, iOther)
 	new iOwner = GetEntPropEnt(iRocket, Prop_Send, "m_hOwnerEntity");
 	if(iOwner == iOther)
 		return;
+		
+	if((1 <= iOther <= MaxClients) && (UltJB_LR_GetLastRequestFlags(iOther) & LR_FLAG_FREEDAY))
+		return;
 	
 	decl Float:fRocketOrigin[3];
 	GetEntPropVector(iRocket, Prop_Data, "m_vecOrigin", fRocketOrigin);
@@ -695,6 +703,9 @@ TryPushClient(iClient, iRocket, bool:bIsDirectHit)
 	// If the players mins/maxs are smaller that means the rocket can actually suck the player towards it instead of away.
 	
 	if(GetEntityMoveType(iClient) == MOVETYPE_NOCLIP)
+		return;
+	
+	if(UltJB_LR_GetLastRequestFlags(iClient) & LR_FLAG_FREEDAY)
 		return;
 	
 	// Add the center of the mins/maxs to the rocket origin.
@@ -871,6 +882,10 @@ SendEvent_PlayerHurt(iClient, iAttacker, iRemainingHealth, iRemainingArmor, cons
 	SetEventInt(hEvent, "hitgroup", iHitGroup);
 	
 	FireEvent(hEvent, true);
+	
+	new iSerial = UltJB_LastGuard_GetLastGuard();
+	if((iSerial != 0) && (GetClientTeam(iAttacker) == TEAM_GUARDS))
+		UltJB_LastGuard_ResetDamageCounters();
 }
 
 GetClientsRocketLauncher(iClient)

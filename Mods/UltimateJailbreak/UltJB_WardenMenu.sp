@@ -99,9 +99,11 @@ new const String:HEALING_MATERIAL_FILES[][] =
 {
 	"materials/swoobles/particles/ring_wave_10_water_add.vmt",
 	"materials/swoobles/particles/flare_002.vmt",
+	"materials/swoobles/particles/flare_002.vmt",
 	"materials/swoobles/particles/heal_cross_1.vmt",
 	
 	"materials/swoobles/particles/ring_wave_10_water.vtf",
+	"materials/swoobles/particles/flare_002.vtf",
 	"materials/swoobles/particles/flare_002.vtf",
 	"materials/swoobles/particles/heal_cross_1.vtf"
 };
@@ -695,16 +697,20 @@ GetHealingEnt()
 
 bool:HealClient(iClient)
 {
-	new iHealth = GetEntProp(iClient, Prop_Data, "m_iHealth");
-	if(iHealth >= 100)
+	new iOrigHealth = GetEntProp(iClient, Prop_Data, "m_iHealth");
+	if(iOrigHealth >= 100)
 		return false;
 	
-	iHealth += HEALTH_INCREASE_AMOUNT;
+	new iHealth = iOrigHealth + HEALTH_INCREASE_AMOUNT;
 	
 	if(iHealth > 100)
 		iHealth = 100;
 	
 	UltJB_LR_SetClientsHealth(iClient, iHealth);
+	
+	new String:szMessage[512];
+	Format(szMessage, sizeof(szMessage), "Warden healed %N for %d.", iClient, iHealth - iOrigHealth);
+	UltJB_Logger_LogEvent(szMessage, iClient, 0, LOGTYPE_ATTACK);
 	
 	return true;
 }

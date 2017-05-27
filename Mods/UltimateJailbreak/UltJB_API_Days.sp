@@ -8,6 +8,7 @@
 #include "Includes/ultjb_warden"
 #include "Includes/ultjb_cell_doors"
 #include "Includes/ultjb_settings"
+#include "Includes/ultjb_logger"
 
 #pragma semicolon 1
 
@@ -68,7 +69,7 @@ new Handle:g_hFwd_OnSpawnPost;
 new g_iSpawnedTick[MAXPLAYERS+1];
 
 new bool:g_bInDaysSpawnPostForward[MAXPLAYERS+1];
-
+new bool:g_bIsDayAllowed[MAX_DAYS+1] = {true, ...};
 
 public OnPluginStart()
 {
@@ -94,6 +95,8 @@ public OnPluginStart()
 	
 	RegConsoleCmd("sm_d", OnDaysMenu, "Opens the days menu.");
 	RegConsoleCmd("sm_day", OnDaysMenu, "Opens the days menu.");
+	RegAdminCmd("sm_de", OnDaysEdit, ADMFLAG_UNBAN, "Edits the day configuration for the current map.");
+	RegAdminCmd("sm_daysedit", OnDaysEdit, ADMFLAG_UNBAN, "Edits the day configuration for the current map.");
 }
 
 public OnClientPutInServer(iClient)
@@ -404,6 +407,7 @@ public OnMapStart()
 	Call_StartForward(g_hFwd_OnRegisterReady);
 	Call_Finish(result);
 	
+	LoadDayConfig();
 	SortDaysByName();
 }
 
@@ -612,6 +616,10 @@ bool:StartDay(iClient, iDayID)
 	
 	SetDayUsed(iClient);
 	
+	new String:szMessage[512];
+	Format(szMessage, sizeof(szMessage), "%N has started %s - %s.", iClient, szDayType, eDay[Day_Name]);
+	UltJB_Logger_LogEvent(szMessage, iClient, 0, LOGTYPE_ANY);
+	
 	return true;
 }
 
@@ -802,7 +810,7 @@ DisplayMenu_DayTypeSelect(iClient)
 	if(UltJB_Warden_GetWarden() != iClient)
 		return;
 	
-	if(HasUsedDay(iClient))
+	if(HasUsedDay(iClient) && false)
 	{
 		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}You already used your day for this map.");
 		PrintToConsole(iClient, "[SM] You already used your day for this map.");
@@ -867,6 +875,7 @@ SetDayUsed(iClient)
 
 bool:CanSelectFreeday(iClient)
 {
+	return true;
 	if(UltJB_Warden_GetClientWardenCount(iClient) < 2)
 		return false;
 	
@@ -878,6 +887,7 @@ bool:CanSelectFreeday(iClient)
 
 bool:CanSelectWarday(iClient)
 {
+	return true;
 	if(UltJB_Warden_GetClientWardenCount(iClient) < 2)
 		return false;
 	
@@ -946,7 +956,11 @@ DisplayMenu_DaySelect(iClient, DayType:iDayType)
 			continue;
 		
 		IntToString(eDay[Day_ID], szInfo, sizeof(szInfo));
-		AddMenuItem(hMenu, szInfo, eDay[Day_Name]);
+		
+		if(g_bIsDayAllowed[eDay[Day_ID]])
+			AddMenuItem(hMenu, szInfo, eDay[Day_Name]);
+		else
+			AddMenuItem(hMenu, szInfo, eDay[Day_Name], ITEMDRAW_DISABLED);
 	}
 	
 	SetMenuExitBackButton(hMenu, true);
@@ -989,4 +1003,239 @@ public MenuHandle_DaySelect(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 	GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
 	
 	StartDay(iParam1, StringToInt(szInfo));
+}
+
+DisplayMenu_EditTypeSelect(iClient)
+{
+	
+	new Handle:hMenu = CreateMenu(MenuHandle_EditTypeSelect);
+	SetMenuTitle(hMenu, "Custom Day");
+	
+	decl String:szInfo[6];
+	
+	IntToString(_:DAY_TYPE_FREEDAY, szInfo, sizeof(szInfo));
+	AddMenuItem(hMenu, szInfo, "Freeday");
+	
+	
+	IntToString(_:DAY_TYPE_WARDAY, szInfo, sizeof(szInfo));
+	AddMenuItem(hMenu, szInfo, "Warday");
+	
+	if(!DisplayMenu(hMenu, iClient, 0))
+		PrintToChat(iClient, "[SM] There are no day types.");
+
+}
+
+DisplayMenu_EditDay(iClient, DayType:iDayType)
+{
+	new Handle:hMenu = CreateMenu(MenuHandle_DayEdit);
+	
+	switch(iDayType)
+	{
+		case DAY_TYPE_WARDAY: SetMenuTitle(hMenu, "Wardays Allowed");
+		case DAY_TYPE_FREEDAY: SetMenuTitle(hMenu, "Freedays Allowed");
+		default: return;
+	}
+	
+	decl eDay[Day], String:szInfo[6], String:szLine[512];
+	for(new i=0; i<GetArraySize(g_aDays); i++)
+	{
+		GetArrayArray(g_aDays, i, eDay);
+		
+		if(eDay[Day_Type] != iDayType)
+			continue;
+		
+		IntToString(eDay[Day_ID], szInfo, sizeof(szInfo));
+		Format(szLine, sizeof(szLine), "[%s] %s", (g_bIsDayAllowed[eDay[Day_ID]] ? "Y" : "N"), eDay[Day_Name]);
+		AddMenuItem(hMenu, szInfo, szLine);
+	}
+	
+	SetMenuExitBackButton(hMenu, true);
+	if(!DisplayMenu(hMenu, iClient, 0))
+	{
+		PrintToChat(iClient, "[SM] There are no days.");
+		DisplayMenu_EditTypeSelect(iClient);
+	}
+}
+
+public Action:OnDaysEdit(iClient, iArgNum)
+{
+	if(!iClient)
+		return Plugin_Handled;
+	
+	DisplayMenu_EditTypeSelect(iClient);
+	
+	return Plugin_Handled;
+}
+
+public MenuHandle_EditTypeSelect(Handle:hMenu, MenuAction:action, iParam1, iParam2)
+{
+	if(!(1 <= iParam1 <= MaxClients))
+		return;
+		
+	if(action == MenuAction_End)
+	{
+		CloseHandle(hMenu);
+		return;
+	}
+	
+	if(action != MenuAction_Select)
+		return;
+	
+	decl String:szInfo[6];
+	GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
+	
+	DisplayMenu_EditDay(iParam1, DayType:StringToInt(szInfo));
+}
+
+public MenuHandle_DayEdit(Handle:hMenu, MenuAction:action, iParam1, iParam2)
+{
+	if(!(1 <= iParam1 <= MaxClients))
+		return;
+
+	if(action == MenuAction_End)
+	{
+		CloseHandle(hMenu);
+		return;
+	}
+	
+	if(action == MenuAction_Cancel)
+	{
+		if(iParam2 == MenuCancel_ExitBack)
+			DisplayMenu_EditTypeSelect(iParam1);
+		
+		return;
+	}
+	
+	if(action != MenuAction_Select)
+		return;
+	
+	
+	decl String:szInfo[6];
+	GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
+	
+	decl eDay[Day];
+	GetArrayArray(g_aDays, g_iDayIDToIndex[StringToInt(szInfo)], eDay);
+	
+	g_bIsDayAllowed[eDay[Day_ID]] = !g_bIsDayAllowed[eDay[Day_ID]];
+	new String:szMessage[512];
+	Format(szMessage, sizeof(szMessage), "[SM] %s %s.", eDay[Day_Name], (g_bIsDayAllowed[eDay[Day_ID]] ? "enabled" : "disabled"));
+	PrintToChat(iParam1, szMessage);
+	SaveDayConfig(iParam1);
+	DisplayMenu_EditDay(iParam1, eDay[Day_Type]);
+}
+
+SaveDayConfig(iClient)
+{
+	PrintToChatAll("Started saving.");
+	
+	decl String:szPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, szPath, sizeof(szPath), "configs/day_configs");
+	if(!DirExists(szPath) && !CreateDirectory(szPath, 775))
+	{
+		PrintToChat(iClient, "[SM] Error creating day_configs directory.");
+		return;
+	}
+	
+	decl String:szBuffer[512];
+	GetLowercaseMapName(szBuffer, sizeof(szBuffer));
+	Format(szPath, sizeof(szPath), "%s/%s.txt", szPath, szBuffer);
+	
+	new Handle:fp = OpenFile(szPath, "w");
+	if(fp == INVALID_HANDLE)
+	{
+		PrintToChatAll("[SM] Error creating save file.");
+		return;
+	}
+	
+	PrintToChatAll("File open.");
+	
+	decl eDay[Day];
+	
+	for(new i=0; i<=MAX_DAYS; i++)
+	{
+		if(g_bIsDayAllowed[i])
+			continue;
+		
+		GetArrayArray(g_aDays, g_iDayIDToIndex[i], eDay);
+		
+		Format(szBuffer, sizeof(szBuffer), "%d-%s", eDay[Day_Type], eDay[Day_Name]);
+		PrintToChatAll(szBuffer);
+		WriteFileLine(fp, szBuffer);
+	}
+	
+	CloseHandle(fp);
+	
+	PrintToChatAll("[SM] Day configs have been saved.");
+}
+
+LoadDayConfig()
+{
+	for(new iDay=0;iDay<=MAX_DAYS;iDay++)
+		g_bIsDayAllowed[iDay] = true;
+
+	new Handle:aNames = CreateArray(DAY_MAX_NAME_LENGTH);
+	
+	decl String:szBuffer[PLATFORM_MAX_PATH];
+	GetLowercaseMapName(szBuffer, sizeof(szBuffer));
+	BuildPath(Path_SM, szBuffer, sizeof(szBuffer), "configs/day_configs/%s.txt", szBuffer);
+	
+	new Handle:fp = OpenFile(szBuffer, "r");
+	if(fp == INVALID_HANDLE)
+		return;
+	
+	new iTypes[MAX_DAYS+1], String:szType[2];
+	
+	while(!IsEndOfFile(fp))
+	{
+		if(!ReadFileLine(fp, szBuffer, sizeof(szBuffer)))
+			continue;
+		
+		TrimString(szBuffer);
+		
+		if(strlen(szBuffer) < 1)
+			continue;
+		
+		szType[0] = szBuffer[0];
+		PrintToServer("szBuffer (%s), szType (%s), iType (%d)", szBuffer, szType, StringToInt(szType));
+		iTypes[GetArraySize(aNames)+1] = StringToInt(szType);
+		PrintToServer("Stored name %s", szBuffer[2]);
+		PushArrayString(aNames, szBuffer[2]);
+	}
+	
+	CloseHandle(fp);
+	
+	decl eDay[Day];
+	new iMatch;
+	
+	for(new i=0;i<GetArraySize(g_aDays); i++)
+	{
+		GetArrayArray(g_aDays, i, eDay);
+		PrintToServer("Checking day %s", eDay[Day_Name]);
+			
+		iMatch = FindStringInArray(aNames, eDay[Day_Name]);
+		
+		if(iMatch == -1)
+			continue;
+		
+		PrintToServer("Comparing %d to %d", _:eDay[Day_Type], iTypes[iMatch]);
+	
+		if(_:eDay[Day_Type] != iTypes[iMatch])
+			continue;
+		
+		PrintToServer("--- Disabling day");
+		g_bIsDayAllowed[eDay[Day_ID]] = false;
+	}
+	
+}
+
+GetLowercaseMapName(String:szMapName[], iMaxLength)
+{
+	GetCurrentMap(szMapName, iMaxLength);
+	StringToLower(szMapName);
+}
+
+StringToLower(String:szString[])
+{
+	for(new i=0; i<strlen(szString); i++)
+		szString[i] = CharToLower(szString[i]);
 }

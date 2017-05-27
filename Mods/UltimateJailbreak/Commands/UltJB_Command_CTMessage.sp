@@ -83,6 +83,12 @@ public Action:OnMessageCT(iClient, iArgCount)
 		return Plugin_Handled;
 	}
 	
+	if(GetClientTeam(iClient) == CS_TEAM_CT)
+	{
+		ReplyToCommand(iClient, "[SM] Please use teamchat to talk to your fellow guards.");
+		return Plugin_Handled;
+	}
+	
 	if(g_fNextMessage[iClient] > GetEngineTime())
 		return Plugin_Handled;
 	

@@ -44,7 +44,6 @@ public OnPluginStart()
 	
 	HookEvent("round_start", Event_RoundStart_Post, EventHookMode_PostNoCopy);
 	HookEvent("player_death", Event_PlayerDeath_Post, EventHookMode_Post);
-	HookEvent("player_changename", Event_ChangeName_Post, EventHookMode_Post);
 }
 
 public OnMapStart()
@@ -154,7 +153,7 @@ public Action:OnFreeKill(iClient, iArgCount)
 		
 		if(iClient != iPlayer)
 		{
-			if(!g_bIsAdmin[iPlayer] && GetClientTeam(iPlayer) != TEAM_GUARDS && !IsFakeClient(iClient))
+			if(!g_bIsAdmin[iPlayer] && GetClientTeam(iPlayer) != TEAM_GUARDS && !IsFakeClient(iPlayer))
 				continue;
 		}
 		
@@ -241,36 +240,3 @@ public OnClientPostAdminCheck(iClient)
 		g_bIsAdmin[iClient] = true;
 }
 
-public Event_ChangeName_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
-{
-	new iClient = GetClientOfUserId(GetEventInt(hEvent, "userid"));
-	if(!iClient)
-		return;
-	
-	PrintMessageSteamID(iClient, true);
-}
-
-public OnClientDisconnect(iClient)
-{
-	PrintMessageSteamID(iClient);
-}
-
-PrintMessageSteamID(iTarget, bool:bNameChange=false)
-{
-	decl String:szAuthID[32];
-	GetClientAuthString(iTarget, szAuthID, sizeof(szAuthID));
-	
-	for(new iClient=1; iClient<=MaxClients; iClient++)
-	{
-		if(!IsClientInGame(iClient))
-			continue;
-		
-		if(!g_bIsAdmin[iClient])
-			continue;
-		
-		if(bNameChange)
-			PrintToConsole(iClient, "%N namechanged. (%s)", iTarget, szAuthID);
-		else
-			PrintToConsole(iClient, "%N disconnected. (%s)", iTarget, szAuthID);
-	}
-}

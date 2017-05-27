@@ -31,7 +31,12 @@ native bool:UltJB_LastGuard_GetLastGuard();
  */
 native UltJB_LastGuard_GetNumNeeded();
 
-
+/**
+ * Resets the damage timers for the Last Guard.
+ *
+ * @return				Always true.
+ */
+native bool:UltJB_LastGuard_ResetDamageCounters()
 
 /**
  * Called before the last guard is activated.
