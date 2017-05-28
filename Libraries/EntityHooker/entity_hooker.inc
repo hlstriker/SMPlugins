@@ -42,6 +42,7 @@ native bool:EntityHooker_IsEntityHooked(eh_type, ent);
 public __pl_entity_hooker_SetNTVOptional()
 {
 	MarkNativeAsOptional("EntityHooker_Register");
+	MarkNativeAsOptional("EntityHooker_RegisterAdditional");
 	MarkNativeAsOptional("EntityHooker_RegisterProperty");
 	MarkNativeAsOptional("EntityHooker_IsEntityHooked");
 }
