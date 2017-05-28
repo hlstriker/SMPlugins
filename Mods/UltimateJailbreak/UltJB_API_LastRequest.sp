@@ -15,6 +15,7 @@
 #include "Includes/ultjb_warden"
 #include "Includes/ultjb_days"
 #include "Includes/ultjb_settings"
+#include "Includes/ultjb_logger"
 
 #undef REQUIRE_PLUGIN
 #include "../../Libraries/SquelchManager/squelch_manager"
@@ -134,6 +135,8 @@ enum _:Category
 };
 
 new g_iRoundNumber;
+
+new Float:g_fPreLastRequestLocations[MAXPLAYERS+1][3];
 
 #define SetWeaponOwnerSerial(%1,%2)		SetEntProp(%1, Prop_Data, "m_iMaxHealth", %2)
 #define GetWeaponOwnerSerial(%1)		GetEntProp(%1, Prop_Data, "m_iMaxHealth")
@@ -409,7 +412,7 @@ TryInitializeLastRequest(iClient)
 	
 	InitializeLastRequest(iClient);
 }
-
+/*
 public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVel[3], Float:fAngles[3], &iWeapon, &iSubType, &iCmdNum, &iTickCount, &iSeed, iMouse[2])
 {
 	if(!IsClientInFreeday(iClient))
@@ -419,7 +422,7 @@ public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVel[3], Float
 	
 	return Plugin_Changed;
 }
-
+*/
 bool:IsClientInFreeday(iClient)
 {
 	if(!g_bHasStarted[iClient])
@@ -1236,9 +1239,21 @@ public OnSpawnPost(iClient)
 {
 	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
 		return;
-	
+
 	g_bCanDealDamage[iClient] = true;
 	g_bHasInvincibility[iClient] = false;
+
+	decl iNumPrisonersAlive, iPrisonersAlive[MAXPLAYERS];
+	if(CanLastRequest(iNumPrisonersAlive, iPrisonersAlive))
+		return;
+
+	new iNumLastReqests = UltJB_LR_GetNumInitialized() - UltJB_LR_GetNumStartedContains(LR_FLAG_FREEDAY);
+	
+	if(iNumLastReqests == 0)
+		return;
+	
+	CPrintToChatAll("{green}[{lightred}SM{green}] {olive}Aborting all last requests.");
+	AbortAllLastRequests();
 }
 
 UpdateEffectsIfNeeded(iClient, iOpponent)
@@ -1891,7 +1906,10 @@ InitializeLastRequestForCandidates()
 		return;
 	
 	for(new i=0; i<iNumCandidates; i++)
+	{
+		GetClientAbsOrigin(iCandidates[i], g_fPreLastRequestLocations[iCandidates[i]]);
 		InitializeLastRequest(iCandidates[i]);
+	}
 }
 
 bool:IsPrisonerLastRequestCandidate(iClient)
@@ -2466,6 +2484,10 @@ StartLastRequest(iClient, iLastRequestIndex, bool:bFromFreedayAdminCommand=false
 	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}You have chosen {purple}%s {olive}- {purple}%s{olive}.", szCategoryName, eLastRequest[LR_Name]);
 	
 	FillClientsHealthToDefault(iClient);
+	
+	new String:szMessage[512];
+	Format(szMessage, sizeof(szMessage), "%N started LR: %s - %s.", iClient, szCategoryName, eLastRequest[LR_Name]);
+	UltJB_Logger_LogEvent(szMessage, iClient, 0, LOGTYPE_LASTREQUEST);
 	
 	// Call private forward.
 	Call_StartForward(eLastRequest[LR_ForwardStart]);
@@ -3448,10 +3470,16 @@ InitializeLastRequestTeleportOrigins()
 	}
 	
 	new iTeleportsFound;
+	new String:szName[64];
 	
 	iEnt = -1;
 	while((iEnt = FindEntityByClassname(iEnt, "info_teleport_destination")) != -1)
 	{
+		GetEntPropString(iEnt, Prop_Data, "m_iName", szName, sizeof(szName));
+	
+		if(strcmp(szName, "tw_cru") != -1 || strcmp(szName, "tw_ent1") != -1 || strcmp(szName, "tw_ent2") != -1 || strcmp(szName, "knife_arena_spleef_teleport_destination3") != -1)
+			continue;
+		
 		AddLastRequestTeleportOrigin(iEnt);
 		
 		iTeleportsFound++;
@@ -3576,4 +3604,25 @@ StartTimer_PreGetLastRequestTeleportOrigins()
 public Action:Timer_PreGetLastRequestTeleportOrigins(Handle:hTimer)
 {
 	StartTimer_GetLastRequestTeleportOrigins();
+}
+
+AbortAllLastRequests()
+{
+	for(new iClient=1; iClient<=MaxClients; iClient++)
+	{
+		if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
+			continue;
+			
+		if(!g_bHasInitialized[iClient])
+			continue;
+		
+		if(GetClientsLastRequestFlags(iClient) & LR_FLAG_FREEDAY)
+			continue;
+		
+		if(GetClientTeam(iClient) != TEAM_PRISONERS)
+			continue;
+		
+		EndLastRequest(iClient);
+		TeleportEntity(iClient, g_fPreLastRequestLocations[iClient], NULL_VECTOR, Float:{0.0, 0.0, 0.0});
+	}
 }

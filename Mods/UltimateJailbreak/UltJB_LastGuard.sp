@@ -36,7 +36,7 @@ new g_iCounter_DamageInterval;
 
 new bool:g_bCanLastGuard;
 
-new const String:PLAYER_MODEL_LAST_GUARD[] = "models/player/ctm_sas_variante.mdl";
+new const String:PLAYER_MODEL_LAST_GUARD[] = "models/player/custom_player/legacy/tm_professional.mdl";
 
 new const BEACON_COLOR_GUARD[] = {0, 178, 255, 200};
 new const BEACON_COLOR_PRISONER[] = {255, 77, 0, 200};
@@ -87,6 +87,7 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	
 	CreateNative("UltJB_LastGuard_GetLastGuard", _UltJB_LastGuard_GetLastGuard);
 	CreateNative("UltJB_LastGuard_GetNumNeeded", _UltJB_LastGuard_GetNumNeeded);
+	CreateNative("UltJB_LastGuard_ResetDamageCounters", _UltJB_LastGuard_ResetDamageCounters);
 	
 	return APLRes_Success;
 }
@@ -99,6 +100,12 @@ public _UltJB_LastGuard_GetNumNeeded(Handle:hPlugin, iNumParams)
 public _UltJB_LastGuard_GetLastGuard(Handle:hPlugin, iNumParams)
 {
 	return GetClientFromSerial(g_iLastGuardSerial);
+}
+
+public _UltJB_LastGuard_ResetDamageCounters(Handle:hPlugin, iNumParams)
+{
+	ResetDamageCounters();
+	return true;
 }
 
 public OnMapStart()

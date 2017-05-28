@@ -43,6 +43,7 @@ new g_iTimerCountdown;
 new g_iTimerCountdownMax;
 
 new g_iWardenSerial;
+new g_iLastWardenSerial;
 new g_iClientWardenCount[MAXPLAYERS+1];
 
 new const String:PLAYER_MODEL_WARDEN[] = "models/player/custom_player/legacy/tm_professional.mdl";
@@ -116,6 +117,7 @@ new g_iRoundWardenCount;
 new bool:g_bLibLoaded_ItemEquipment;
 new bool:g_bLibLoaded_ClientSettings;
 new bool:g_bLibLoaded_PlayerChat;
+new bool:g_bRoundStarted;
 
 
 public OnPluginStart()
@@ -277,7 +279,7 @@ public Action:Command_SetWarden(iClient, iArgs)
 	
 	SetWarden(iTarget);
 	CPrintToChatAll("{green}[{lightred}SM{green}] {lightred}%N {olive}set as warden by {blue}%N{olive}.", iTarget, iClient);
-	
+	StopWardenTimer();
 	return Plugin_Handled;
 }
 
@@ -353,6 +355,7 @@ public OnMapStart()
 public OnClientPutInServer(iClient)
 {
 	g_iClientWardenCount[iClient] = 0;
+	SDKHook(iClient, SDKHook_SpawnPost, OnSpawnPost);
 }
 
 public OnPreThinkPost(iClient)
@@ -640,6 +643,7 @@ RoundEndCleanup()
 	
 	StopWardenTimer();
 	StopTimer_DrawBeamLine();
+	g_bRoundStarted = false;
 }
 
 StopWardenTimer()
@@ -658,6 +662,7 @@ public EventRoundFreezeEnd_Post(Handle:hEvent, const String:szName[], bool:bDont
 	
 	g_iRoundWardenCount = 0;
 	StartWardenTimer(true);
+	g_bRoundStarted = true;
 	
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
@@ -694,8 +699,7 @@ StartWardenTimer(bool:bIsInitial=false)
 		return;
 	
 	// Don't start the warden timer if LR started.
-	new iNumInitialized = UltJB_LR_GetNumInitialized() - UltJB_LR_GetNumStartedContains(LR_FLAG_FREEDAY);
-	if(iNumInitialized > 0)
+	if(UltJB_LR_CanLastRequest())
 		return;
 	
 	// Don't start the warden timer if last guard is activated.
@@ -784,6 +788,7 @@ SetWarden(iClient)
 	GetEntPropString(iClient, Prop_Data, "m_ModelName", g_szPlayerOriginalModel[iClient], sizeof(g_szPlayerOriginalModel[]));
 	
 	g_iWardenSerial = GetClientSerial(iClient);
+	g_iLastWardenSerial = g_iWardenSerial;
 	SetEntityModel(iClient, PLAYER_MODEL_WARDEN);
 	
 	if(g_bLibLoaded_ItemEquipment)
@@ -970,6 +975,7 @@ public OnClientDisconnect_Post(iClient)
 {
 	RemovePlayerFromQueue(iClient, g_aQueuePrimary);
 	RemovePlayerFromQueue(iClient, g_aQueueSecondary);
+	SDKUnhook(iClient, SDKHook_SpawnPost, OnSpawnPost);
 }
 
 public OnClientDisconnect(iClient)
@@ -1210,4 +1216,29 @@ SetBulletOriginsForLine()
 	g_fBulletOrigins_Line[1][0] = g_fBulletOriginsPulled_Saved[1][0];
 	g_fBulletOrigins_Line[1][1] = g_fBulletOriginsPulled_Saved[1][1];
 	g_fBulletOrigins_Line[1][2] = g_fBulletOriginsPulled_Saved[1][2];
+}
+
+public OnSpawnPost(iClient)
+{
+	
+	if(!g_bRoundStarted)
+		return;
+		
+	if(GetNumAliveGuards() < 1)
+		return;
+		
+	if(GetClientFromSerial(g_iWardenSerial))
+		return;
+		
+	if(g_hTimer_SelectWarden != INVALID_HANDLE)
+		return;
+	
+	new iWarden = GetClientFromSerial(g_iLastWardenSerial);
+	if(iWarden && GetClientTeam(iWarden) == TEAM_GUARDS && IsPlayerAlive(iWarden))
+	{
+		CPrintToChatAll("{green}[{lightred}SM{green}] {lightred}%N {olive}is now warden.", iWarden);
+		SetWarden(iWarden);
+	}
+	else
+		StartWardenTimer();
 }

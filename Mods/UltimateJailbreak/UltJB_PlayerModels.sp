@@ -23,14 +23,15 @@ public Plugin:myinfo =
 	url = "www.swoobles.com"
 }
 
-new const String:PLAYER_MODEL_CT[] = "models/player/custom_player/swoobles/guard/guard.mdl";
+new const String:PLAYER_MODEL_CT[] = "models/player/custom_player/legacy/ctm_swat.mdl";
 
-new const String:PLAYER_MODEL_CT_FILES[][] =
+/*new const String:PLAYER_MODEL_CT_FILES[][] =
 {
 	"models/player/custom_player/swoobles/guard/guard.dx90.vtx",
 	"models/player/custom_player/swoobles/guard/guard.phy",
 	"models/player/custom_player/swoobles/guard/guard.vvd"
-};
+};*/
+
 
 new const String:PLAYER_MODELS_T[][] =
 {
@@ -174,8 +175,8 @@ public OnMapStart()
 	for(new i=0; i<sizeof(PLAYER_MODEL_T_FILES); i++)
 		AddFileToDownloadsTable(PLAYER_MODEL_T_FILES[i]);
 	
-	for(new i=0; i<sizeof(PLAYER_MODEL_CT_FILES); i++)
-		AddFileToDownloadsTable(PLAYER_MODEL_CT_FILES[i]);
+	//for(new i=0; i<sizeof(PLAYER_MODEL_CT_FILES); i++)
+	//	AddFileToDownloadsTable(PLAYER_MODEL_CT_FILES[i]);
 	
 	for(new i=0; i<sizeof(PLAYER_MODELS_T); i++)
 	{
@@ -183,7 +184,7 @@ public OnMapStart()
 		PrecacheModel(PLAYER_MODELS_T[i]);
 	}
 	
-	AddFileToDownloadsTable(PLAYER_MODEL_CT);
+	//AddFileToDownloadsTable(PLAYER_MODEL_CT);
 	PrecacheModel(PLAYER_MODEL_CT);
 }
 

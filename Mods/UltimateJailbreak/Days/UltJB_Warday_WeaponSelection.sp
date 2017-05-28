@@ -2,6 +2,7 @@
 #include "../Includes/ultjb_last_request"
 #include "../Includes/ultjb_weapon_selection"
 #include "../Includes/ultjb_days"
+#include "../Includes/ultjb_logger"
 
 #pragma semicolon 1
 
@@ -47,6 +48,13 @@ public OnDayStart(iClient)
 public OnWeaponSelected_Success(iClient, iWeaponID, const iFlags[NUM_WPN_CATS])
 {
 	g_iWeaponSelectedID = iWeaponID;
+	
+	new String:szName[64];
+	UltJB_Weapons_GetEntNameFromWeaponID(iWeaponID, szName, sizeof(szName));
+	
+	new String:szMessage[512];
+	Format(szMessage, sizeof(szMessage), "%N selected weapon %s.", iClient, szName);
+	UltJB_Logger_LogEvent(szMessage, iClient, 0, LOGTYPE_ANY);
 	
 	//if(iWeaponID == _:CSWeapon_TASER)
 	//	g_bEventHooked_TaserShot = HookEventEx("weapon_fire", Event_TaserShot);

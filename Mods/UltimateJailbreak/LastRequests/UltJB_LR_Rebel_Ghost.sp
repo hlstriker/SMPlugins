@@ -147,7 +147,11 @@ public Action:Hook_OnDamage(iVictim, &attacker, &inflictor, &Float:damage, &dama
 	{
 		case TEAM_PRISONERS:
 		{
-			if ((StrContains(sWeapon, "hegrenade") != -1) || (StrContains(sWeapon, "inferno") != -1)) {
+			if(damagetype == DMG_FALL)
+			{
+				damage = 0.0;
+			}
+			else if((StrContains(sWeapon, "hegrenade") != -1) || (StrContains(sWeapon, "inferno") != -1) || (StrContains(sWeapon, "molotov") != -1)) {
 				damage = 0.0;
 			} else {
 				return Plugin_Continue;

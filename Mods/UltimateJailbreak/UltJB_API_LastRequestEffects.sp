@@ -119,10 +119,12 @@ SortEffectsByName()
 			continue;
 		
 		SwapArrayItems(g_aEffects, i, iIndex);
-		
-		// We must swap the IDtoIndex too.
+	}
+	
+	for(new i=0; i<iArraySize;i++)
+	{
+		GetArrayArray(g_aEffects, i, eEffect);
 		g_iEffectIDToIndex[eEffect[Effect_ID]] = i;
-		g_iEffectIDToIndex[iID] = iIndex;
 	}
 }
 
