@@ -1,9 +1,9 @@
 #include <sourcemod>
-#include "../../Libraries/DatabaseCore/database_core"
-#include "../../Libraries/DatabaseUsers/database_users"
-#include "../../Libraries/DatabaseServers/database_servers"
-#include "../../Libraries/Donators/donators"
-#include "../../Libraries/WebPageViewer/web_page_viewer"
+#include "../../../Libraries/DatabaseCore/database_core"
+#include "../../../Libraries/DatabaseUsers/database_users"
+#include "../../../Libraries/DatabaseServers/database_servers"
+#include "../../../Libraries/Donators/donators"
+#include "../../../Libraries/WebPageViewer/web_page_viewer"
 #include "donatoritem_titles"
 #include <hls_color_chat>
 

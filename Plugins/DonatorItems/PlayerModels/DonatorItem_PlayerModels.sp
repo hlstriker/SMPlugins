@@ -1,11 +1,11 @@
 #include <sourcemod>
-#include <sdkhooks>
 #include <cstrike>
 #include <sdktools_functions>
 #include <sdktools_stringtables>
-#include "../../Libraries/Donators/donators"
-#include "../../Libraries/ClientCookies/client_cookies"
-#include "../../Libraries/FileDownloader/file_downloader"
+#include "../../../Libraries/Donators/donators"
+#include "../../../Libraries/ClientCookies/client_cookies"
+#include "../../../Libraries/FileDownloader/file_downloader"
+#include "../../../Libraries/ModelSkinManager/model_skin_manager"
 #include <hls_color_chat>
 
 #pragma semicolon 1
@@ -452,9 +452,13 @@ public OnPluginStart()
 	g_aDownloadQueue = CreateArray(PLATFORM_MAX_PATH);
 }
 
+//#define GLOVE_MODEL "models/weapons/v_models/arms/glove_motorcycle/v_glove_motorcycle.mdl"
+#define GLOVE_MODEL "models/player/custom_player/caleon1/connor/connor_arms.mdl"
+
 public OnMapStart()
 {
 	InitFiles();
+	PrecacheModel(GLOVE_MODEL);
 }
 
 InitFiles()
@@ -546,19 +550,15 @@ GetRandomActivatedItemIndex(iClient)
 	return iActivated[GetRandomInt(0, iNumFound-1)];
 }
 
-public OnClientPutInServer(iClient)
+public MSManager_OnSpawn(iClient)
 {
 	if(!g_bModelsEnabled)
 		return;
 	
-	if(!IsFakeClient(iClient))
-		SDKHook(iClient, SDKHook_SpawnPost, OnSpawnPost);
-}
-
-public OnSpawnPost(iClient)
-{
-	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
-		return;
+	//MSManager_SetArmsModel(iClient, GLOVE_MODEL);
+	new iEnt = MSManager_CreateWearableItem(iClient, 5030, 10034);
+	PrintToServer("Wearable %i", iEnt);
+	
 	
 	new iItemIndex = GetRandomActivatedItemIndex(iClient);
 	if(iItemIndex < 0)
@@ -569,7 +569,8 @@ public OnSpawnPost(iClient)
 
 SetPlayerModel(iClient, iItemIndex)
 {
-	SetEntityModel(iClient, g_szPlayerModelPaths[iItemIndex]);
+	//SetEntityModel(iClient, g_szPlayerModelPaths[iItemIndex]);
+	MSManager_SetPlayerModel(iClient, g_szPlayerModelPaths[iItemIndex]);
 	
 	switch(GetClientTeam(iClient))
 	{
@@ -653,13 +654,14 @@ public MenuHandle_ToggleItems(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 	new iItemIndex = StringToInt(szInfo);
 	
 	if(iItemIndex < 0)
-	{
 		g_iItemBits[iParam1] = 0;
-	}
 	else
-	{
 		g_iItemBits[iParam1] ^= (1<<iItemIndex);
-	}
+	
+	if(g_iItemBits[iParam1] & (1<<iItemIndex))
+		SetPlayerModel(iParam1, iItemIndex);
+	else
+		MSManager_RemovePlayerModel(iParam1);
 	
 	ClientCookies_SetCookie(iParam1, CC_TYPE_DONATOR_ITEM_PLAYER_MODELS, g_iItemBits[iParam1]);
 	DisplayMenu_ToggleItems(iParam1, GetMenuSelectionPosition());

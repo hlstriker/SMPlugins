@@ -1,6 +1,6 @@
 #include <sourcemod>
-#include "../../Libraries/Donators/donators"
-#include "../../Libraries/ClientCookies/client_cookies"
+#include "../../../Libraries/Donators/donators"
+#include "../../../Libraries/ClientCookies/client_cookies"
 #include <hls_color_chat>
 
 #pragma semicolon 1
