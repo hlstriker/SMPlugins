@@ -11,7 +11,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Donator Item: Player Models";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -452,13 +452,9 @@ public OnPluginStart()
 	g_aDownloadQueue = CreateArray(PLATFORM_MAX_PATH);
 }
 
-//#define GLOVE_MODEL "models/weapons/v_models/arms/glove_motorcycle/v_glove_motorcycle.mdl"
-#define GLOVE_MODEL "models/player/custom_player/caleon1/connor/connor_arms.mdl"
-
 public OnMapStart()
 {
 	InitFiles();
-	PrecacheModel(GLOVE_MODEL);
 }
 
 InitFiles()
@@ -555,11 +551,6 @@ public MSManager_OnSpawn(iClient)
 	if(!g_bModelsEnabled)
 		return;
 	
-	//MSManager_SetArmsModel(iClient, GLOVE_MODEL);
-	new iEnt = MSManager_CreateWearableItem(iClient, 5030, 10034);
-	PrintToServer("Wearable %i", iEnt);
-	
-	
 	new iItemIndex = GetRandomActivatedItemIndex(iClient);
 	if(iItemIndex < 0)
 		return;
@@ -569,7 +560,6 @@ public MSManager_OnSpawn(iClient)
 
 SetPlayerModel(iClient, iItemIndex)
 {
-	//SetEntityModel(iClient, g_szPlayerModelPaths[iItemIndex]);
 	MSManager_SetPlayerModel(iClient, g_szPlayerModelPaths[iItemIndex]);
 	
 	switch(GetClientTeam(iClient))
@@ -658,10 +648,12 @@ public MenuHandle_ToggleItems(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 	else
 		g_iItemBits[iParam1] ^= (1<<iItemIndex);
 	
+	/*
 	if(g_iItemBits[iParam1] & (1<<iItemIndex))
 		SetPlayerModel(iParam1, iItemIndex);
 	else
 		MSManager_RemovePlayerModel(iParam1);
+	*/
 	
 	ClientCookies_SetCookie(iParam1, CC_TYPE_DONATOR_ITEM_PLAYER_MODELS, g_iItemBits[iParam1]);
 	DisplayMenu_ToggleItems(iParam1, GetMenuSelectionPosition());
