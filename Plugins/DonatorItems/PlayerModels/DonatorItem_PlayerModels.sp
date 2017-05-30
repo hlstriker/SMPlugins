@@ -1,17 +1,21 @@
 #include <sourcemod>
 #include <cstrike>
+#include <sdkhooks>
 #include <sdktools_functions>
 #include <sdktools_stringtables>
 #include "../../../Libraries/Donators/donators"
 #include "../../../Libraries/ClientCookies/client_cookies"
 #include "../../../Libraries/FileDownloader/file_downloader"
-#include "../../../Libraries/ModelSkinManager/model_skin_manager"
 #include <hls_color_chat>
+
+#undef REQUIRE_PLUGIN
+#include "../../../Libraries/ModelSkinManager/model_skin_manager"
+#define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Donator Item: Player Models";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
@@ -29,6 +33,8 @@ new bool:g_bModelsEnabled;
 
 new Handle:g_hFwd_OnModelSet;
 new g_iItemBits[MAXPLAYERS+1];
+
+new bool:g_bLibLoaded_ModelSkinManager;
 
 new const String:g_szPlayerModelNames[][] =
 {
@@ -452,6 +458,23 @@ public OnPluginStart()
 	g_aDownloadQueue = CreateArray(PLATFORM_MAX_PATH);
 }
 
+public OnAllPluginsLoaded()
+{
+	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+		g_bLibLoaded_ModelSkinManager = true;
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+		g_bLibLoaded_ModelSkinManager = false;
+}
+
 public OnMapStart()
 {
 	InitFiles();
@@ -546,10 +569,27 @@ GetRandomActivatedItemIndex(iClient)
 	return iActivated[GetRandomInt(0, iNumFound-1)];
 }
 
-public MSManager_OnSpawnPost(iClient)
+public OnClientPutInServer(iClient)
+{
+	if(!IsFakeClient(iClient))
+		SDKHook(iClient, SDKHook_SpawnPost, OnSpawnPost);
+}
+
+public OnSpawnPost(iClient)
 {
 	if(!g_bModelsEnabled)
 		return;
+	
+	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
+		return;
+	
+	if(g_bLibLoaded_ModelSkinManager)
+	{
+		#if defined _model_skin_manager_included
+		if(MSManager_IsBeingForceRespawned(iClient))
+			return;
+		#endif
+	}
 	
 	new iItemIndex = GetRandomActivatedItemIndex(iClient);
 	if(iItemIndex < 0)
@@ -560,7 +600,18 @@ public MSManager_OnSpawnPost(iClient)
 
 SetPlayerModel(iClient, iItemIndex)
 {
-	MSManager_SetPlayerModel(iClient, g_szPlayerModelPaths[iItemIndex]);
+	if(g_bLibLoaded_ModelSkinManager)
+	{
+		#if defined _model_skin_manager_included
+		MSManager_SetPlayerModel(iClient, g_szPlayerModelPaths[iItemIndex]);
+		#else
+		SetEntityModel(iClient, g_szPlayerModelPaths[iItemIndex]);
+		#endif
+	}
+	else
+	{
+		SetEntityModel(iClient, g_szPlayerModelPaths[iItemIndex]);
+	}
 	
 	switch(GetClientTeam(iClient))
 	{
@@ -647,13 +698,6 @@ public MenuHandle_ToggleItems(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 		g_iItemBits[iParam1] = 0;
 	else
 		g_iItemBits[iParam1] ^= (1<<iItemIndex);
-	
-	/*
-	if(g_iItemBits[iParam1] & (1<<iItemIndex))
-		SetPlayerModel(iParam1, iItemIndex);
-	else
-		MSManager_RemovePlayerModel(iParam1);
-	*/
 	
 	ClientCookies_SetCookie(iParam1, CC_TYPE_DONATOR_ITEM_PLAYER_MODELS, g_iItemBits[iParam1]);
 	DisplayMenu_ToggleItems(iParam1, GetMenuSelectionPosition());

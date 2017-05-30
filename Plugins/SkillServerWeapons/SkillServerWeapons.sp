@@ -13,7 +13,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Skill Server Weapons";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -430,19 +430,16 @@ TryGiveTeamDefaultPistol(iClient)
 
 public OnSpawnPost(iClient)
 {
-	if(!g_bLibLoaded_ModelSkinManager)
-		OnSpawnPostLogic(iClient);
-}
-
-public MSManager_OnSpawnPost(iClient)
-{
-	OnSpawnPostLogic(iClient);
-}
-
-OnSpawnPostLogic(iClient)
-{
 	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
 		return;
+	
+	if(g_bLibLoaded_ModelSkinManager)
+	{
+		#if defined _model_skin_manager_included
+		if(MSManager_IsBeingForceRespawned(iClient))
+			return;
+		#endif
+	}
 	
 	SetEntProp(iClient, Prop_Send, "m_bHasDefuser", 0);
 	
