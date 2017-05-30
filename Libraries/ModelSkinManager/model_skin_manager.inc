@@ -23,7 +23,7 @@ public SharedPlugin:__pl_model_skin_manager =
 /**
  * Called when a client spawns. This is called from within a SDKHook_SpawnPost callback.
  * NOTE: You should always use this forward if you're setting player models or arms when a client spawns.
- * WARNING: You should also always use this forward for hooking when a player spawns regardless since this plugin can cause interference with other plugin's spawn callbacks.
+ * WARNING: You should also always use this forward for hooking when a player spawns, or check MSManager_IsBeingForceRespawned() in your spawn function to prevent interference.
  *
  * @param client		The client that spawned.
  * @noreturn
@@ -120,6 +120,14 @@ native bool:MSManager_HasCustomArms(client);
  */
 native bool:MSManager_HasWearableGloves(client);
 
+/**
+ * Checks to see if a client is in the process of being force respawned for arm reapplication.
+ *
+ * @param client		The client to check.
+ * @return				True if being force respawned, false otherwise.
+ */
+native bool:MSManager_IsBeingForceRespawned(client);
+
 
 #if !defined REQUIRE_PLUGIN
 public __pl_model_skin_manager_SetNTVOptional()
@@ -134,5 +142,6 @@ public __pl_model_skin_manager_SetNTVOptional()
 	MarkNativeAsOptional("MSManager_HasDefaultArms");
 	MarkNativeAsOptional("MSManager_HasCustomArms");
 	MarkNativeAsOptional("MSManager_HasWearableGloves");
+	MarkNativeAsOptional("MSManager_IsBeingForceRespawned");
 }
 #endif

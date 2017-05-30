@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Model Skin Manager";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -134,8 +134,14 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	CreateNative("MSManager_HasDefaultArms", _MSManager_HasDefaultArms);
 	CreateNative("MSManager_HasCustomArms", _MSManager_HasCustomArms);
 	CreateNative("MSManager_HasWearableGloves", _MSManager_HasWearableGloves);
+	CreateNative("MSManager_IsBeingForceRespawned", _MSManager_IsBeingForceRespawned);
 	
 	return APLRes_Success;
+}
+
+public _MSManager_IsBeingForceRespawned(Handle:hPlugin, iNumParams)
+{
+	return g_bIsForceRespawning[GetNativeCell(1)];
 }
 
 public _MSManager_HasDefaultArms(Handle:hPlugin, iNumParams)
@@ -550,6 +556,7 @@ public OnClientDisconnect(iClient)
 	ClearCustomModels(iClient);
 	g_bRemoveArms[iClient] = false;
 	g_iWearableOnSpawn_ItemDefIndex[iClient] = 0;
+	g_bIsForceRespawning[iClient] = false;
 	StopTimer_ReapplyActiveWeapon(iClient);
 }
 
