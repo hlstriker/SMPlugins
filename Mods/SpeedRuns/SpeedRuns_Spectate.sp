@@ -156,6 +156,8 @@ MoveToSpec(iClient)
 	}
 	*/
 	
+	// TODO: Instead of killing the player we should send the team event if ChangeClientTeam() doesn't. Need to check this.
+	// -->
 	ChangeClientTeam(iClient, CS_TEAM_SPECTATOR);
 	
 	if(bPaused)
