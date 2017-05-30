@@ -16,7 +16,7 @@ public SharedPlugin:__pl_client_cookies =
 };
 
 
-// WARNING: Never comment out or change the order of this enum! Keep adding to the end if you're adding more types.
+// WARNING: Never comment out, delete, or change the order of this enum! Keep adding to the end if you're adding more types.
 enum ClientCookieType
 {
 	CC_TYPE_HIDE_PLAYERS = 0,
@@ -43,6 +43,10 @@ enum ClientCookieType
 	CC_TYPE_SHOW_SPECTATORS,
 	CC_TYPE_DONATOR_ITEM_BODY_SIZE,
 	CC_TYPE_DONATOR_ITEM_BODY_TRANSPARENCY,
+	CC_TYPE_SPOOFED_SKINS_GLOVES_TYPE,
+	CC_TYPE_SPOOFED_SKINS_GLOVES_PAINT,
+	CC_TYPE_SPOOFED_SKINS_WEAPONS_TYPE,
+	CC_TYPE_SPOOFED_SKINS_WEAPONS_PAINT,
 	
 	NUM_CC_TYPES = 256 // Set this to a high number since its used to allocate the array size. We dont want to recompile the API each time we add a new cookie type.
 };
