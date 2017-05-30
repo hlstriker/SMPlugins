@@ -6,10 +6,14 @@
 #include "../../Libraries/ClientCookies/client_cookies"
 #include <hls_color_chat>
 
+#undef REQUIRE_PLUGIN
+#include "../../Libraries/ModelSkinManager/model_skin_manager"
+#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Skill Server Weapons";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -70,6 +74,8 @@ new g_iPistolIndex[MAXPLAYERS+1];
 
 new bool:g_bShouldHideWeapons[MAXPLAYERS+1];
 
+new bool:g_bLibLoaded_ModelSkinManager;
+
 
 public OnPluginStart()
 {
@@ -92,6 +98,23 @@ public OnPluginStart()
 	RegConsoleCmd("sm_knife", OnWeaponSelect, "Opens the weapon selection menu.");
 	RegConsoleCmd("sm_knives", OnWeaponSelect, "Opens the weapon selection menu.");
 	RegConsoleCmd("sm_ws", OnWeaponSelect, "Opens the weapon selection menu.");
+}
+
+public OnAllPluginsLoaded()
+{
+	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+		g_bLibLoaded_ModelSkinManager = true;
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+		g_bLibLoaded_ModelSkinManager = false;
 }
 
 public Action:OnWeaponSelect(iClient, iArgNum)
@@ -406,6 +429,17 @@ TryGiveTeamDefaultPistol(iClient)
 }
 
 public OnSpawnPost(iClient)
+{
+	if(!g_bLibLoaded_ModelSkinManager)
+		OnSpawnPostLogic(iClient);
+}
+
+public MSManager_OnSpawnPost(iClient)
+{
+	OnSpawnPostLogic(iClient);
+}
+
+OnSpawnPostLogic(iClient)
 {
 	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
 		return;

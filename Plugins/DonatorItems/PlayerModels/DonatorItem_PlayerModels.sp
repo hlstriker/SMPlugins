@@ -546,7 +546,7 @@ GetRandomActivatedItemIndex(iClient)
 	return iActivated[GetRandomInt(0, iNumFound-1)];
 }
 
-public MSManager_OnSpawn(iClient)
+public MSManager_OnSpawnPost(iClient)
 {
 	if(!g_bModelsEnabled)
 		return;
