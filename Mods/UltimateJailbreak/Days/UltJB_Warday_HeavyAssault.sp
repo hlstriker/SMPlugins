@@ -40,13 +40,15 @@ public UltJB_Day_OnRegisterReady()
 public OnDayStart(iClient)
 {
 	SetConVarInt(g_hAllowHeavy, 1);
-	GivePlayersSuits();
 	SetConVarInt(g_hBuyAnywhere, 1);
+	StripWeapons();
+	GivePlayersSuits();
 }
 
 public OnDayEnd(iClient)
 {
 	SetConVarInt(g_hAllowHeavy, 0);
+	SlayGuards();
 }
 
 GivePlayersSuits()
@@ -67,4 +69,30 @@ GivePlayersSuits()
 public OnFreezeEnd()
 {
 	SetConVarInt(g_hBuyAnywhere, 0);
+	GivePlayersSuits();
+}
+
+StripWeapons()
+{
+	for(new iClient=1; iClient<=MaxClients; iClient++)
+	{
+		if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
+			continue;
+		
+		UltJB_LR_StripClientsWeapons(iClient);
+	}
+}
+
+SlayGuards()
+{
+	for(new iClient=1; iClient<=MaxClients; iClient++)
+	{
+		if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
+			continue;
+		
+		if(GetClientTeam(iClient) != TEAM_GUARDS)
+			continue;
+		
+		ForcePlayerSuicide(iClient);
+	}
 }
