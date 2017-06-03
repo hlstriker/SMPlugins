@@ -26,7 +26,7 @@ new Handle:g_hTaserTime;
 
 public OnPluginStart()
 {
-	CreateConVar("warday_heavy_assault_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
+	CreateConVar("warday_taser_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	g_hTaserTime = FindConVar("mp_taser_recharge_time");
 }
 
