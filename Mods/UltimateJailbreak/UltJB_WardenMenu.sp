@@ -10,6 +10,7 @@
 #include <emitsoundany>
 #include "Includes/ultjb_warden"
 #include "Includes/ultjb_last_request"
+#include "Includes/ultjb_logger"
 
 #undef REQUIRE_PLUGIN
 #include "../../Libraries/ParticleManager/particle_manager"
