@@ -33,6 +33,9 @@ enum _:Type
 	String:TYPE_NAME[MAX_TYPE_PAINT_NAME_LEN]
 };
 
+new g_iStartIndex_Type;
+new g_iStartIndex_Paint;
+
 new g_iGloveIndex_Type[MAXPLAYERS+1];
 new g_iGloveIndex_Paint[MAXPLAYERS+1];
 
@@ -43,34 +46,43 @@ public OnPluginStart()
 	
 	RegConsoleCmd("sm_gloves", OnGlovesSelect, "Opens the glove selection menu.");
 	
-	g_aTypes = CreateArray(Type);
 	BuildArray_Types();
-	
-	g_aPaints = CreateArray(Type);
 	BuildArray_Paints();
 }
 
-#define TYPE_START_INDEX 2
 BuildArray_Types()
 {
+	if(g_aTypes == INVALID_HANDLE)
+		g_aTypes = CreateArray(Type);
+	else
+		ClearArray(g_aTypes);
+	
 	AddType("Default", 0);
 	AddType("Random", 0);
 	
 	// NOTE: Add new types to end of list.
+	g_iStartIndex_Type = GetArraySize(g_aTypes);
 	AddType("Bloodhound Gloves", 5027);
 	AddType("Sport Gloves", 5030);
 	AddType("Driver Gloves", 5031);
 	AddType("Hand Wraps", 5032);
 	AddType("Moto Gloves", 5033);
 	AddType("Specialist Gloves", 5034);
+	
+	SortTypeArrayByName(g_aTypes, g_iStartIndex_Type);
 }
 
-#define PAINT_START_INDEX 1
 BuildArray_Paints()
 {
+	if(g_aPaints == INVALID_HANDLE)
+		g_aPaints = CreateArray(Type);
+	else
+		ClearArray(g_aPaints);
+	
 	AddPaint("Random", 0);
 	
 	// NOTE: Add new paints to end of list.
+	g_iStartIndex_Paint = GetArraySize(g_aPaints);
 	AddPaint("Charred", 10006);
 	AddPaint("Snakebite", 10007);
 	AddPaint("Bronzed", 10008);
@@ -95,6 +107,8 @@ BuildArray_Paints()
 	AddPaint("Crimson Kimono", 10033);
 	AddPaint("Emerald Web", 10034);
 	AddPaint("Foundation", 10035);
+	
+	SortTypeArrayByName(g_aPaints, g_iStartIndex_Paint);
 }
 
 AddType(const String:szName[], iIndex)
@@ -115,6 +129,34 @@ AddPaint(const String:szName[], iIndex)
 	PushArrayArray(g_aPaints, ePaint);
 }
 
+SortTypeArrayByName(Handle:hArray, iStartIndex)
+{
+	new iArraySize = GetArraySize(hArray);
+	decl String:szName[MAX_TYPE_PAINT_NAME_LEN], eType[Type], j, iIndex;
+	
+	for(new i=iStartIndex; i<iArraySize; i++)
+	{
+		GetArrayArray(hArray, i, eType);
+		strcopy(szName, sizeof(szName), eType[TYPE_NAME]);
+		iIndex = 0;
+		
+		for(j=i+1; j<iArraySize; j++)
+		{
+			GetArrayArray(hArray, j, eType);
+			if(strcmp(szName, eType[TYPE_NAME], false) < 0)
+				continue;
+			
+			iIndex = j;
+			strcopy(szName, sizeof(szName), eType[TYPE_NAME]);
+		}
+		
+		if(!iIndex)
+			continue;
+		
+		SwapArrayItems(hArray, i, iIndex);
+	}
+}
+
 public OnClientConnected(iClient)
 {
 	g_iGloveIndex_Type[iClient] = -1;
@@ -127,7 +169,7 @@ public ClientCookies_OnCookiesLoaded(iClient)
 	{
 		g_iGloveIndex_Type[iClient] = ClientCookies_GetCookie(iClient, CC_TYPE_SPOOFED_SKINS_GLOVES_TYPE);
 		
-		if(g_iGloveIndex_Type[iClient] > 0 && g_iGloveIndex_Type[iClient] < TYPE_START_INDEX)
+		if(g_iGloveIndex_Type[iClient] > 0 && g_iGloveIndex_Type[iClient] < g_iStartIndex_Type)
 			g_iGloveIndex_Type[iClient] = -1;
 	}
 	
@@ -135,7 +177,7 @@ public ClientCookies_OnCookiesLoaded(iClient)
 	{
 		g_iGloveIndex_Paint[iClient] = ClientCookies_GetCookie(iClient, CC_TYPE_SPOOFED_SKINS_GLOVES_PAINT);
 		
-		if(g_iGloveIndex_Paint[iClient] != -1 && g_iGloveIndex_Paint[iClient] < PAINT_START_INDEX)
+		if(g_iGloveIndex_Paint[iClient] != -1 && g_iGloveIndex_Paint[iClient] < g_iStartIndex_Paint)
 			g_iGloveIndex_Paint[iClient] = -1;
 	}
 }
@@ -370,9 +412,9 @@ bool:CheckMenuSpam(iClient)
 	static Float:fLastUse[MAXPLAYERS+1], Float:fCurTime;
 	fCurTime = GetEngineTime();
 	
-	if(fCurTime < fLastUse[iClient] + 2.0)
+	if(fCurTime < fLastUse[iClient] + 0.5)
 	{
-		CPrintToChat(iClient, "{red}Please wait a few seconds before using the menu again.");
+		CPrintToChat(iClient, "{red}Please wait a second before using the menu again.");
 		return false;
 	}
 	
@@ -386,10 +428,10 @@ bool:ApplyGloves(iClient, bool:bShowMessage=true)
 	new iTypeIndex = g_iGloveIndex_Type[iClient];
 	new iPaintIndex = g_iGloveIndex_Paint[iClient];
 	
-	if(iTypeIndex < TYPE_START_INDEX)
+	if(iTypeIndex < g_iStartIndex_Type)
 	{
 		new iArraySize = GetArraySize(g_aTypes);
-		if(iArraySize <= TYPE_START_INDEX)
+		if(iArraySize <= g_iStartIndex_Type)
 		{
 			if(bShowMessage)
 				CPrintToChat(iClient, "{red}Error: There are no glove types.");
@@ -398,13 +440,13 @@ bool:ApplyGloves(iClient, bool:bShowMessage=true)
 			return false;
 		}
 		
-		iTypeIndex = GetRandomInt(TYPE_START_INDEX, iArraySize-1);
+		iTypeIndex = GetRandomInt(g_iStartIndex_Type, iArraySize-1);
 	}
 	
-	if(iPaintIndex < PAINT_START_INDEX)
+	if(iPaintIndex < g_iStartIndex_Paint)
 	{
 		new iArraySize = GetArraySize(g_aPaints);
-		if(iArraySize <= PAINT_START_INDEX)
+		if(iArraySize <= g_iStartIndex_Paint)
 		{
 			if(bShowMessage)
 				CPrintToChat(iClient, "{red}Error: There are no glove paints.");
@@ -413,7 +455,7 @@ bool:ApplyGloves(iClient, bool:bShowMessage=true)
 			return false;
 		}
 		
-		iPaintIndex = GetRandomInt(PAINT_START_INDEX, iArraySize-1);
+		iPaintIndex = GetRandomInt(g_iStartIndex_Paint, iArraySize-1);
 	}
 	
 	decl eType[Type], ePaint[Type];
