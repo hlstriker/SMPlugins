@@ -12,7 +12,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Particle Manager";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -160,7 +160,7 @@ bool:IsParticleFileDownloading()
 	LogMessage("Starting download: %s", MANAGER_FILE_PATH);
 	
 	decl String:szURL[512];
-	FormatEx(szURL, sizeof(szURL), "http://storefiles.swoobles.com/%s", MANAGER_FILE_PATH);
+	FormatEx(szURL, sizeof(szURL), "http://swoobles.com/plugin_files/%s", MANAGER_FILE_PATH);
 	FileDownloader_DownloadFile(szURL, MANAGER_FILE_PATH, OnDownloadSuccess, OnDownloadFailed);
 	
 	decl String:szFilePathBz2[PLATFORM_MAX_PATH];

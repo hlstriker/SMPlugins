@@ -15,7 +15,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Donator Item: Player Models";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -770,7 +770,7 @@ StartNextDownloadInQueue()
 	g_bIsFileDownloading = true;
 	
 	decl String:szURL[512];
-	FormatEx(szURL, sizeof(szURL), "http://storefiles.swoobles.com/%s", szFilePath);
+	FormatEx(szURL, sizeof(szURL), "http://swoobles.com/plugin_files/%s", szFilePath);
 	FileDownloader_DownloadFile(szURL, szFilePath, OnDownloadSuccess, OnDownloadFailed);
 }
 
