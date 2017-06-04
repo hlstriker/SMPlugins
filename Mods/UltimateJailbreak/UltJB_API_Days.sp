@@ -875,7 +875,6 @@ SetDayUsed(iClient)
 
 bool:CanSelectFreeday(iClient)
 {
-	return true;
 	if(UltJB_Warden_GetClientWardenCount(iClient) < 2)
 		return false;
 	
@@ -887,7 +886,6 @@ bool:CanSelectFreeday(iClient)
 
 bool:CanSelectWarday(iClient)
 {
-	return true;
 	if(UltJB_Warden_GetClientWardenCount(iClient) < 2)
 		return false;
 	

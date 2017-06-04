@@ -175,6 +175,7 @@ public OnPluginStart()
 	cvar_can_import_from_another_map = CreateConVar("zm_can_import_from_another_map", "0", "Set to allow importing zones from another map.", _, true, 0.0, true, 1.0);
 	
 	RegAdminCmd("sm_zonemanager", OnZoneManager, ADMFLAG_BAN, "Opens the zone manager.");
+	RegAdminCmd("sm_zm", OnZoneManager, ADMFLAG_BAN, "Opens the zone manager.");
 	
 	HookEvent("round_start", Event_RoundStart_Pre, EventHookMode_Pre);
 }
