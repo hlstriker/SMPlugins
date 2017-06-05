@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Donators";
-new const String:PLUGIN_VERSION[] = "2.2";
+new const String:PLUGIN_VERSION[] = "2.3";
 
 public Plugin:myinfo =
 {
@@ -219,9 +219,6 @@ public DBServers_OnServerIDReady(iServerID, iGameID)
 	if(!Query_CreateTable_DonatorServers())
 		return;
 	
-	if(!Query_CreateTable_DonatorLogs())
-		return;
-	
 	if(!Query_CreateTable_DonatorPackages())
 		return;
 	
@@ -280,36 +277,6 @@ bool:Query_CreateTable_DonatorServers()
 	if(hQuery == INVALID_HANDLE)
 	{
 		LogError("There was an error creating the donator_servers sql table.");
-		return false;
-	}
-	
-	DB_CloseQueryHandle(hQuery);
-	bTableCreated = true;
-	
-	return true;
-}
-
-bool:Query_CreateTable_DonatorLogs()
-{
-	static bool:bTableCreated = false;
-	if(bTableCreated)
-		return true;
-	
-	new Handle:hQuery = DB_Query(g_szDatabaseBridgeConfigName, "\
-	CREATE TABLE IF NOT EXISTS donator_logs\
-	(\
-		log_id					INT UNSIGNED			NOT NULL		AUTO_INCREMENT,\
-		log_type				TINYINT UNSIGNED		NOT NULL,\
-		log_data1				INT UNSIGNED			NOT NULL,\
-		log_text				TEXT					NOT NULL,\
-		log_utime				INT						NOT NULL,\
-		PRIMARY KEY ( log_id ),\
-		INDEX ( log_type )\
-	) ENGINE = INNODB");
-	
-	if(hQuery == INVALID_HANDLE)
-	{
-		LogError("There was an error creating the donator_logs sql table.");
 		return false;
 	}
 	
