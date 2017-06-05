@@ -6,7 +6,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Client Cookies";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -104,6 +104,9 @@ public _ClientCookies_SetCookie(Handle:hPlugin, iNumParams)
 
 public OnClientDisconnect(iClient)
 {
+	if(!g_bHaveCookiesLoaded[iClient])
+		return;
+	
 	new iUserID = DBUsers_GetUserID(iClient);
 	if(iUserID < 1)
 		return;
