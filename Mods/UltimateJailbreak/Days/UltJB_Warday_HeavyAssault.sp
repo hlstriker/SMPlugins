@@ -48,7 +48,7 @@ public OnDayStart(iClient)
 public OnDayEnd(iClient)
 {
 	SetConVarInt(g_hAllowHeavy, 0);
-	SlayGuards();
+	RemoveSuits();
 }
 
 GivePlayersSuits()
@@ -62,7 +62,8 @@ GivePlayersSuits()
 			continue;
 		
 		UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_KNIFE);
-		GivePlayerItem(iClient, "item_heavyassaultsuit");
+		SetEntProp(iClient, Prop_Send, "m_bHasHeavyArmor", 1);
+		SetEntProp(iClient, Prop_Send, "m_ArmorValue", 250);
 	}
 }
 
@@ -83,7 +84,7 @@ StripWeapons()
 	}
 }
 
-SlayGuards()
+RemoveSuits()
 {
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
@@ -93,6 +94,7 @@ SlayGuards()
 		if(GetClientTeam(iClient) != TEAM_GUARDS)
 			continue;
 		
-		ForcePlayerSuicide(iClient);
+		SetEntProp(iClient, Prop_Send, "m_ArmorValue", 0);
+		SetEntProp(iClient, Prop_Send, "m_bHasHeavyArmor", 0);
 	}
 }
