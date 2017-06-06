@@ -6,7 +6,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_VERSION[] = "3.2";
+new const String:PLUGIN_VERSION[] = "3.3";
 
 public Plugin:myinfo =
 {
@@ -76,7 +76,7 @@ bool:Query_CreateTable_RotatingMessages()
 		enabled		BIT( 1 )			NOT NULL	DEFAULT 1,\
 		PRIMARY KEY ( id ),\
 		INDEX ( enabled, server_id, ordering )\
-	) CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = MYISAM");
+	) CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB");
 	
 	if(hQuery == INVALID_HANDLE)
 	{

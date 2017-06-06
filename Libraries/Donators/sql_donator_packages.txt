@@ -8,4 +8,4 @@ CREATE TABLE IF NOT EXISTS donator_packages
 	package_description	VARCHAR( 255 )		NOT NULL,
 
 	PRIMARY KEY ( package_number )
-) ENGINE = MYISAM;
+) ENGINE = INNODB;

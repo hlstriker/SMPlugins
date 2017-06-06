@@ -16,7 +16,7 @@
 #pragma dynamic 500000
 
 new const String:PLUGIN_NAME[] = "Map Voting";
-new const String:PLUGIN_VERSION[] = "1.15";
+new const String:PLUGIN_VERSION[] = "1.16";
 
 public Plugin:myinfo =
 {
@@ -1774,7 +1774,7 @@ bool:Query_CreateTable_MapVoteCategories()
 		played_max	TINYINT UNSIGNED	NOT NULL,\
 		PRIMARY KEY ( cat_id ),\
 		INDEX ( server_id )\
-	) ENGINE = MYISAM");
+	) ENGINE = INNODB");
 	
 	if(hQuery == INVALID_HANDLE)
 	{
@@ -1804,7 +1804,7 @@ bool:Query_CreateTable_MapVoteMaps()
 		map_time	FLOAT(11,6)			NOT NULL,\
 		round_time	FLOAT(11,6)			NOT NULL,\
 		PRIMARY KEY ( cat_id, map_name )\
-	) ENGINE = MYISAM");
+	) ENGINE = INNODB");
 	
 	if(hQuery == INVALID_HANDLE)
 	{

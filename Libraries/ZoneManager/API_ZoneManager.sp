@@ -15,7 +15,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Zone Manager";
-new const String:PLUGIN_VERSION[] = "1.14";
+new const String:PLUGIN_VERSION[] = "1.15";
 
 public Plugin:myinfo =
 {
@@ -2801,7 +2801,7 @@ bool:Query_CreateDataTable()
 		data_string_5	VARCHAR( 255 )		NOT NULL,\
 		\
 		PRIMARY KEY ( game_id, map_id, zone_id )\
-	) ENGINE = MYISAM");
+	) ENGINE = INNODB");
 	
 	if(hQuery == INVALID_HANDLE)
 	{

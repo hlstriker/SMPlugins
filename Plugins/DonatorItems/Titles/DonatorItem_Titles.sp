@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Donator Item: Titles";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -87,7 +87,7 @@ bool:Query_CreateTable_DonatorTitles()
 		user_id			INT UNSIGNED		NOT NULL,\
 		title			VARCHAR( 12 )		NOT NULL,\
 		PRIMARY KEY ( user_id )\
-	) CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = MYISAM");
+	) CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB");
 	
 	if(hQuery == INVALID_HANDLE)
 	{

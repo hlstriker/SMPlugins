@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Database Maps";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -148,7 +148,7 @@ bool:Query_CreateMapsTable()
 		map_id			MEDIUMINT UNSIGNED		NOT NULL	AUTO_INCREMENT,\
 		PRIMARY KEY ( game_id, map_name ),\
 		UNIQUE ( map_id )\
-	) CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = MYISAM");
+	) CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB");
 	
 	if(hQuery == INVALID_HANDLE)
 	{

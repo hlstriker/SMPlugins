@@ -11,4 +11,4 @@ CREATE TABLE IF NOT EXISTS plugin_mapvote_maps
 	round_time	FLOAT(11,6)		NOT NULL,
 
 	PRIMARY KEY ( cat_id, map_name )
-) ENGINE = MYISAM;
+) ENGINE = INNODB;

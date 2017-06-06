@@ -5,4 +5,4 @@ CREATE TABLE IF NOT EXISTS gs_maps
 	map_id			MEDIUMINT UNSIGNED		NOT NULL	AUTO_INCREMENT,
 	PRIMARY KEY ( game_id, map_name ),
 	UNIQUE ( map_id )
-) CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = MYISAM;
+) CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;

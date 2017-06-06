@@ -11,7 +11,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Timed Punishments";
-new const String:PLUGIN_VERSION[] = "2.9";
+new const String:PLUGIN_VERSION[] = "2.10";
 
 public Plugin:myinfo =
 {
@@ -418,7 +418,7 @@ bool:Query_CreateUserTimedPunishmentTable()
 		INDEX ( steam_id, tp_type, tp_lifted, tp_is_perm, utime_expires ),\
 		INDEX ( tp_type, utime_start )\
 	)\
-	CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE MYISAM");
+	CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE INNODB");
 	
 	if(hQuery == INVALID_HANDLE)
 	{

@@ -15,4 +15,4 @@ CREATE TABLE core_servers
 	INDEX ( server_enabled, server_code ),	-- Used in API_DatabaseServers.sp
 	INDEX ( server_enabled, server_id ),	-- Used in class_Servers.php
 	INDEX ( server_parent_id )		-- Used in class_Servers.php
-) ENGINE = MYISAM;
+) ENGINE = INNODB;

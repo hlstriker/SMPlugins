@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS plugin_zonemanager_data
 	data_string_5	VARCHAR( 255 )		NOT NULL,
 
 	PRIMARY KEY ( game_id, map_id, zone_id )
-) ENGINE = MYISAM;
+) ENGINE = INNODB;
 
 
 

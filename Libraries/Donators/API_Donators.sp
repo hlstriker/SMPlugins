@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Donators";
-new const String:PLUGIN_VERSION[] = "2.3";
+new const String:PLUGIN_VERSION[] = "2.4";
 
 public Plugin:myinfo =
 {
@@ -300,7 +300,7 @@ bool:Query_CreateTable_DonatorPackages()
 		package_coins			SMALLINT UNSIGNED		NOT NULL,\
 		package_description		VARCHAR( 255 )			NOT NULL,\
 		PRIMARY KEY ( package_number )\
-	) ENGINE = MYISAM");
+	) ENGINE = INNODB");
 	
 	if(hQuery == INVALID_HANDLE)
 	{

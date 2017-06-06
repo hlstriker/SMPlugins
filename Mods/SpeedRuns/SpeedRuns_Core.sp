@@ -22,7 +22,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Speed Runs: Core";
-new const String:PLUGIN_VERSION[] = "1.36";
+new const String:PLUGIN_VERSION[] = "1.37";
 
 public Plugin:myinfo =
 {
@@ -1875,7 +1875,7 @@ bool:Query_CreateTierTable()
 		map_name		VARCHAR( 48 )		NOT NULL,\
 		tier			TINYINT UNSIGNED	NOT NULL,\
 		PRIMARY KEY ( map_name )\
-	) CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = MYISAM");
+	) CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB");
 	
 	if(hQuery == INVALID_HANDLE)
 	{

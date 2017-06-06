@@ -31,4 +31,4 @@ CREATE TABLE IF NOT EXISTS gs_user_timed_punishment
 	INDEX ( steam_id, tp_type, tp_lifted, tp_is_perm, utime_expires ),
 	INDEX ( tp_type, utime_start )
 )
-CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE MYISAM;
+CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE INNODB;

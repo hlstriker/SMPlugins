@@ -11,4 +11,4 @@ CREATE TABLE IF NOT EXISTS plugin_mapvote_categories
 
 	PRIMARY KEY ( cat_id ),
 	INDEX ( server_id )
-) ENGINE = MYISAM;
+) ENGINE = INNODB;

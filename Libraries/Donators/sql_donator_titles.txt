@@ -6,4 +6,4 @@ CREATE TABLE IF NOT EXISTS donator_titles
 	title			VARCHAR( 12 )		NOT NULL,
 
 	PRIMARY KEY ( user_id )
-) CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = MYISAM;
+) CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;
