@@ -837,14 +837,16 @@ bool:AreFlagsLoaded(iClient)
 	return false;
 }
 
+public OnClientConnected(iClient)
+{
+	g_iHookedVoiceTransmit[iClient] = -1;
+}
+
 public OnClientPutInServer(iClient)
 {
 	if(IsFakeClient(iClient))
 		return;
-		
-	g_iHookedVoiceTransmit[iClient] = -1;
 	
-	DHookEntity(g_hOnVoiceTransmit, true, iClient);
 	g_iHookedVoiceTransmit[iClient] = DHookEntity(g_hOnVoiceTransmit, true, iClient);
 	
 	SDKHook(iClient, SDKHook_PreThink, OnPreThink);

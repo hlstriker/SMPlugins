@@ -185,15 +185,15 @@ public Event_PlayerDeath_Post(Handle:hEvent, const String:szName[], bool:bDontBr
 	SetWhoCanHearGuardOnSpawnAndDeath(iClient);
 }
 
-public OnClientPutInServer(iClient)
+public OnClientConnected(iClient)
 {
 	g_iHookedVoiceTransmit[iClient] = -1;
-	
+}
+
+public OnClientPutInServer(iClient)
+{
 	if(!IsFakeClient(iClient))
-	{
-		DHookEntity(g_hOnVoiceTransmit, true, iClient);
 		g_iHookedVoiceTransmit[iClient] = DHookEntity(g_hOnVoiceTransmit, true, iClient);
-	}
 	
 	SDKHook(iClient, SDKHook_SpawnPost, OnSpawnPost);
 }
