@@ -13,7 +13,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Squelch Manager";
-new const String:PLUGIN_VERSION[] = "1.10";
+new const String:PLUGIN_VERSION[] = "1.11";
 
 public Plugin:myinfo =
 {
@@ -37,6 +37,7 @@ new Handle:cvar_database_servers_configname;
 new String:g_szDatabaseConfigName[64];
 
 new Handle:g_hOnVoiceTransmit;
+new g_iHookedVoiceTransmit[MAXPLAYERS+1];
 
 new bool:g_bHasWhoSquelchedThisUser[MAXPLAYERS+1];
 new bool:g_bHasWhoThisUserSquelched[MAXPLAYERS+1];
@@ -840,8 +841,12 @@ public OnClientPutInServer(iClient)
 {
 	if(IsFakeClient(iClient))
 		return;
+		
+	g_iHookedVoiceTransmit[iClient] = -1;
 	
 	DHookEntity(g_hOnVoiceTransmit, true, iClient);
+	g_iHookedVoiceTransmit[iClient] = DHookEntity(g_hOnVoiceTransmit, true, iClient);
+	
 	SDKHook(iClient, SDKHook_PreThink, OnPreThink);
 }
 
@@ -914,6 +919,12 @@ public OnClientDisconnect(iClient)
 {
 	Forward_OnClientStopSpeaking(iClient);
 	ClearArray(g_aMenuQueue[iClient]);
+	
+	if(g_iHookedVoiceTransmit[iClient] != -1)
+	{
+		DHookRemoveHookID(g_iHookedVoiceTransmit[iClient]);
+		g_iHookedVoiceTransmit[iClient] = -1;
+	}
 	
 	for(new i=1; i<=MaxClients; i++)
 	{

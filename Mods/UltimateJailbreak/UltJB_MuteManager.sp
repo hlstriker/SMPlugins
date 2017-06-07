@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Ultimate Jailbreak: Mute Manager";
-new const String:PLUGIN_VERSION[] = "1.18";
+new const String:PLUGIN_VERSION[] = "1.19";
 
 public Plugin:myinfo =
 {
@@ -43,6 +43,7 @@ new Handle:g_hTimer_MuteHUD;
 
 new bool:g_bLibLoaded_SquelchManager;
 
+new g_iHookedVoiceTransmit[MAXPLAYERS+1];
 
 public OnPluginStart()
 {
@@ -186,10 +187,24 @@ public Event_PlayerDeath_Post(Handle:hEvent, const String:szName[], bool:bDontBr
 
 public OnClientPutInServer(iClient)
 {
+	g_iHookedVoiceTransmit[iClient] = -1;
+	
 	if(!IsFakeClient(iClient))
-		DHookEntity(g_hOnVoiceTransmit, true, iClient); 
+	{
+		DHookEntity(g_hOnVoiceTransmit, true, iClient);
+		g_iHookedVoiceTransmit[iClient] = DHookEntity(g_hOnVoiceTransmit, true, iClient);
+	}
 	
 	SDKHook(iClient, SDKHook_SpawnPost, OnSpawnPost);
+}
+
+public OnClientDisconnect(iClient)
+{
+	if(g_iHookedVoiceTransmit[iClient] != -1)
+	{
+		DHookRemoveHookID(g_iHookedVoiceTransmit[iClient]);
+		g_iHookedVoiceTransmit[iClient] = -1;
+	}
 }
 
 public OnSpawnPost(iClient)
