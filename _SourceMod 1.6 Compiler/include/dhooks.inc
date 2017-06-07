@@ -2,6 +2,7 @@
 #endinput
 #endif
 #define _dhooks_included
+
 enum ObjectValueType
 {
 	ObjectValueType_Int = 0,
@@ -14,13 +15,17 @@ enum ObjectValueType
 	ObjectValueType_EhandlePtr,
 	ObjectValueType_FloatPtr,
 	ObjectValueType_Vector,
-	ObjectValueType_VectorPtr
+	ObjectValueType_VectorPtr,
+	ObjectValueType_CharPtr,
+	ObjectValueType_String
 };
+
 enum ListenType
 {
 	ListenType_Created,
 	ListenType_Deleted
 };
+
 enum ReturnType
 {
 	ReturnType_Unknown,
@@ -36,6 +41,7 @@ enum ReturnType
 	ReturnType_CBaseEntity,
 	ReturnType_Edict
 };
+
 enum HookParamType
 {
 	HookParamType_Unknown,
@@ -48,20 +54,24 @@ enum HookParamType
 	HookParamType_VectorPtr,
 	HookParamType_CBaseEntity,
 	HookParamType_ObjectPtr,
-	HookParamType_Edict
+	HookParamType_Edict,
+	HookParamType_Object
 };
+
 enum ThisPointerType
 {
 	ThisPointer_Ignore,
 	ThisPointer_CBaseEntity,
 	ThisPointer_Address
 };
+
 enum HookType
 {
 	HookType_Entity,
 	HookType_GameRules,
 	HookType_Raw
 };
+
 enum MRESReturn
 {
 	MRES_ChangedHandled = -2,	// Use changed values and return MRES_Handled
@@ -71,17 +81,29 @@ enum MRESReturn
 	MRES_Override,				// call real function, but use my return value
 	MRES_Supercede				// skip real function; use my return value
 };
+
+enum DHookPassFlag
+{
+	DHookPass_ByVal = 		(1<<0),		/**< Passing by value */
+	DHookPass_ByRef = 		(1<<1),		/**< Passing by reference */
+	DHookPass_ODTOR =		(1<<2),		/**< Object has a destructor */
+	DHookPass_OCTOR =		(1<<3),		/**< Object has a constructor */
+	DHookPass_OASSIGNOP	=	(1<<4),		/**< Object has an assignment operator */
+};
+
 funcenum ListenCB
 {
 	//Deleted
 	public (entity),
 	//Created
 	public (entity, const String:classname[])
-}
+};
+
 funcenum DHookRemovalCB
 {
 	public (hookid)
 };
+
 funcenum DHookCallback
 {
 	//Function Example: void Ham::Test() with this pointer ignore
@@ -121,8 +143,8 @@ funcenum DHookCallback
 	
 	//Function Example: int Ham::Test(int cake) with this pointer passed
 	MRESReturn:public(Address:this, Handle:hReturn, Handle:hParams)
-	
 };
+
 /* Adds an entity listener hook
  *
  * @param type			Type of listener to add
@@ -157,11 +179,13 @@ native Handle:DHookCreate(offset, HookType:hooktype, ReturnType:returntype, This
  *
  * @param setup			Setup handle to add the param to.
  * @param type			Param type
+ * @param size			Used for Objects (not Object ptr) to define the size of the object.
+ * @param flag			Used to change the pass type.
  * 
  * @error	Invalid setup handle or too many params added (request upping the max in thread)
  * @noreturn
 */
-native DHookAddParam(Handle:setup, HookParamType:type);
+native DHookAddParam(Handle:setup, HookParamType:type, size=-1, DHookPassFlag:flag=DHookPass_ByVal);
 
 /* Hook entity
  * 
@@ -173,7 +197,7 @@ native DHookAddParam(Handle:setup, HookParamType:type);
  * @error Invalid setup handle, invalid entity or invalid hook type.
  * @return -1 on fail a hookid on success
 */
-native DHookEntity(Handle:setup, bool:post, entity, DHookRemovalCB:removalcb=DHookRemovalCB:-1);
+native DHookEntity(Handle:setup, bool:post, entity, DHookRemovalCB:removalcb=DHookRemovalCB:INVALID_FUNCTION);
 
 /* Hook gamerules
  * 
@@ -184,7 +208,7 @@ native DHookEntity(Handle:setup, bool:post, entity, DHookRemovalCB:removalcb=DHo
  * @error Invalid setup handle, failing to get gamerules pointer or invalid hook type.
  * @return -1 on fail a hookid on success
 */
-native DHookGamerules(Handle:setup, bool:post, DHookRemovalCB:removalcb=DHookRemovalCB:-1);
+native DHookGamerules(Handle:setup, bool:post, DHookRemovalCB:removalcb=DHookRemovalCB:INVALID_FUNCTION);
 
 /* Hook a raw pointer
  * 
@@ -196,7 +220,7 @@ native DHookGamerules(Handle:setup, bool:post, DHookRemovalCB:removalcb=DHookRem
  * @error Invalid setup handle, invalid address or invalid hook type.
  * @return -1 on fail a hookid on success
 */
-native DHookRaw(Handle:setup, bool:post, Address:addr, DHookRemovalCB:removalcb=DHookRemovalCB:-1);
+native DHookRaw(Handle:setup, bool:post, Address:addr, DHookRemovalCB:removalcb=DHookRemovalCB:INVALID_FUNCTION);
 
 /* Remove hook by hook id
  * 
@@ -236,7 +260,7 @@ native DHookGetParamVector(Handle:hParams, num, Float:vec[3]);
  * @param size			Buffer size
  * 
  * @error Invalid handle. Invalid param number. Invalid param type.
- * @return value if num greater than 0.
+ * @noreturn
 */
 native DHookGetParamString(Handle:hParams, num, String:buffer[], size);
 
@@ -333,10 +357,12 @@ native DHookSetReturnVector(Handle:hReturn, Float:vec[3]);
 */
 native DHookSetReturnString(Handle:hReturn, String:value[]);
 
+//WE SHOULD WRAP THESE AROUND STOCKS FOR NON PTR AS WE SUPPORT BOTH WITH THESE NATIVE'S
+
 /* Gets an objects variable value
  *
  * @param hParams		Handle to params structure
- * @param num			Param number to get. (Example if the function has 2 params and you need the value of the first param num would be 1. 0 Will return the number of params stored)
+ * @param num			Param number to get.
  * @param offset		Offset within the object to the var to get.
  * @param type			Type of var it is
  *
@@ -348,7 +374,7 @@ native any:DHookGetParamObjectPtrVar(Handle:hParams, num, offset, ObjectValueTyp
 /* Sets an objects variable value
  *
  * @param hParams		Handle to params structure
- * @param num			Param number to set. (Example if the function has 2 params and you need the value of the first param num would be 1. 0 Will return the number of params stored)
+ * @param num			Param number to set.
  * @param offset		Offset within the object to the var to set.
  * @param type			Type of var it is
  * @param value			The value to set the var to.
@@ -361,20 +387,20 @@ native DHookSetParamObjectPtrVar(Handle:hParams, num, offset, ObjectValueType:ty
 /* Gets an objects vector variable value
  *
  * @param hParams		Handle to params structure
- * @param num			Param number to get. (Example if the function has 2 params and you need the value of the first param num would be 1. 0 Will return the number of params stored)
+ * @param num			Param number to get.
  * @param offset		Offset within the object to the var to get.
  * @param type			Type of var it is
  * @param buffer		Buffer to store the result vector
  *
  * @error Invalid handle. Invalid param number. Invalid param type. Invalid Object type.
- * @return Value of the objects var.
+ * @noreturn
 */
 native DHookGetParamObjectPtrVarVector(Handle:hParams, num, offset, ObjectValueType:type, Float:buffer[3]);
 
 /* Sets an objects vector variable value
  *
  * @param hParams		Handle to params structure
- * @param num			Param number to set. (Example if the function has 2 params and you need the value of the first param num would be 1. 0 Will return the number of params stored)
+ * @param num			Param number to set.
  * @param offset		Offset within the object to the var to set.
  * @param type			Type of var it is
  * @param value			The value to set the vector var to.
@@ -383,6 +409,20 @@ native DHookGetParamObjectPtrVarVector(Handle:hParams, num, offset, ObjectValueT
  * @noreturn
 */
 native DHookSetParamObjectPtrVarVector(Handle:hParams, num, offset, ObjectValueType:type, Float:value[3]);
+
+/* Gets an objects string variable value
+ *
+ * @param hParams		Handle to params structure
+ * @param num			Param number to get.
+ * @param offset		Offset within the object to the var to get.
+ * @param type			Type of var it is
+ * @param buffer		Buffer to store the result vector
+ * @param size			Size of the buffer
+ *
+ * @error Invalid handle. Invalid param number. Invalid param type. Invalid Object type.
+ * @noreturn
+*/
+native DHookGetParamObjectPtrString(Handle:hParams, num, offset, ObjectValueType:type, String:buffer[], size);
 
 /* Checks if a pointer param is null
  *
@@ -438,5 +478,6 @@ public __ext_dhooks_SetNTVOptional()
 	MarkNativeAsOptional("DHookGetParamObjectPtrVarVector");
 	MarkNativeAsOptional("DHookSetParamObjectPtrVarVector");
 	MarkNativeAsOptional("DHookIsNullParam");
+	MarkNativeAsOptional("DHookGetParamObjectPtrString");
 }
 #endif

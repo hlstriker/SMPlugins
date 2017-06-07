@@ -13,7 +13,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Squelch Manager";
-new const String:PLUGIN_VERSION[] = "1.9";
+new const String:PLUGIN_VERSION[] = "1.10";
 
 public Plugin:myinfo =
 {
@@ -115,6 +115,8 @@ public OnPluginStart()
 		SetFailState("Could not load gamedata voicehook.csgo");
 	
 	new iOffset = GameConfGetOffset(hGameConf, "OnVoiceTransmit");
+	CloseHandle(hGameConf);
+	
 	if(iOffset == -1)
 		SetFailState("Could not get offset for OnVoiceTransmit");
 	
@@ -836,9 +838,10 @@ bool:AreFlagsLoaded(iClient)
 
 public OnClientPutInServer(iClient)
 {
-	if(!IsFakeClient(iClient))
-		DHookEntity(g_hOnVoiceTransmit, true, iClient);
+	if(IsFakeClient(iClient))
+		return;
 	
+	DHookEntity(g_hOnVoiceTransmit, true, iClient);
 	SDKHook(iClient, SDKHook_PreThink, OnPreThink);
 }
 

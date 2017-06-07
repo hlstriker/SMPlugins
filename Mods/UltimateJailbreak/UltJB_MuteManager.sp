@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Ultimate Jailbreak: Mute Manager";
-new const String:PLUGIN_VERSION[] = "1.17";
+new const String:PLUGIN_VERSION[] = "1.18";
 
 public Plugin:myinfo =
 {
@@ -53,6 +53,8 @@ public OnPluginStart()
 		SetFailState("Could not load gamedata voicehook.csgo");
 	
 	new iOffset = GameConfGetOffset(hGameConf, "OnVoiceTransmit");
+	CloseHandle(hGameConf);
+	
 	if(iOffset == -1)
 		SetFailState("Could not get offset for OnVoiceTransmit");
 	
