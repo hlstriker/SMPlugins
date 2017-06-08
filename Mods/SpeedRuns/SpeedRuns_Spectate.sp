@@ -6,12 +6,13 @@
 
 #undef REQUIRE_PLUGIN
 #include "Includes/speed_runs_teleport"
+#include "../../Libraries/ModelSkinManager/model_skin_manager"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Speed Runs: Spectate";
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
 {
@@ -26,6 +27,7 @@ public Plugin:myinfo =
 #define OBS_MODE_CHASE		5
 
 new bool:g_bLibLoaded_SpeedRunsTeleport;
+new bool:g_bLibLoaded_ModelSkinManager;
 
 new Handle:cvar_tele_to_start_on_spawn;
 
@@ -53,18 +55,31 @@ public OnPluginStart()
 public OnAllPluginsLoaded()
 {
 	g_bLibLoaded_SpeedRunsTeleport = LibraryExists("speed_runs_teleport");
+	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
 }
 
 public OnLibraryAdded(const String:szName[])
 {
 	if(StrEqual(szName, "speed_runs_teleport"))
+	{
 		g_bLibLoaded_SpeedRunsTeleport = true;
+	}
+	else if(StrEqual(szName, "model_skin_manager"))
+	{
+		g_bLibLoaded_ModelSkinManager = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
 {
 	if(StrEqual(szName, "speed_runs_teleport"))
+	{
 		g_bLibLoaded_SpeedRunsTeleport = false;
+	}
+	else if(StrEqual(szName, "model_skin_manager"))
+	{
+		g_bLibLoaded_ModelSkinManager = false;
+	}
 }
 
 public Event_RoundPrestart_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
@@ -112,6 +127,14 @@ public OnSpawnPost(iClient)
 {
 	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
 		return;
+	
+	if(g_bLibLoaded_ModelSkinManager)
+	{
+		#if defined _model_skin_manager_included
+		if(MSManager_IsBeingForceRespawned(iClient))
+			return;
+		#endif
+	}
 	
 	if(SpeedRuns_IsRunPaused(iClient))
 	{

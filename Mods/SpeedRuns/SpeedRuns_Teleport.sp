@@ -14,12 +14,13 @@
 #undef REQUIRE_PLUGIN
 #include "../../Plugins/AllowMorePlayers/allow_more_players"
 #include "../../Plugins/CourseAutoRespawn/course_auto_respawn"
+#include "../../Libraries/ModelSkinManager/model_skin_manager"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Speed Runs: Teleport";
-new const String:PLUGIN_VERSION[] = "1.21";
+new const String:PLUGIN_VERSION[] = "1.22";
 
 public Plugin:myinfo =
 {
@@ -65,6 +66,7 @@ new Handle:cvar_mp_free_armor;
 
 new bool:g_bLibLoaded_AllowMorePlayers;
 new bool:g_bLibLoaded_CourseAutoRespawn;
+new bool:g_bLibLoaded_ModelSkinManager;
 
 
 public OnPluginStart()
@@ -117,6 +119,7 @@ public OnAllPluginsLoaded()
 {
 	g_bLibLoaded_AllowMorePlayers = LibraryExists("allow_more_players");
 	g_bLibLoaded_CourseAutoRespawn = LibraryExists("course_auto_respawn");
+	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
 }
 
 public OnLibraryAdded(const String:szName[])
@@ -129,6 +132,10 @@ public OnLibraryAdded(const String:szName[])
 	{
 		g_bLibLoaded_CourseAutoRespawn = true;
 	}
+	else if(StrEqual(szName, "model_skin_manager"))
+	{
+		g_bLibLoaded_ModelSkinManager = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
@@ -140,6 +147,10 @@ public OnLibraryRemoved(const String:szName[])
 	else if(StrEqual(szName, "course_auto_respawn"))
 	{
 		g_bLibLoaded_CourseAutoRespawn = false;
+	}
+	else if(StrEqual(szName, "model_skin_manager"))
+	{
+		g_bLibLoaded_ModelSkinManager = false;
 	}
 }
 
@@ -232,11 +243,27 @@ public OnClientPutInServer(iClient)
 
 public OnSpawnPre(iClient)
 {
+	if(g_bLibLoaded_ModelSkinManager)
+	{
+		#if defined _model_skin_manager_included
+		if(MSManager_IsBeingForceRespawned(iClient))
+			return;
+		#endif
+	}
+	
 	g_iSpawnTick[iClient] = GetGameTickCount();
 }
 
 public OnSpawnPost(iClient)
 {
+	if(g_bLibLoaded_ModelSkinManager)
+	{
+		#if defined _model_skin_manager_included
+		if(MSManager_IsBeingForceRespawned(iClient))
+			return;
+		#endif
+	}
+	
 	g_bCanUseTeleport[iClient] = true;
 }
 

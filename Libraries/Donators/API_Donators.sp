@@ -6,10 +6,14 @@
 #include "../WebPageViewer/web_page_viewer"
 #include <hls_color_chat>
 
+#undef REQUIRE_PLUGIN
+#include "../../Libraries/ModelSkinManager/model_skin_manager"
+#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Donators";
-new const String:PLUGIN_VERSION[] = "2.4";
+new const String:PLUGIN_VERSION[] = "2.5";
 
 public Plugin:myinfo =
 {
@@ -43,6 +47,8 @@ new Float:g_fNextMessageDisplay[MAXPLAYERS+1];
 
 new Float:g_fRealMoney[MAXPLAYERS+1];
 new bool:g_bShouldShowRealMoneyPage[MAXPLAYERS+1];
+
+new bool:g_bLibLoaded_ModelSkinManager;
 
 
 public OnPluginStart()
@@ -200,15 +206,28 @@ Float:GetSubscriptionTimeLeft(iClient)
 	return (g_fExpiresTime[iClient] - fCurTime);
 }
 
-public OnAllPluginsLoaded()
-{
-	cvar_database_bridge_configname = FindConVar("sm_database_bridge_configname");
-}
-
 public DB_OnStartConnectionSetup()
 {
 	if(cvar_database_bridge_configname != INVALID_HANDLE)
 		GetConVarString(cvar_database_bridge_configname, g_szDatabaseBridgeConfigName, sizeof(g_szDatabaseBridgeConfigName));
+}
+
+public OnAllPluginsLoaded()
+{
+	cvar_database_bridge_configname = FindConVar("sm_database_bridge_configname");
+	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+		g_bLibLoaded_ModelSkinManager = true;
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+		g_bLibLoaded_ModelSkinManager = false;
 }
 
 public DBServers_OnServerIDReady(iServerID, iGameID)
@@ -387,6 +406,14 @@ public OnSpawnPost(iClient)
 {
 	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
 		return;
+	
+	if(g_bLibLoaded_ModelSkinManager)
+	{
+		#if defined _model_skin_manager_included
+		if(MSManager_IsBeingForceRespawned(iClient))
+			return;
+		#endif
+	}
 	
 	new Float:fCurTime = GetGameTime();
 	if(fCurTime < g_fNextMessageDisplay[iClient])

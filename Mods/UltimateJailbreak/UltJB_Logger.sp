@@ -5,10 +5,14 @@
 #include "Includes/ultjb_last_request"
 #include "Includes/ultjb_logger"
 
+#undef REQUIRE_PLUGIN
+#include "../../Libraries/ModelSkinManager/model_skin_manager"
+#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Ultimate Jailbreak: Logger";
-new const String:PLUGIN_VERSION[] = "1.6";
+new const String:PLUGIN_VERSION[] = "1.7";
 
 public Plugin:myinfo =
 {
@@ -32,13 +36,15 @@ new g_iPlayerHealth[MAXPLAYERS+1];
 
 new String:g_szLastHitVent[64];
 
+new bool:g_bLibLoaded_ModelSkinManager;
+
+
 public OnPluginStart()
 {
 	CreateConVar("ultjb_logger_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	
 	RegAdminCmd("sm_log", OnLogUse, ADMFLAG_BAN, "sm_log <player> <num> - List the actions relating to <player> in the past <num> seconds.");
 	RegAdminCmd("sm_logs", OnLogUse, ADMFLAG_BAN, "sm_log <player> <num> - List the actions relating to <player> in the past <num> seconds.");
-	
 	
 	for(new i=0;i<=MaxClients;i++)
 	{
@@ -58,6 +64,23 @@ public OnPluginStart()
 	HookEntityOutput("trigger_teleport", "OnEndTouch", OnTeleportEndTouch);
 	HookEntityOutput("trigger_hurt", "OnStartTouch", OnHurtEnter);
 	HookEntityOutput("trigger_hurt", "OnEndTouch", OnHurtLeave);
+}
+
+public OnAllPluginsLoaded()
+{
+	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+		g_bLibLoaded_ModelSkinManager = true;
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+		g_bLibLoaded_ModelSkinManager = false;
 }
 
 SetupConVars()
@@ -89,9 +112,6 @@ public OnClientPutInServer(iClient)
 
 public OnClientDisconnect(iClient)
 {
-	SDKUnhook(iClient, SDKHook_SpawnPost, OnSpawnPost);
-	SDKUnhook(iClient, SDKHook_WeaponDropPost, OnWeaponDropPost);
-	SDKUnhook(iClient, SDKHook_WeaponEquipPost, OnWeaponPickupPost);
 	PrintMessageSteamID(iClient);
 }
 
@@ -231,12 +251,21 @@ public OnButtonIn(const String:szOutput[], iVictim, iAttacker, Float:fDelay)
 
 public OnSpawnPost(iClient)
 {	
-
+	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
+		return;
+	
+	if(g_bLibLoaded_ModelSkinManager)
+	{
+		#if defined _model_skin_manager_included
+		if(MSManager_IsBeingForceRespawned(iClient))
+			return;
+		#endif
+	}
+	
 	new String:szMessage[512];
 	Format(szMessage, sizeof(szMessage),  "%N was respawned.", iClient);
 	
 	LogEvent(szMessage, iClient, 0, LOGTYPE_ANY);
-	
 }
 
 public Action:OnTakeDamageButton(iVictim, &iAttacker, &iInflictor, &Float:fdamage, &iDamageType, &iWeapon, Float:fDamageForce[3], Float:fDamagePosition[3])

@@ -10,10 +10,14 @@
 #include "Includes/ultjb_cell_doors"
 #include "Includes/ultjb_days"
 
+#undef REQUIRE_PLUGIN
+#include "../../Libraries/ModelSkinManager/model_skin_manager"
+#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Ultimate Jailbreak: Settings";
-new const String:PLUGIN_VERSION[] = "1.23";
+new const String:PLUGIN_VERSION[] = "1.24";
 
 public Plugin:myinfo =
 {
@@ -71,6 +75,8 @@ new Float:g_fRoundStartTime;
 
 new Handle:g_hFwd_OnSpawnPost;
 
+new bool:g_bLibLoaded_ModelSkinManager;
+
 
 public OnPluginStart()
 {
@@ -96,6 +102,23 @@ public OnPluginStart()
 	//AddCommandListener(OnWeaponDrop, "drop");
 	
 	SetupConVars();
+}
+
+public OnAllPluginsLoaded()
+{
+	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+		g_bLibLoaded_ModelSkinManager = true;
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+		g_bLibLoaded_ModelSkinManager = false;
 }
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
@@ -385,6 +408,14 @@ public OnSpawnPost(iClient)
 {
 	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
 		return;
+	
+	if(g_bLibLoaded_ModelSkinManager)
+	{
+		#if defined _model_skin_manager_included
+		if(MSManager_IsBeingForceRespawned(iClient))
+			return;
+		#endif
+	}
 	
 	SetEntProp(iClient, Prop_Data, "m_CollisionGroup", COLLISION_GROUP_DEBRIS_TRIGGER);
 	

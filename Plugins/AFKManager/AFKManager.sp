@@ -3,10 +3,14 @@
 #include <sdktools_functions>
 #include "../../Libraries/ClientTimes/client_times"
 
+#undef REQUIRE_PLUGIN
+#include "../../Libraries/ModelSkinManager/model_skin_manager"
+#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "AFK Manager";
-new const String:PLUGIN_VERSION[] = "1.5";
+new const String:PLUGIN_VERSION[] = "1.6";
 
 public Plugin:myinfo =
 {
@@ -28,6 +32,8 @@ new Float:g_fStartTransferWaitTime[MAXPLAYERS+1];
 new Handle:cvar_seconds_before_afk;
 new Handle:cvar_num_free_slots_before_kicking;
 new Handle:cvar_reserved_slots;
+
+new bool:g_bLibLoaded_ModelSkinManager;
 
 
 public OnPluginStart()
@@ -54,8 +60,21 @@ public OnPluginStart()
 public OnAllPluginsLoaded()
 {
 	cvar_reserved_slots = FindConVar("sm_reserved_slots");
-	
 	ClientTimes_SetTimeBeforeMarkedAsAway(GetConVarInt(cvar_seconds_before_afk), OnAway, OnBack);
+	
+	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+		g_bLibLoaded_ModelSkinManager = true;
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+		g_bLibLoaded_ModelSkinManager = false;
 }
 
 public OnClientPutInServer(iClient)
@@ -68,6 +87,17 @@ public OnClientPutInServer(iClient)
 
 public OnSpawnPost(iClient)
 {
+	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
+		return;
+	
+	if(g_bLibLoaded_ModelSkinManager)
+	{
+		#if defined _model_skin_manager_included
+		if(MSManager_IsBeingForceRespawned(iClient))
+			return;
+		#endif
+	}
+	
 	if(!g_bWaitingForSpawn[iClient])
 		return;
 	

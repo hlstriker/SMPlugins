@@ -8,10 +8,14 @@
 #include "../../Libraries/ZoneManager/zone_manager"
 #include <hls_color_chat>
 
+#undef REQUIRE_PLUGIN
+#include "../../Libraries/ModelSkinManager/model_skin_manager"
+#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Speed Runs: Checkpoints";
-new const String:PLUGIN_VERSION[] = "2.6";
+new const String:PLUGIN_VERSION[] = "2.7";
 
 public Plugin:myinfo =
 {
@@ -108,6 +112,8 @@ enum CancelChoice
 new CancelChoice:g_iCancelChoice[MAXPLAYERS+1];
 new Float:g_fCancelChoiceTimeStart[MAXPLAYERS+1];
 
+new bool:g_bLibLoaded_ModelSkinManager;
+
 
 public OnPluginStart()
 {
@@ -131,6 +137,23 @@ public OnPluginStart()
 	
 	RegConsoleCmd("sm_menu", OnCheckpointMenu);
 	RegConsoleCmd("sm_cpmenu", OnCheckpointMenu);
+}
+
+public OnAllPluginsLoaded()
+{
+	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+		g_bLibLoaded_ModelSkinManager = true;
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+		g_bLibLoaded_ModelSkinManager = false;
 }
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
@@ -205,6 +228,14 @@ public OnSpawnPost(iClient)
 {
 	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
 		return;
+	
+	if(g_bLibLoaded_ModelSkinManager)
+	{
+		#if defined _model_skin_manager_included
+		if(MSManager_IsBeingForceRespawned(iClient))
+			return;
+		#endif
+	}
 	
 	if(AreUsableDuringSpeedRun())
 		DisplayMenu_Checkpoint(iClient);

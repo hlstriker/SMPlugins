@@ -17,12 +17,13 @@
 #undef REQUIRE_PLUGIN
 #include "Includes/speed_runs_checkpoints"
 #include "../../Plugins/EntityPatches/FixTriggerPush/fix_trigger_push"
+#include "../../Libraries/ModelSkinManager/model_skin_manager"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Speed Runs: Core";
-new const String:PLUGIN_VERSION[] = "1.37";
+new const String:PLUGIN_VERSION[] = "1.38";
 
 public Plugin:myinfo =
 {
@@ -182,6 +183,7 @@ new g_iLastNonSolidTick[MAXPLAYERS+1];
 
 new bool:g_bLibLoaded_CheckPoints;
 new bool:g_bLibLoaded_FixTriggerPush;
+new bool:g_bLibLoaded_ModelSkinManager;
 
 
 public OnPluginStart()
@@ -428,7 +430,15 @@ public OnSpawnPost(iClient)
 	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
 		return;
 	
-	// Don't reset timer on spawn/death anymore.
+	if(g_bLibLoaded_ModelSkinManager)
+	{
+		#if defined _model_skin_manager_included
+		if(MSManager_IsBeingForceRespawned(iClient))
+			return;
+		#endif
+	}
+	
+	// Don't reset timer on spawn/death anymore. I forget, was this due to unpausing?
 	//ResetSpeedRunVariables(iClient);
 }
 
@@ -1774,8 +1784,10 @@ GetTimerHUD(iClient, String:szBuffer[], const iMaxLength, HudDisplay:iHudDisplay
 public OnAllPluginsLoaded()
 {
 	cvar_database_servers_configname = FindConVar("sm_database_servers_configname");
+	
 	g_bLibLoaded_CheckPoints = LibraryExists("speed_runs_checkpoints");
 	g_bLibLoaded_FixTriggerPush = LibraryExists("fix_trigger_push");
+	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
 }
 
 public OnLibraryAdded(const String:szName[])
@@ -1788,6 +1800,10 @@ public OnLibraryAdded(const String:szName[])
 	{
 		g_bLibLoaded_FixTriggerPush = true;
 	}
+	else if(StrEqual(szName, "model_skin_manager"))
+	{
+		g_bLibLoaded_ModelSkinManager = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
@@ -1799,6 +1815,10 @@ public OnLibraryRemoved(const String:szName[])
 	else if(StrEqual(szName, "fix_trigger_push"))
 	{
 		g_bLibLoaded_FixTriggerPush = false;
+	}
+	else if(StrEqual(szName, "model_skin_manager"))
+	{
+		g_bLibLoaded_ModelSkinManager = false;
 	}
 }
 

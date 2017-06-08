@@ -3,9 +3,13 @@
 #include <sdktools_functions>
 #include <sdktools_trace>
 
+#undef REQUIRE_PLUGIN
+#include "../../Libraries/ModelSkinManager/model_skin_manager"
+#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
 {
@@ -42,6 +46,8 @@ new Float:g_fCreatedSpawnAngles[MAX_SPAWNS][3];
 new g_iCreatedSpawnCount;
 new g_iCreatedSpawnTeam;
 
+new bool:g_bLibLoaded_ModelSkinManager;
+
 
 public OnPluginStart()
 {
@@ -53,6 +59,23 @@ public OnPluginStart()
 	cvar_block_join_team_max_players = CreateConVar("sv_block_join_team_max_players", "0", "The maximum players that can be on the team before sv_block_join_team kicks in.", _, true, 0.0);
 	cvar_force_even_teams = CreateConVar("sv_force_even_teams", "0", "0: Don't force. -- 1: Force.", _, true, 0.0, true, 1.0);
 	cvar_force_even_teams_create_spawns = CreateConVar("sv_force_even_teams_create_spawns", "0", "Will create spawn points for a team that doesn't exist if sv_force_even_teams is on.", _, true, 0.0, true, 1.0);
+}
+
+public OnAllPluginsLoaded()
+{
+	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+		g_bLibLoaded_ModelSkinManager = true;
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+		g_bLibLoaded_ModelSkinManager = false;
 }
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
@@ -188,6 +211,14 @@ public OnSpawnPost(iClient)
 {
 	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
 		return;
+	
+	if(g_bLibLoaded_ModelSkinManager)
+	{
+		#if defined _model_skin_manager_included
+		if(MSManager_IsBeingForceRespawned(iClient))
+			return;
+		#endif
+	}
 	
 	if(!g_iCreatedSpawnCount)
 		return;

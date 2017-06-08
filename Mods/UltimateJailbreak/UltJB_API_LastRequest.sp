@@ -19,12 +19,13 @@
 
 #undef REQUIRE_PLUGIN
 #include "../../Libraries/SquelchManager/squelch_manager"
+#include "../../Libraries/ModelSkinManager/model_skin_manager"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Ultimate Jailbreak: Last Request API";
-new const String:PLUGIN_VERSION[] = "1.36";
+new const String:PLUGIN_VERSION[] = "1.37";
 
 public Plugin:myinfo =
 {
@@ -163,6 +164,7 @@ new bool:g_bInitializedAdminGivenFreeday[MAXPLAYERS+1];
 new g_iAvailableLastRequestSlotCount;
 
 new bool:g_bLibLoaded_SquelchManager;
+new bool:g_bLibLoaded_ModelSkinManager;
 
 new Float:g_fLastRequestTeleportOrigins[100][3];
 new g_iLastRequestTeleportOriginsTotal;
@@ -209,6 +211,7 @@ public OnPluginStart()
 public OnAllPluginsLoaded()
 {
 	g_bLibLoaded_SquelchManager = LibraryExists("squelch_manager");
+	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
 }
 
 public OnLibraryAdded(const String:szName[])
@@ -217,6 +220,10 @@ public OnLibraryAdded(const String:szName[])
 	{
 		g_bLibLoaded_SquelchManager = true;
 	}
+	else if(StrEqual(szName, "model_skin_manager"))
+	{
+		g_bLibLoaded_ModelSkinManager = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
@@ -224,6 +231,10 @@ public OnLibraryRemoved(const String:szName[])
 	if(StrEqual(szName, "squelch_manager"))
 	{
 		g_bLibLoaded_SquelchManager = false;
+	}
+	else if(StrEqual(szName, "model_skin_manager"))
+	{
+		g_bLibLoaded_ModelSkinManager = false;
 	}
 }
 
@@ -1239,7 +1250,15 @@ public OnSpawnPost(iClient)
 {
 	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
 		return;
-
+	
+	if(g_bLibLoaded_ModelSkinManager)
+	{
+		#if defined _model_skin_manager_included
+		if(MSManager_IsBeingForceRespawned(iClient))
+			return;
+		#endif
+	}
+	
 	g_bCanDealDamage[iClient] = true;
 	g_bHasInvincibility[iClient] = false;
 

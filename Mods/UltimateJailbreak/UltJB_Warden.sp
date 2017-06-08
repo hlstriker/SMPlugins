@@ -17,12 +17,13 @@
 //#include "../Swoobles 5.0/Plugins/StoreItems/Equipment/item_equipment"
 #include "../../Libraries/ClientSettings/client_settings"
 #include "../../Libraries/PlayerChat/player_chat"
+#include "../../Libraries/ModelSkinManager/model_skin_manager"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Ultimate Jailbreak: Warden";
-new const String:PLUGIN_VERSION[] = "1.32";
+new const String:PLUGIN_VERSION[] = "1.33";
 
 public Plugin:myinfo =
 {
@@ -117,6 +118,8 @@ new g_iRoundWardenCount;
 new bool:g_bLibLoaded_ItemEquipment;
 new bool:g_bLibLoaded_ClientSettings;
 new bool:g_bLibLoaded_PlayerChat;
+new bool:g_bLibLoaded_ModelSkinManager;
+
 new bool:g_bRoundStarted;
 
 
@@ -158,6 +161,7 @@ public OnAllPluginsLoaded()
 	g_bLibLoaded_ClientSettings = LibraryExists("client_settings");
 	g_bLibLoaded_PlayerChat = LibraryExists("player_chat");
 	g_bLibLoaded_ItemEquipment = LibraryExists("item_equipment");
+	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
 }
 
 public OnLibraryAdded(const String:szName[])
@@ -174,6 +178,10 @@ public OnLibraryAdded(const String:szName[])
 	{
 		g_bLibLoaded_ItemEquipment = true;
 	}
+	else if(StrEqual(szName, "model_skin_manager"))
+	{
+		g_bLibLoaded_ModelSkinManager = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
@@ -189,6 +197,10 @@ public OnLibraryRemoved(const String:szName[])
 	else if(StrEqual(szName, "item_equipment"))
 	{
 		g_bLibLoaded_ItemEquipment = false;
+	}
+	else if(StrEqual(szName, "model_skin_manager"))
+	{
+		g_bLibLoaded_ModelSkinManager = false;
 	}
 }
 
@@ -975,7 +987,6 @@ public OnClientDisconnect_Post(iClient)
 {
 	RemovePlayerFromQueue(iClient, g_aQueuePrimary);
 	RemovePlayerFromQueue(iClient, g_aQueueSecondary);
-	SDKUnhook(iClient, SDKHook_SpawnPost, OnSpawnPost);
 }
 
 public OnClientDisconnect(iClient)
@@ -1220,6 +1231,16 @@ SetBulletOriginsForLine()
 
 public OnSpawnPost(iClient)
 {
+	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
+		return;
+	
+	if(g_bLibLoaded_ModelSkinManager)
+	{
+		#if defined _model_skin_manager_included
+		if(MSManager_IsBeingForceRespawned(iClient))
+			return;
+		#endif
+	}
 	
 	if(!g_bRoundStarted)
 		return;
