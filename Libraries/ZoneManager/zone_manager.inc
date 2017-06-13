@@ -40,6 +40,16 @@ public SharedPlugin:__pl_zone_manager =
 #define GetZoneID(%1)		GetEntProp(%1, Prop_Data, "m_iPendingTeamNum")
 #define SetZoneID(%1,%2)	SetEntProp(%1, Prop_Data, "m_iPendingTeamNum", %2)
 
+#define ZM_EDITTYPE_CREATE				1
+#define ZM_EDITTYPE_DELETE				2
+#define ZM_EDITTYPE_ZONETYPE			3
+#define ZM_EDITTYPE_DATA				4
+#define ZM_EDITTYPE_POSITION			5
+#define ZM_EDITTYPE_SIZE				6
+#define ZM_EDITTYPE_ANGLES				7
+#define ZM_EDITTYPE_IMPORT				8
+
+
 
 functag public Callback_OnTouch(zone_ent, other_ent);
 functag public Callback_OnStartTouch(zone_ent, other_ent);

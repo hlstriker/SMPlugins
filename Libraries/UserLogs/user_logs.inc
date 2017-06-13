@@ -23,6 +23,6 @@ public SharedPlugin:__pl_user_logs =
 #define USER_LOG_TYPE_GIVEN_ITEM_DONATOR_RENEW	4	// Given an item from the donator status renewal.
 #define USER_LOG_TYPE_ADMIN_DEMOTED				5	// An admin got demoted.
 #define USER_LOG_TYPE_DONATION_RECEIVED			6	// A user donated.
-
+#define USER_LOG_TYPE_ZONEMANAGER				7   // An admin used zonemanager.
 
 native bool:UserLogs_AddLog(user_id, log_type, Handle:transaction=INVALID_HANDLE, data1=0, data2=0, data3=0, data4=0);

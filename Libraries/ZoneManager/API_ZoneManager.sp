@@ -10,6 +10,7 @@
 #include "../DatabaseCore/database_core"
 #include "../DatabaseMaps/database_maps"
 #include "../DatabaseServers/database_servers"
+#include "../DatabaseUsers/database_users"
 #include "../UserLogs/user_logs"
 
 #pragma semicolon 1
@@ -899,6 +900,7 @@ public MenuHandle_ZoneManager(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 			new iZoneID = PrepareAddZone_Client(iParam1);
 			if(iZoneID)
 			{
+				LogChanges(iParam1, ZM_EDITTYPE_CREATE, 0);
 				g_iSelectedZoneID[iParam1] = iZoneID;
 				DisplayMenu_EditZone(iParam1);
 			}
@@ -1089,6 +1091,8 @@ bool:ImportTrigger(iClient, const String:szTriggerName[])
 		return false;
 	}
 	
+	LogChanges(iClient, ZM_EDITTYPE_IMPORT, 0);
+	
 	return true;
 }
 
@@ -1271,6 +1275,8 @@ public MenuHandle_DeleteZone(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 	
 	Forward_OnZoneRemoved(eZone[Zone_ID], false);
 	
+	LogChanges(iParam1, ZM_EDITTYPE_DELETE, eZone[Zone_Type]);
+	
 	PrintToChat(iParam1, "[SM] The zone has been removed.");
 	
 	SelectZone_Next(iParam1);
@@ -1447,6 +1453,8 @@ public MenuHandle_EditAngles(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 	eZone[Zone_Angles] = fAngles;
 	SetArrayArray(g_aZones, g_iZoneIDToIndex[g_iSelectedZoneID[iParam1]], eZone);
 	
+	LogChanges(iParam1, ZM_EDITTYPE_ANGLES, eZone[Zone_Type]);
+	
 	DisplayMenu_EditAngles(iParam1);
 }
 
@@ -1486,6 +1494,8 @@ DisplayMenu_EditPosition(iClient)
 	SubtractVectors(fAngles, fOrigin, fAngles);
 	GetVectorAngles(fAngles, fAngles);
 	TeleportEntity(iClient, NULL_VECTOR, fAngles, NULL_VECTOR);
+	
+	LogChanges(iClient, ZM_EDITTYPE_POSITION, eZone[Zone_Type]);
 	
 	g_bIsEditingPosition[iClient] = true;
 	g_bInZoneMenu[iClient] = true;
@@ -1533,6 +1543,8 @@ Forward_EditData(iClient)
 		DisplayMenu_EditZone(iClient);
 		return;
 	}
+	
+	LogChanges(iClient, ZM_EDITTYPE_DATA, eZone[Zone_Type]);
 	
 	decl result;
 	Call_StartForward(eZoneType[ZoneType_ForwardEditData]);
@@ -1702,6 +1714,8 @@ public MenuHandle_EditType(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 	}
 	*/
 	
+	LogChanges(iParam1, ZM_EDITTYPE_ZONETYPE, eZone[Zone_Type]);
+	
 	DisplayMenu_EditType(iParam1);
 }
 
@@ -1739,14 +1753,20 @@ DisplayMenu_EditSize(iClient)
 
 public MenuHandle_EditSize(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 {
+	
+	decl eZone[Zone];
+	GetArrayArray(g_aZones, g_iZoneIDToIndex[g_iSelectedZoneID[iParam1]], eZone);
+
 	if(action == MenuAction_End)
 	{
+		LogChanges(iParam1, ZM_EDITTYPE_SIZE, eZone[Zone_Type]);
 		CloseHandle(hMenu);
 		return;
 	}
 	
 	if(action == MenuAction_Cancel)
 	{
+		LogChanges(iParam1, ZM_EDITTYPE_SIZE, eZone[Zone_Type]);
 		g_bInZoneMenu[iParam1] = false;
 		g_bIsEditingSize[iParam1] = false;
 		SDKUnhook(iParam1, SDKHook_PreThinkPost, OnPreThinkPost);
@@ -3015,4 +3035,12 @@ bool:TransactionStart_SaveZones()
 	SQL_ExecuteTransaction(hDatabase, hTransaction, _, _, _, DBPrio_High);
 	
 	return true;
+}
+
+LogChanges(iClient, iLogType, iZoneType)
+{
+	new iUserID = DBUsers_GetUserID(iClient);
+	new iMapID = DBMaps_GetMapID();
+	
+	UserLogs_AddLog(iUserID, USER_LOG_TYPE_ZONEMANAGER, _, iMapID, iLogType, iZoneType);
 }
