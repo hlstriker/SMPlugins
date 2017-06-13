@@ -1582,7 +1582,6 @@ public MenuHandle_Time(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 	
 	g_fNextMenuDisplayTime[iParam1] = GetEngineTime() + MENU_QUEUE_DISPLAY_DELAY;
 	g_bIsInMenu[iParam1] = false;
-	g_bTimeMenu_TargetSerial[iParam1] = 0;
 	
 	decl String:szInfo[32];
 	GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
@@ -1591,8 +1590,11 @@ public MenuHandle_Time(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 	{
 		ResetPresquelchIfNeeded(iParam1);
 		DisplaySpamHintMessage(iParam1);
+		g_bTimeMenu_TargetSerial[iParam1] = 0;
 		return;
 	}
+	
+	g_bTimeMenu_TargetSerial[iParam1] = 0;
 	
 	decl String:szBuffer[3][12];
 	new iNumExplodes = ExplodeString(szInfo, "/", szBuffer, sizeof(szBuffer), sizeof(szBuffer[]));
