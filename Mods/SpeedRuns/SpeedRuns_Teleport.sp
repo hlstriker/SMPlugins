@@ -64,9 +64,6 @@ new Handle:cvar_allow_respawn_only;
 
 new Handle:cvar_mp_free_armor;
 
-new Handle:g_aArmourMaps;
-new bool:g_bArmourDisabled;
-
 new bool:g_bLibLoaded_AllowMorePlayers;
 new bool:g_bLibLoaded_CourseAutoRespawn;
 new bool:g_bLibLoaded_ModelSkinManager;
@@ -111,17 +108,11 @@ public OnPluginStart()
 	RegAdminCmd("sm_showteledests", Command_ShowTeleportDestinations, ADMFLAG_ROOT, "sm_showteledests - Shows the teleport destinations.");
 	RegAdminCmd("sm_showtargetname", Command_ShowTargetName, ADMFLAG_ROOT, "sm_showtargetname - Shows your current targetname.");
 	
-	RegAdminCmd("sm_armour", Command_Armour, ADMFLAG_ROOT, "sm_armour - Enables armour on the current map.");
-	RegAdminCmd("sm_noarmour", Command_NoArmour, ADMFLAG_ROOT, "sm_noarmour - Disables armour on the current map.");
-	
 	g_hFwd_OnRestart = CreateGlobalForward("SpeedRunsTeleport_OnRestart", ET_Ignore, Param_Cell);
 	g_hFwd_OnSendToSpawn = CreateGlobalForward("SpeedRunsTeleport_OnSendToSpawn", ET_Ignore, Param_Cell);
 	
 	g_hFwd_OnTeleport_Pre = CreateGlobalForward("SpeedRunsTeleport_OnTeleport_Pre", ET_Hook, Param_Cell, Param_Cell);
 	g_hFwd_OnTeleport_Post = CreateGlobalForward("SpeedRunsTeleport_OnTeleport_Post", ET_Ignore, Param_Cell, Param_Cell);
-
-	g_aArmourMaps = CreateArray(PLATFORM_MAX_PATH);
-	LoadArmourConfig();
 }
 
 public OnAllPluginsLoaded()
@@ -238,13 +229,6 @@ bool:Forward_OnTeleport(iClient, iStageNumber, bool:bIsPre)
 public OnMapStart()
 {
 	g_iBeamIndex = PrecacheModel(SZ_BEAM_MATERIAL);
-	
-	new String:szBuffer[PLATFORM_MAX_PATH];
-	GetLowercaseMapName(szBuffer, sizeof(szBuffer));
-	
-	new iMatch = FindStringInArray(g_aArmourMaps, szBuffer);
-	
-	g_bArmourDisabled = (iMatch == -1) ? false : true;
 }
 
 public OnClientPutInServer(iClient)
@@ -488,7 +472,7 @@ TeleportToSpawn(iClient, const Float:fOrigin[3], const Float:fAngles[3])
 	
 	SetEntityHealth(iClient, 100);
 	
-	if(GetConVarBool(cvar_mp_free_armor) && !g_bArmourDisabled)
+	if(GetConVarBool(cvar_mp_free_armor))
 	{
 		SetEntProp(iClient, Prop_Send, "m_ArmorValue", 100);
 		SetEntProp(iClient, Prop_Send, "m_bHasHelmet", 1);
@@ -1548,116 +1532,4 @@ TE_SetupBeamEntPoint(iStartEnt, iEndEnt, iModelIndex, iHaloIndex, iStartFrame, i
 	TE_WriteNum("m_nEndEntity", iEndEnt);
 	TE_WriteVector("m_vecStartPoint", fStartVec);
 	TE_WriteVector("m_vecEndPoint", fEndVec);
-}
-
-public Action:Command_Armour(iClient, iArgNum)
-{
-	if(!iClient)
-		return Plugin_Handled;
-	
-	if(!g_bArmourDisabled)
-	{
-		PrintToChat(iClient, "[SM] Armour already allowed on this map.");
-		return Plugin_Handled;
-	}
-
-	new String:szBuffer[PLATFORM_MAX_PATH];
-	GetLowercaseMapName(szBuffer, sizeof(szBuffer));
-	
-	g_bArmourDisabled = false;
-	RemoveFromArray(g_aArmourMaps, FindStringInArray(g_aArmourMaps, szBuffer));
-	SaveArmourConfig();
-	
-	return Plugin_Handled;
-}
-
-public Action:Command_NoArmour(iClient, iArgNum)
-{
-	if(!iClient)
-		return Plugin_Handled;
-		
-	if(g_bArmourDisabled)
-	{
-		PrintToChat(iClient, "[SM] Armour already disabled on this map.");
-		return Plugin_Handled;
-	}
-
-	new String:szBuffer[PLATFORM_MAX_PATH];
-	GetLowercaseMapName(szBuffer, sizeof(szBuffer));
-	
-	g_bArmourDisabled = true;
-	PushArrayString(g_aArmourMaps, szBuffer);
-	SaveArmourConfig();
-	
-	return Plugin_Handled;
-}
-
-SaveArmourConfig()
-{
-	decl String:szPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, szPath, sizeof(szPath), "configs/map_armour.txt");
-	
-	new Handle:fp = OpenFile(szPath, "w");
-	if(fp == INVALID_HANDLE)
-	{
-		PrintToChatAll("[SM] Error creating save file.");
-		return;
-	}
-	
-	new String:szBuffer[PLATFORM_MAX_PATH];
-	
-	for(new i=0;i<GetArraySize(g_aArmourMaps); i++)
-	{	
-		GetArrayString(g_aArmourMaps, i, szBuffer, sizeof(szBuffer));
-		WriteFileLine(fp, szBuffer);
-	}
-	
-	CloseHandle(fp);
-	
-	PrintToChatAll("[SM] Armour configs have been saved.");
-}
-
-LoadArmourConfig()
-{	
-	decl String:szBuffer[PLATFORM_MAX_PATH];
-	GetLowercaseMapName(szBuffer, sizeof(szBuffer));
-	BuildPath(Path_SM, szBuffer, sizeof(szBuffer), "configs/map_armour.txt");
-	
-	new Handle:fp = OpenFile(szBuffer, "r");
-	if(fp == INVALID_HANDLE)
-		return;
-	
-	ClearArray(g_aArmourMaps);
-	
-	while(!IsEndOfFile(fp))
-	{
-		if(!ReadFileLine(fp, szBuffer, sizeof(szBuffer)))
-			continue;
-		
-		TrimString(szBuffer);
-		
-		if(strlen(szBuffer) < 1)
-			continue;
-			
-		PushArrayString(g_aArmourMaps, szBuffer);
-	}
-	
-	CloseHandle(fp);
-	
-	GetLowercaseMapName(szBuffer, sizeof(szBuffer));
-	new iMatch = FindStringInArray(g_aArmourMaps, szBuffer);
-	
-	g_bArmourDisabled = (iMatch == -1) ? false : true;
-}
-
-GetLowercaseMapName(String:szMapName[], iMaxLength)
-{
-	GetCurrentMap(szMapName, iMaxLength);
-	StringToLower(szMapName);
-}
-
-StringToLower(String:szString[])
-{
-	for(new i=0; i<strlen(szString); i++)
-		szString[i] = CharToLower(szString[i]);
 }
