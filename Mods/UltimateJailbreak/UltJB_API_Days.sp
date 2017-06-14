@@ -1123,9 +1123,7 @@ public MenuHandle_DayEdit(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 }
 
 SaveDayConfig(iClient)
-{
-	PrintToChatAll("Started saving.");
-	
+{	
 	decl String:szPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, szPath, sizeof(szPath), "configs/day_configs");
 	if(!DirExists(szPath) && !CreateDirectory(szPath, 775))
@@ -1141,11 +1139,9 @@ SaveDayConfig(iClient)
 	new Handle:fp = OpenFile(szPath, "w");
 	if(fp == INVALID_HANDLE)
 	{
-		PrintToChatAll("[SM] Error creating save file.");
+		PrintToChat(iClient, "[SM] Error creating save file.");
 		return;
 	}
-	
-	PrintToChatAll("File open.");
 	
 	decl eDay[Day];
 	
@@ -1157,13 +1153,12 @@ SaveDayConfig(iClient)
 		GetArrayArray(g_aDays, g_iDayIDToIndex[i], eDay);
 		
 		Format(szBuffer, sizeof(szBuffer), "%d-%s", eDay[Day_Type], eDay[Day_Name]);
-		PrintToChatAll(szBuffer);
 		WriteFileLine(fp, szBuffer);
 	}
 	
 	CloseHandle(fp);
 	
-	PrintToChatAll("[SM] Day configs have been saved.");
+	PrintToChat(iClient, "[SM] Day configs have been saved.");
 }
 
 LoadDayConfig()
