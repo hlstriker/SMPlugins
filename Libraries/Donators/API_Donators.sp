@@ -13,7 +13,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Donators";
-new const String:PLUGIN_VERSION[] = "2.5";
+new const String:PLUGIN_VERSION[] = "2.6";
 
 public Plugin:myinfo =
 {
@@ -45,9 +45,6 @@ enum _:SettingsMenu
 const Float:MESSAGE_DISPLAY_DELAY = 120.0;
 new Float:g_fNextMessageDisplay[MAXPLAYERS+1];
 
-new Float:g_fRealMoney[MAXPLAYERS+1];
-new bool:g_bShouldShowRealMoneyPage[MAXPLAYERS+1];
-
 new bool:g_bLibLoaded_ModelSkinManager;
 
 
@@ -64,7 +61,6 @@ public OnPluginStart()
 	RegConsoleCmd("sm_donate", OnOpenDonatorMenu, "Opens the donator menu.");
 	RegConsoleCmd("sm_points", OnOpenDonatorMenu, "Opens the donator menu.");
 	RegConsoleCmd("sm_credits", OnOpenDonatorMenu, "Opens the donator menu.");
-	RegConsoleCmd("sm_coins", OnOpenDonatorMenu, "Opens the donator menu.");
 	
 	g_hFwd_OnStatusLoaded = CreateGlobalForward("Donators_OnStatusLoaded", ET_Ignore, Param_Cell);
 	g_hFwd_OnRegisterSettingsReady = CreateGlobalForward("Donators_OnRegisterSettingsReady", ET_Ignore);
@@ -241,9 +237,6 @@ public DBServers_OnServerIDReady(iServerID, iGameID)
 	if(!Query_CreateTable_DonatorPackages())
 		return;
 	
-	if(!Query_CreateTable_DonatorCoins())
-		return;
-	
 	if(!Query_CreateTable_DonatorServerBills())
 		return;
 }
@@ -316,7 +309,6 @@ bool:Query_CreateTable_DonatorPackages()
 	(\
 		package_number			SMALLINT UNSIGNED		NOT NULL,\
 		package_price			VARCHAR( 8 )			NOT NULL,\
-		package_coins			SMALLINT UNSIGNED		NOT NULL,\
 		package_description		VARCHAR( 255 )			NOT NULL,\
 		PRIMARY KEY ( package_number )\
 	) ENGINE = INNODB");
@@ -324,33 +316,6 @@ bool:Query_CreateTable_DonatorPackages()
 	if(hQuery == INVALID_HANDLE)
 	{
 		LogError("There was an error creating the donator_packages sql table.");
-		return false;
-	}
-	
-	DB_CloseQueryHandle(hQuery);
-	bTableCreated = true;
-	
-	return true;
-}
-
-bool:Query_CreateTable_DonatorCoins()
-{
-	static bool:bTableCreated = false;
-	if(bTableCreated)
-		return true;
-	
-	new Handle:hQuery = DB_Query(g_szDatabaseBridgeConfigName, "\
-	CREATE TABLE IF NOT EXISTS donator_coins\
-	(\
-		user_id			INT UNSIGNED		NOT NULL,\
-		num_coins		INT UNSIGNED		NOT NULL,\
-		real_money		FLOAT(11,2)			NOT NULL,\
-		PRIMARY KEY ( user_id )\
-	) ENGINE = INNODB");
-	
-	if(hQuery == INVALID_HANDLE)
-	{
-		LogError("There was an error creating the donator_coins sql table.");
 		return false;
 	}
 	
@@ -391,8 +356,6 @@ bool:Query_CreateTable_DonatorServerBills()
 public OnClientConnected(iClient)
 {
 	g_bIsDonator[iClient] = false;
-	g_fRealMoney[iClient] = 0.0;
-	g_bShouldShowRealMoneyPage[iClient] = false;
 	g_fNextMessageDisplay[iClient] = 0.0;
 }
 
@@ -448,10 +411,6 @@ public Query_GetDonatorStatus(Handle:hDatabase, Handle:hQuery, any:iClientSerial
 	if(!iClient)
 		return;
 	
-	new iUserID = DBUsers_GetUserID(iClient);
-	if(iUserID > 0)
-		DB_TQuery(g_szDatabaseBridgeConfigName, Query_GetDonatorRealMoney, DBPrio_Low, GetClientSerial(iClient), "SELECT real_money FROM donator_coins WHERE user_id = %i", iUserID);
-	
 	if(!SQL_GetRowCount(hQuery))
 	{
 		_Donators_OnStatusLoaded(iClient);
@@ -486,49 +445,15 @@ _Donators_OnStatusLoaded(iClient)
 	Call_Finish();
 }
 
-public Query_GetDonatorRealMoney(Handle:hDatabase, Handle:hQuery, any:iClientSerial)
-{
-	if(hQuery == INVALID_HANDLE)
-		return;
-	
-	new iClient = GetClientFromSerial(iClientSerial);
-	if(!iClient)
-		return;
-	
-	if(!SQL_FetchRow(hQuery))
-		return;
-	
-	g_fRealMoney[iClient] = SQL_FetchFloat(hQuery, 0);
-	
-	if(g_fRealMoney[iClient] > 0.0)
-		g_bShouldShowRealMoneyPage[iClient] = true;
-}
-
 public Action:OnOpenDonatorMenu(iClient, iArgNum)
 {
 	if(!iClient)
 		return Plugin_Handled;
 	
 	if(IsDonator(iClient))
-	{
-		if(g_bShouldShowRealMoneyPage[iClient])
-		{
-			g_bShouldShowRealMoneyPage[iClient] = false;
-			
-			decl String:szURL[255];
-			Format(szURL, sizeof(szURL), "http://swoobles.com/page/spendmoney");
-			WebPageViewer_OpenPage(iClient, szURL);
-		}
-		else
-		{
-			DisplayMenu_Settings(iClient);
-		}
-	}
+		DisplayMenu_Settings(iClient);
 	else
-	{
 		DisplayMenu_NonDonator(iClient);
-	}
-	
 	
 	return Plugin_Handled;
 }
@@ -540,7 +465,6 @@ DisplayMenu_NonDonator(iClient, iPosition=0)
 	
 	AddMenuItem(hMenu, "1", "Donate to the server.");
 	AddMenuItem(hMenu, "2", "View donation perks.");
-	AddMenuItem(hMenu, "3", "Spend coins.");
 	
 	if(!DisplayMenuAtItem(hMenu, iClient, iPosition, 0))
 		CPrintToChat(iClient, "{green}-- {olive}Error.");
@@ -578,13 +502,6 @@ public MenuHandle_NonDonator(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 			// View donation perks.
 			decl String:szURL[255];
 			FormatEx(szURL, sizeof(szURL), "http://swoobles.com/page/donate?sid=%i&perks=1#donation_wrapper", DBServers_GetServerID());
-			WebPageViewer_OpenPage(iParam1, szURL);
-		}
-		case 3:
-		{
-			// Spend coins.
-			decl String:szURL[255];
-			Format(szURL, sizeof(szURL), "http://swoobles.com/page/spendcoins");
 			WebPageViewer_OpenPage(iParam1, szURL);
 		}
 	}
