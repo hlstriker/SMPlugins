@@ -23,7 +23,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Ultimate Jailbreak: Warden";
-new const String:PLUGIN_VERSION[] = "1.33";
+new const String:PLUGIN_VERSION[] = "1.34";
 
 public Plugin:myinfo =
 {
@@ -47,7 +47,7 @@ new g_iWardenSerial;
 new g_iLastWardenSerial;
 new g_iClientWardenCount[MAXPLAYERS+1];
 
-new const String:PLAYER_MODEL_WARDEN[] = "models/player/custom_player/legacy/tm_professional.mdl";
+new const String:PLAYER_MODEL_WARDEN[] = "models/player/custom_player/legacy/ctm_heavy.mdl";
 new String:g_szPlayerOriginalModel[MAXPLAYERS+1][PLATFORM_MAX_PATH];
 
 new const String:WARDENDEATH_SOUND[] = "sound/music/revenge.wav";
@@ -801,7 +801,19 @@ SetWarden(iClient)
 	
 	g_iWardenSerial = GetClientSerial(iClient);
 	g_iLastWardenSerial = g_iWardenSerial;
-	SetEntityModel(iClient, PLAYER_MODEL_WARDEN);
+	
+	if(g_bLibLoaded_ModelSkinManager)
+	{
+		#if defined _model_skin_manager_included
+		MSManager_SetPlayerModel(iClient, PLAYER_MODEL_WARDEN);
+		#else
+		SetEntityModel(iClient, PLAYER_MODEL_WARDEN);
+		#endif
+	}
+	else
+	{
+		SetEntityModel(iClient, PLAYER_MODEL_WARDEN);
+	}
 	
 	if(g_bLibLoaded_ItemEquipment)
 	{
@@ -1035,7 +1047,18 @@ bool:TryRemoveClientFromWarden(iClient)
 	
 	if(IsPlayerAlive(iClient))
 	{
-		SetEntityModel(iClient, g_szPlayerOriginalModel[iClient]);
+		if(g_bLibLoaded_ModelSkinManager)
+		{
+			#if defined _model_skin_manager_included
+			MSManager_SetPlayerModel(iClient, g_szPlayerOriginalModel[iClient]);
+			#else
+			SetEntityModel(iClient, g_szPlayerOriginalModel[iClient]);
+			#endif
+		}
+		else
+		{
+			SetEntityModel(iClient, g_szPlayerOriginalModel[iClient]);
+		}
 		
 		if(g_bLibLoaded_ItemEquipment)
 		{

@@ -7,10 +7,14 @@
 #include <hls_color_chat>
 #include "Includes/ultjb_last_request"
 
+#undef REQUIRE_PLUGIN
+#include "../../Libraries/ModelSkinManager/model_skin_manager"
+#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Ultimate Jailbreak: Last Guard";
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
 {
@@ -36,7 +40,7 @@ new g_iCounter_DamageInterval;
 
 new bool:g_bCanLastGuard;
 
-new const String:PLAYER_MODEL_LAST_GUARD[] = "models/player/custom_player/legacy/tm_professional.mdl";
+new const String:PLAYER_MODEL_LAST_GUARD[] = "models/player/custom_player/legacy/ctm_heavy.mdl";
 
 new const BEACON_COLOR_GUARD[] = {0, 178, 255, 200};
 new const BEACON_COLOR_PRISONER[] = {255, 77, 0, 200};
@@ -56,6 +60,8 @@ new g_iBeaconIndex;
 
 new Handle:g_hFwd_OnActivated_Pre;
 new Handle:g_hFwd_OnActivated_Post;
+
+new bool:g_bLibLoaded_ModelSkinManager;
 
 
 public OnPluginStart()
@@ -79,6 +85,27 @@ public OnPluginStart()
 	
 	g_hFwd_OnActivated_Pre = CreateGlobalForward("UltJB_LastGuard_OnActivated_Pre", ET_Ignore, Param_Cell);
 	g_hFwd_OnActivated_Post = CreateGlobalForward("UltJB_LastGuard_OnActivated_Post", ET_Ignore, Param_Cell);
+}
+
+public OnAllPluginsLoaded()
+{
+	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+	{
+		g_bLibLoaded_ModelSkinManager = true;
+	}
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+	{
+		g_bLibLoaded_ModelSkinManager = false;
+	}
 }
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
@@ -271,7 +298,18 @@ SetLastGuard(iClient)
 	new iBonusHealth = GetConVarInt(cvar_hp_per_prisoner) * iNumPrisonersAlive;
 	UltJB_LR_SetClientsHealth(iClient, GetClientHealth(iClient) + iBonusHealth);
 	
-	SetEntityModel(iClient, PLAYER_MODEL_LAST_GUARD);
+	if(g_bLibLoaded_ModelSkinManager)
+	{
+		#if defined _model_skin_manager_included
+		MSManager_SetPlayerModel(iClient, PLAYER_MODEL_LAST_GUARD);
+		#else
+		SetEntityModel(iClient, PLAYER_MODEL_LAST_GUARD);
+		#endif
+	}
+	else
+	{
+		SetEntityModel(iClient, PLAYER_MODEL_LAST_GUARD);
+	}
 	
 	StartTimer_LastGuard(iClient);
 	

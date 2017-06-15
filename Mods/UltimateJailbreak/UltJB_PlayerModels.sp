@@ -7,12 +7,13 @@
 #undef REQUIRE_PLUGIN
 //#include "../Swoobles 5.0/Plugins/StoreItems/Equipment/item_equipment"
 #include "../../Plugins/DonatorItems/PlayerModels/donatoritem_player_models"
+#include "../../Libraries/ModelSkinManager/model_skin_manager"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Ultimate Jailbreak: Player Models";
-new const String:PLUGIN_VERSION[] = "1.12";
+new const String:PLUGIN_VERSION[] = "1.13";
 
 public Plugin:myinfo =
 {
@@ -123,6 +124,7 @@ new const String:PLAYER_MODEL_T_FILES[][] =
 
 new bool:g_bLibLoaded_ItemPlayerModels;
 new bool:g_bLibLoaded_ItemEquipment;
+new bool:g_bLibLoaded_ModelSkinManager;
 
 new Handle:g_hFwd_OnApplied;
 
@@ -144,6 +146,7 @@ public OnAllPluginsLoaded()
 {
 	g_bLibLoaded_ItemPlayerModels = LibraryExists("donatoritem_player_models");
 	g_bLibLoaded_ItemEquipment = LibraryExists("item_equipment");
+	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
 }
 
 public OnLibraryAdded(const String:szName[])
@@ -156,6 +159,10 @@ public OnLibraryAdded(const String:szName[])
 	{
 		g_bLibLoaded_ItemEquipment = true;
 	}
+	else if(StrEqual(szName, "model_skin_manager"))
+	{
+		g_bLibLoaded_ModelSkinManager = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
@@ -167,6 +174,10 @@ public OnLibraryRemoved(const String:szName[])
 	else if(StrEqual(szName, "item_equipment"))
 	{
 		g_bLibLoaded_ItemEquipment = false;
+	}
+	else if(StrEqual(szName, "model_skin_manager"))
+	{
+		g_bLibLoaded_ModelSkinManager = false;
 	}
 }
 
@@ -205,18 +216,53 @@ public UltJB_Settings_OnSpawnPost(iClient)
 			// Chance the player will get the big black prisoner model. Give them a bit of extra health!
 			if(GetRandomInt(1, 50) == 1)
 			{
-				SetEntityModel(iClient, PLAYER_MODELS_T[0]);
+				if(g_bLibLoaded_ModelSkinManager)
+				{
+					#if defined _model_skin_manager_included
+					MSManager_SetPlayerModel(iClient, PLAYER_MODELS_T[0]);
+					#else
+					SetEntityModel(iClient, PLAYER_MODELS_T[0]);
+					#endif
+				}
+				else
+				{
+					SetEntityModel(iClient, PLAYER_MODELS_T[0]);
+				}
+				
 				UltJB_LR_SetClientsHealth(iClient, GetEntProp(iClient, Prop_Data, "m_iHealth") + 25);
 			}
 			else
 			{
 				new iIndex = GetRandomInt(1, sizeof(PLAYER_MODELS_T)-1);
-				SetEntityModel(iClient, PLAYER_MODELS_T[iIndex]);
+				
+				if(g_bLibLoaded_ModelSkinManager)
+				{
+					#if defined _model_skin_manager_included
+					MSManager_SetPlayerModel(iClient, PLAYER_MODELS_T[iIndex]);
+					#else
+					SetEntityModel(iClient, PLAYER_MODELS_T[iIndex]);
+					#endif
+				}
+				else
+				{
+					SetEntityModel(iClient, PLAYER_MODELS_T[iIndex]);
+				}
 			}
 		}
 		case TEAM_GUARDS:
 		{
-			SetEntityModel(iClient, PLAYER_MODEL_CT);
+			if(g_bLibLoaded_ModelSkinManager)
+			{
+				#if defined _model_skin_manager_included
+				MSManager_SetPlayerModel(iClient, PLAYER_MODEL_CT);
+				#else
+				SetEntityModel(iClient, PLAYER_MODEL_CT);
+				#endif
+			}
+			else
+			{
+				SetEntityModel(iClient, PLAYER_MODEL_CT);
+			}
 		}
 	}
 	
