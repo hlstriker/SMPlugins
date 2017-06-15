@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: User Logs";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -105,7 +105,8 @@ bool:Query_CreateStoreUserLogsTable()
 		log_data4		BIGINT				NOT NULL,\
 		log_time		INT					NOT NULL,\
 		PRIMARY KEY ( log_id ),\
-		INDEX ( user_id, log_type, log_time )\
+		INDEX ( user_id, log_type, log_time ),\
+		INDEX ( log_type, log_time )\
 	) ENGINE = INNODB");
 	
 	if(hQuery == INVALID_HANDLE)
