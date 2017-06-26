@@ -10,6 +10,7 @@ CREATE TABLE core_servers
 	server_enabled		BIT( 1 )		NOT NULL,
 	server_sub_domain	VARCHAR( 16 )		NOT NULL,	-- gs1, gs2, gs3, etc
 	server_path_name	VARCHAR( 32 )		NOT NULL,	-- The name to use for the fast download path. Ex: minigames, jailbreak, etc.
+	server_owner_name	VARCHAR( 32 )		NOT NULL,	-- The user that owns this server. Used for certain paths.
 	PRIMARY KEY ( server_id ),
 	UNIQUE ( server_code ),
 	INDEX ( server_enabled, server_code ),	-- Used in API_DatabaseServers.sp
