@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Model Skin Manager";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -362,20 +362,6 @@ bool:TryCreateNewWearableItem(iClient, iWearableIndex, iItemDefinitionIndex, iPa
 	if(iEnt == -1)
 		return false;
 	
-	// Used for weapon skins?
-	/*
-	new iActiveWeapon = GetEntPropEnt(iClient, Prop_Send, "m_hActiveWeapon");
-	if(iActiveWeapon != -1)
-	{
-		SetEntPropEnt(iClient, Prop_Send, "m_hActiveWeapon", -1);
-		
-		new Handle:hPack = CreateDataPack();
-		WritePackCell(hPack, GetClientSerial(iClient));
-		WritePackCell(hPack, EntIndexToEntRef(iActiveWeapon));
-		RequestFrame(OnReapplyActiveWeapon, hPack);
-	}
-	*/
-	
 	new iAccountID = GetSteamAccountID(iClient, false);
 	SetEntPropEnt(iClient, Prop_Send, "m_hMyWearables", iEnt, iWearableIndex);
 	SetEntProp(iClient, Prop_Send, "m_nBody", 1); // TODO: Set back to 0 when we remove all wearables.
@@ -407,19 +393,6 @@ bool:TryCreateNewWearableItem(iClient, iWearableIndex, iItemDefinitionIndex, iPa
 	}
 	
 	return true;
-}
-
-public OnReapplyActiveWeapon(any:hPack)
-{
-	ResetPack(hPack, false);
-	new iClient = GetClientFromSerial(ReadPackCell(hPack));
-	new iActiveWeapon = EntRefToEntIndex(ReadPackCell(hPack));
-	CloseHandle(hPack);
-	
-	if(!iClient || iActiveWeapon == INVALID_ENT_REFERENCE)
-		return;
-	
-	SetEntPropEnt(iClient, Prop_Send, "m_hActiveWeapon", iActiveWeapon);
 }
 
 public _MSManager_RemovePlayerModel(Handle:hPlugin, iNumParams)
