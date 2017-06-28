@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Token Stash Update";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -130,13 +130,15 @@ ValidateToken(const String:szToken[])
 	
 	if(StrEqual(szToken[13], g_szToken))
 	{
+		// The current token is still valid but the server started without using a token for verification, restart it.
 		if(g_hTimer == INVALID_HANDLE)
 		{
+			LogMessage("TokenStash: Initial token verification was successful, restarting the server.");
 			SaveConfig();
-			LogMessage("TokenStash: Server's current token is valid.");
-			LogMessage("TokenStash: Restart the server quickly and the token will activate.");
+			RestartServer();
 		}
 		
+		// The current token is still valid.
 		return;
 	}
 	
