@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Model Skin Manager";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
@@ -101,6 +101,7 @@ public OnPluginStart()
 	cvar_sv_allow_initial_arms_only = CreateConVar("sv_allow_initial_arms_only", "0", "Set this to 1 if applying arms mid-round is conflicting with your other plugins.");
 	
 	HookEvent("round_prestart", Event_RoundPrestart_Post, EventHookMode_PostNoCopy);
+	HookEvent("player_death", Event_PlayerDeath_Post, EventHookMode_Post);
 	
 	g_hFwd_OnSpawnPost = CreateGlobalForward("MSManager_OnSpawnPost", ET_Ignore, Param_Cell);
 }
@@ -357,14 +358,13 @@ bool:TryCreateNewWearableItem(iClient, iWearableIndex, iItemDefinitionIndex, iPa
 	if(GetEntPropEnt(iClient, Prop_Send, "m_hMyWearables", iWearableIndex) != -1)
 		return false;
 	
-	//iEnt = GivePlayerItem(iClient, "wearable_item"); // Used for weapon skins?
 	new iEnt = CreateEntityByName("wearable_item");
 	if(iEnt == -1)
 		return false;
 	
 	new iAccountID = GetSteamAccountID(iClient, false);
 	SetEntPropEnt(iClient, Prop_Send, "m_hMyWearables", iEnt, iWearableIndex);
-	SetEntProp(iClient, Prop_Send, "m_nBody", 1); // TODO: Set back to 0 when we remove all wearables.
+	SetEntProp(iClient, Prop_Send, "m_nBody", 1);
 	
 	SetEntPropEnt(iEnt, Prop_Data, "m_hOwnerEntity", iClient);
 	SetEntPropEnt(iEnt, Prop_Data, "m_hParent", iClient);
@@ -423,6 +423,7 @@ public OnApplyModelsNextFrame(any:iClientSerial)
 	
 	g_bRequestedNextFrame[iClient] = false;
 	g_bHasSetInitialArms[iClient] = true;
+	SetEntProp(iClient, Prop_Send, "m_nBody", 0);
 	
 	if(g_szCustomArmsModel[iClient][0])
 	{
@@ -510,19 +511,22 @@ CancelApplyAllModels(iClient)
 	StopTimer_ApplyPlayerModel(iClient);
 }
 
-public Event_RoundPrestart_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
+public Action:Event_PlayerDeath_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
 {
-	for(new iClient=1; iClient<=MaxClients; iClient++)
-	{
-		g_bHasSetInitialArms[iClient] = false;
-		CancelApplyAllModels(iClient);
-		ClearCustomModels(iClient);
-		g_bRemoveArms[iClient] = false;
-		g_iWearableOnSpawn_ItemDefIndex[iClient] = 0;
-	}
+	new iClient = GetClientOfUserId(GetEventInt(hEvent, "userid"));
+	if(!(1 <= iClient <= MaxClients))
+		return;
+	
+	if(!IsClientInGame(iClient))
+		return;
+	
+	if(g_bIsForceRespawning[iClient])
+		return;
+	
+	ResetClientVariables(iClient);
 }
 
-public OnClientDisconnect(iClient)
+ResetClientVariables(iClient)
 {
 	g_bHasSetInitialArms[iClient] = false;
 	CancelApplyAllModels(iClient);
@@ -531,6 +535,20 @@ public OnClientDisconnect(iClient)
 	g_iWearableOnSpawn_ItemDefIndex[iClient] = 0;
 	g_bIsForceRespawning[iClient] = false;
 	StopTimer_ReapplyActiveWeapon(iClient);
+}
+
+public Event_RoundPrestart_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
+{
+	for(new iClient=1; iClient<=MaxClients; iClient++)
+	{
+		if(IsClientInGame(iClient))
+			ResetClientVariables(iClient);
+	}
+}
+
+public OnClientDisconnect(iClient)
+{
+	ResetClientVariables(iClient);
 }
 
 SaveClientData(iClient)
@@ -663,6 +681,13 @@ public OnSpawnPost(iClient)
 	
 	g_bHasDefaultArms[iClient] = false;
 	g_bHasCustomArms[iClient] = false;
+	
+	new iGloves = GetEntPropEnt(iClient, Prop_Send, "m_hMyWearables", WEARABLE_INDEX_GLOVES);
+	if(iGloves != -1)
+	{
+		SetEntPropEnt(iClient, Prop_Send, "m_hMyWearables", -1, WEARABLE_INDEX_GLOVES);
+		AcceptEntityInput(iGloves, "KillHierarchy");
+	}
 	
 	if(!g_bIsForceRespawning[iClient])
 	{
