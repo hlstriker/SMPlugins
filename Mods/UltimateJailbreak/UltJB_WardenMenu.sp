@@ -196,8 +196,8 @@ public UltJB_Warden_OnSelected(iClient)
 	
 	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}Type {lightred}!wm {olive} to open the warden's menu.");
 	
-	if(g_iWardenCount == 1)
-		DisplayMenu_WardenMenu(iClient);
+	//if(g_iWardenCount == 1)
+		//DisplayMenu_WardenMenu(iClient);
 }
 
 public UltJB_Warden_OnRemoved(iClient)
