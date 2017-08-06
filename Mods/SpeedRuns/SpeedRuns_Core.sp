@@ -1242,15 +1242,6 @@ TryCapSpeed(iClient, Float:fSpeedCap)
 	static Float:fVelocity[3], Float:fSpeed;
 	GetEntPropVector(iClient, Prop_Data, "m_vecVelocity", fVelocity);
 	
-	fSpeed = GetVectorLength(fVelocity);
-	if(fSpeed <= fSpeedCap)
-		return;
-	
-	static Float:fPercent[3];
-	fPercent[0] = fVelocity[0] / fSpeed;
-	fPercent[1] = fVelocity[1] / fSpeed;
-	fPercent[2] = fVelocity[2] / fSpeed;
-	
 	// Don't cap speed if we are only over the cap by moving up and down.
 	static Float:fVerticalVelocity;
 	fVerticalVelocity = fVelocity[2];
@@ -1258,10 +1249,10 @@ TryCapSpeed(iClient, Float:fSpeedCap)
 	fSpeed = GetVectorLength(fVelocity);
 	if(fSpeed <= fSpeedCap)
 		return;
-	
-	fVelocity[0] = fSpeedCap * fPercent[0];
-	fVelocity[1] = fSpeedCap * fPercent[1];
-	//fVelocity[2] = fSpeedCap * fPercent[2];
+	static Float:fPercent;
+	fPercent = fSpeedCap / fSpeed;  //Find proportion of speed cap to player's XY plane speed
+	fVelocity[0] = fSpeed * fPercent;  //Multiply player's XY plane speed by that proportion, making it equal to the speed cap
+	fVelocity[1] = fSpeed * fPercent;
 	fVelocity[2] = fVerticalVelocity; // Don't cap vertical velocity.
 	
 	TeleportEntity(iClient, NULL_VECTOR, NULL_VECTOR, fVelocity);
