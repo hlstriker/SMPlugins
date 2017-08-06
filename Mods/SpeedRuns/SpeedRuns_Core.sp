@@ -1251,8 +1251,8 @@ TryCapSpeed(iClient, Float:fSpeedCap)
 		return;
 	static Float:fPercent;
 	fPercent = fSpeedCap / fSpeed;  //Find proportion of speed cap to player's XY plane speed
-	fVelocity[0] = fSpeed * fPercent;  //Multiply player's XY plane speed by that proportion, making it equal to the speed cap
-	fVelocity[1] = fSpeed * fPercent;
+	fVelocity[0] = fVelocity[0] * fPercent;  //Multiply player's XY plane speed by that proportion, making it equal to the speed cap
+	fVelocity[1] = fVelocity[1] * fPercent;
 	fVelocity[2] = fVerticalVelocity; // Don't cap vertical velocity.
 	
 	TeleportEntity(iClient, NULL_VECTOR, NULL_VECTOR, fVelocity);
