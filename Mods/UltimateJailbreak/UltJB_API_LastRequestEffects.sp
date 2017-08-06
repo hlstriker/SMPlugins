@@ -96,14 +96,14 @@ public OnMapStart()
 SortEffectsByName()
 {
 	new iArraySize = GetArraySize(g_aEffects);
-	decl String:szName[EFFECT_MAX_NAME_LENGTH], eEffect[Effect], j, iIndex, iID;
+	decl String:szName[EFFECT_MAX_NAME_LENGTH], eEffect[Effect], j, iIndex; //iID;
 	
 	for(new i=0; i<iArraySize; i++)
 	{
 		GetArrayArray(g_aEffects, i, eEffect);
 		strcopy(szName, sizeof(szName), eEffect[Effect_Name]);
 		iIndex = 0;
-		iID = eEffect[Effect_ID];
+		//iID = eEffect[Effect_ID];
 		
 		for(j=i+1; j<iArraySize; j++)
 		{
