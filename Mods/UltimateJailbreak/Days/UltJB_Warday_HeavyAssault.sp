@@ -19,11 +19,16 @@ public Plugin:myinfo =
 	url = "www.swoobles.com"
 }
 
-#define DAY_NAME	"Heavy Assault"
+#define DAY_NAME		"Heavy Assault"
+#define HEAVY_BUYTIME 	20
+
 new const DayType:DAY_TYPE = DAY_TYPE_WARDAY;
 
 new Handle:g_hBuyAnywhere;
 new Handle:g_hAllowHeavy;
+new Handle:g_hTimer_BuyWeapons;
+
+new g_iTimerCountdown;
 
 public OnPluginStart()
 {
@@ -39,14 +44,12 @@ public UltJB_Day_OnRegisterReady()
 
 public OnDayStart(iClient)
 {
-	SetConVarInt(g_hAllowHeavy, 1);
-	SetConVarInt(g_hBuyAnywhere, 1);
-	StripWeapons();
-	GivePlayersSuits();
+	PrepWeapons(true);
 }
 
 public OnDayEnd(iClient)
 {
+	StopTimer_BuyWeapons();
 	SetConVarInt(g_hAllowHeavy, 0);
 	RemoveSuits();
 }
@@ -60,8 +63,7 @@ GivePlayersSuits()
 			
 		if(GetClientTeam(iClient) != TEAM_GUARDS)
 			continue;
-		
-		UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_KNIFE);
+			
 		SetEntProp(iClient, Prop_Send, "m_bHasHeavyArmor", 1);
 		SetEntProp(iClient, Prop_Send, "m_ArmorValue", 250);
 	}
@@ -69,18 +71,23 @@ GivePlayersSuits()
 
 public OnFreezeEnd()
 {
-	SetConVarInt(g_hBuyAnywhere, 0);
+	PrepWeapons(false);
+	SetConVarInt(g_hAllowHeavy, 1);
 	GivePlayersSuits();
+	StartTimer_BuyWeapons();
 }
 
-StripWeapons()
+PrepWeapons(bool:bStrip=true)
 {
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
 		if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
 			continue;
 		
-		UltJB_LR_StripClientsWeapons(iClient);
+		if(bStrip)
+			UltJB_LR_StripClientsWeapons(iClient);
+		else
+			UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_KNIFE);
 	}
 }
 
@@ -97,4 +104,50 @@ RemoveSuits()
 		SetEntProp(iClient, Prop_Send, "m_ArmorValue", 0);
 		SetEntProp(iClient, Prop_Send, "m_bHasHeavyArmor", 0);
 	}
+}
+
+StartTimer_BuyWeapons()
+{
+	g_iTimerCountdown = 0;
+	ShowCountdown_BuyWeapons();
+	
+	StopTimer_BuyWeapons();
+	
+	SetConVarInt(g_hBuyAnywhere, 1);
+	
+	g_hTimer_BuyWeapons = CreateTimer(1.0, Timer_BuyWeapons, _, TIMER_REPEAT);
+}
+
+ShowCountdown_BuyWeapons()
+{
+	PrintHintTextToAll("<font color='#FF0000'>Time remaining to buy:</font>\n<font color='#FFFFFF'>%i</font> <font color='#FF0000'>seconds.</font>", HEAVY_BUYTIME - g_iTimerCountdown);
+}
+
+StopTimer_BuyWeapons()
+{
+	if(g_hTimer_BuyWeapons == INVALID_HANDLE)
+		return;
+	
+	SetConVarInt(g_hBuyAnywhere, 0);
+	KillTimer(g_hTimer_BuyWeapons);
+	g_hTimer_BuyWeapons = INVALID_HANDLE;
+}
+
+public Action:Timer_BuyWeapons(Handle:hTimer)
+{
+	g_iTimerCountdown++;
+	if(g_iTimerCountdown < HEAVY_BUYTIME)
+	{
+		ShowCountdown_BuyWeapons();
+		return Plugin_Continue;
+	}
+	
+	SetConVarInt(g_hBuyAnywhere, 0);
+	
+	KillTimer(g_hTimer_BuyWeapons);
+	g_hTimer_BuyWeapons = INVALID_HANDLE;
+	
+	PrintHintTextToAll("<font color='#FF0000'>Buy time is up!</font>");
+	
+	return Plugin_Stop;
 }
