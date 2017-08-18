@@ -1753,20 +1753,19 @@ DisplayMenu_EditSize(iClient)
 
 public MenuHandle_EditSize(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 {
-	
-	decl eZone[Zone];
-	GetArrayArray(g_aZones, g_iZoneIDToIndex[g_iSelectedZoneID[iParam1]], eZone);
 
 	if(action == MenuAction_End)
 	{
-		LogChanges(iParam1, ZM_EDITTYPE_SIZE, eZone[Zone_Type]);
 		CloseHandle(hMenu);
 		return;
 	}
 	
 	if(action == MenuAction_Cancel)
 	{
+		decl eZone[Zone];
+		GetArrayArray(g_aZones, g_iZoneIDToIndex[g_iSelectedZoneID[iParam1]], eZone);
 		LogChanges(iParam1, ZM_EDITTYPE_SIZE, eZone[Zone_Type]);
+		
 		g_bInZoneMenu[iParam1] = false;
 		g_bIsEditingSize[iParam1] = false;
 		SDKUnhook(iParam1, SDKHook_PreThinkPost, OnPreThinkPost);
