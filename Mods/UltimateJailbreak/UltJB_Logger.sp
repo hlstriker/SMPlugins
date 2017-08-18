@@ -363,6 +363,8 @@ public Action:OnTakeDamage(iVictim, &iAttacker, &iInflictor, &Float:fdamage, &iD
 	
 	if(GetClientTeam(iOwner) != TEAM_GUARDS)
 		return;
+		
+	PrintToChat(iOwner, "You damaged a vent. This is against the rules unless it is LR or Last Guard.");
 	
 	for(new iClient=1; iClient<=MaxClients; iClient++) 
 	{

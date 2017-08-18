@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Ultimate Jailbreak: Command CT Ban";
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
 {
@@ -180,12 +180,12 @@ public Action:Command_CTBan(iClient, iArgs)
 	
 	if(iSeconds)
 	{
-		ReplyToCommand(iClient, "[SM] %s has been CT banned for %i minutes.", szTarget, (iSeconds / 60));
+		//ReplyToCommand(iClient, "[SM] %s has been CT banned for %i minutes.", szTarget, (iSeconds / 60));
 		PrintToChatAll("[SM] %s has been CT banned for %i minutes by %N.", szTarget, (iSeconds / 60), iClient);
 	}
 	else
 	{
-		ReplyToCommand(iClient, "[SM] %s has been CT banned permanently.", szTarget);
+		//ReplyToCommand(iClient, "[SM] %s has been CT banned permanently.", szTarget);
 		PrintToChatAll("[SM] %s has been CT banned permanently by %N.", szTarget, iClient);
 	}
 	
@@ -252,14 +252,14 @@ public Action:Command_UnCTBan(iClient, iArgs)
 	
 	if(iTarget)
 	{
-		ReplyToCommand(iClient, "[SM] %N's CT ban has been lifted.", iTarget);
+		//ReplyToCommand(iClient, "[SM] %N's CT ban has been lifted.", iTarget);
 		PrintToChatAll("[SM] %N's CT ban has been lifted by %N.", iTarget, iClient);
 		
 		LogAction(iClient, iTarget, "\"%L\" ct unbanned \"%L\"", iClient, iTarget);
 	}
 	else
 	{
-		ReplyToCommand(iClient, "[SM] %s's CT ban has been lifted.", szTarget);
+		//ReplyToCommand(iClient, "[SM] %s's CT ban has been lifted.", szTarget);
 		PrintToChatAll("[SM] %s's CT ban has been lifted by %N.", szTarget, iClient);
 		
 		LogAction(iClient, -1, "\"%L\" ct unbanned (authid \"%s\")", iClient, szTarget);

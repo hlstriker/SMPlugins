@@ -75,8 +75,8 @@ public _DemoSessions_GetCurrentTick(Handle:hPlugin, iNumParams)
 	if(!g_iDemoSessID)
 		return 0;
 	
-	//return SourceTV_GetRecordingTick();
-	return 0;
+	return SourceTV_GetRecordingTick();
+	//return 0;
 }
 
 public _DemoSessions_IsRecording(Handle:hPlugin, iNumParams)

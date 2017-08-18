@@ -7,7 +7,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "LR: Rebel - Ghost";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 new bool:g_bIsGhostVisible;
 new bool:g_bCanDropWeapons = true;
@@ -79,11 +79,11 @@ PrepareGuards()
 		if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient) || GetClientTeam(iClient) != TEAM_GUARDS)
 			continue;
 			
-		
+		UltJB_LR_StripClientsWeapons(iClient, true);
+		UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_KNIFE);
 		UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_NOVA);
 	
 	}
-	
 }
 
 RestoreWeaponsIfNeeded(iClient)
@@ -103,8 +103,8 @@ public Action:Hook_HidePlayer(ent, iClient)
     return Plugin_Continue; 
 }  
 
-HookGuards() {
-
+HookGuards()
+{
 	for(new iClient = 1;iClient<=MaxClients;iClient++) {
 		if (!IsClientInGame(iClient) || !IsPlayerAlive(iClient) || GetClientTeam(iClient) != TEAM_GUARDS)
 			continue;
@@ -112,19 +112,18 @@ HookGuards() {
 		SDKHook(iClient, SDKHook_WeaponCanUse, OnWeaponCanUse);
 		SDKHook(iClient, SDKHook_OnTakeDamage, Hook_OnDamage);
 	}
-
 }
 
-UnhookGuards() {
-
+UnhookGuards()
+{
 	for(new iClient = 1;iClient<=MaxClients;iClient++) {
 		SDKUnhook(iClient, SDKHook_WeaponCanUse, OnWeaponCanUse);
 		SDKUnhook(iClient, SDKHook_OnTakeDamage, Hook_OnDamage);
 	}
-
 }
 
-public OnClientDisconnect(iClient) {
+public OnClientDisconnect(iClient)
+{
 	SDKUnhook(iClient, SDKHook_OnTakeDamage, Hook_OnDamage);
 	SDKUnhook(iClient, SDKHook_WeaponCanUse, OnWeaponCanUse);
 }
@@ -170,7 +169,6 @@ public Action:Hook_OnDamage(iVictim, &attacker, &inflictor, &Float:damage, &dama
 	}
 
 	return Plugin_Changed;
-	
 }
 
 StartTimer_EnableRadar()
@@ -243,7 +241,5 @@ public Action:CS_OnCSWeaponDrop(iClient, iWeapon)
 
 public Action:OnWeaponCanUse(iClient, iWeapon)
 {
-
 	return Plugin_Handled;
-
 }

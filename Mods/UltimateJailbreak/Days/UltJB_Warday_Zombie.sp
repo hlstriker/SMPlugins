@@ -148,7 +148,7 @@ public OnFreezeEnd()
 {
 	HookPlayers(); 
 	PrepareClients();
-	KillTeleporters();	
+	//KillTeleporters();
 }
 
 HookPlayers()
@@ -242,11 +242,11 @@ public Action:OnTraceAttack(iVictim, &iAttacker, &iInflictor, &Float:fDamage, &i
 	return Plugin_Continue;
 }
 
-KillTeleporters()
+/*KillTeleporters()
 {
 	new iEnt = -1;
 	while((iEnt = FindEntityByClassname(iEnt, "trigger_teleport")) != -1)
 	{
 		AcceptEntityInput(iEnt, "Kill");
 	}
-}
+}*/

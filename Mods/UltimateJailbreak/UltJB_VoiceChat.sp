@@ -91,6 +91,7 @@ public Action:Event_RoundEnd_Post(Handle:hEvent, const String:szName[], bool:bDo
 public OnMapEnd()
 {
 	CancelUnmuteTimer();
+	MuteAllPlayers();
 }
 
 public OnMapStart()
@@ -186,6 +187,17 @@ MuteAllPrisoners()
 			continue;
 		
 		if(GetClientTeam(iClient) != TEAM_PRISONERS)
+			continue;
+		
+		MutePlayer(iClient);
+	}
+}
+
+MuteAllPlayers()
+{
+	for(new iClient=1; iClient<=MaxClients; iClient++)
+	{
+		if(!IsClientInGame(iClient))
 			continue;
 		
 		MutePlayer(iClient);
