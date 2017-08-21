@@ -7,7 +7,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Ultimate Jailbreak: Weapon Selection";
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
 {
@@ -261,13 +261,84 @@ public _UltJB_Weapons_GetEntNameFromWeaponID(Handle:hPlugin, iNumParams)
 		}
 		default:
 		{
-			CS_WeaponIDToAlias(CSWeaponID:iWeaponID, szEntityName, sizeof(szEntityName));
+			//CS_WeaponIDToAlias(CSWeaponID:iWeaponID, szEntityName, sizeof(szEntityName));
+			TempWeaponIDToAlias(CSWeaponID:iWeaponID, szEntityName, sizeof(szEntityName)); // TODO: Delete when CS_WeaponIDToAlias() is fixed.
 			iCellsWritten = Format(szEntityName, sizeof(szEntityName), "weapon_%s", szEntityName);
 		}
 	}
 	
 	SetNativeString(2, szEntityName, GetNativeCell(3));
 	return iCellsWritten;
+}
+
+/*
+* 	Remove this function when CS_WeaponIDToAlias() is fixed in SourceMod.
+*/
+new const String:g_szWeaponIDToAlias[][] =
+{
+	"none",
+	"p228",
+	"glock",
+	"scout",
+	"hegrenade",
+	"xm1014",
+	"c4",
+	"mac10",
+	"aug",
+	"smokegrenade",
+	"elite",
+	"fiveseven", // fn57 in other games but CS:GO
+	"ump45",
+	"sg550",
+	"galil",
+	"famas",
+	"usp",
+	"awp",
+	"mp5",
+	"m249",
+	"m3",
+	"m4a1",
+	"tmp",
+	"g3sg1",
+	"flashbang",
+	"deagle",
+	"sg552",
+	"ak47",
+	"knife",
+	"p90",
+	"shield",
+	"vest",
+	"vesthelm",
+	"nvg",
+	"galilar",
+	"bizon",
+	"mag7",
+	"negev",
+	"sawedoff",
+	"tec9",
+	"taser",
+	"hkp2000",
+	"mp7",
+	"mp9",
+	"nova",
+	"p250",
+	"scar17",
+	"scar20",
+	"sg556",
+	"ssg08",
+	"knifegg",
+	"molotov",
+	"decoy",
+	"incgrenade",
+	"defuser"
+};
+
+TempWeaponIDToAlias(CSWeaponID:iWeaponID, String:szEntityName[], iLen)
+{
+	if(_:iWeaponID < 0 || _:iWeaponID >= sizeof(g_szWeaponIDToAlias))
+		return strcopy(szEntityName, iLen, "");
+	
+	return strcopy(szEntityName, iLen, g_szWeaponIDToAlias[iWeaponID]);
 }
 
 public _UltJB_Weapons_CancelWeaponSelection(Handle:hPlugin, iNumParams)
