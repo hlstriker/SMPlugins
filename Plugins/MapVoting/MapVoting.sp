@@ -1141,7 +1141,13 @@ bool:DisplayMenu_MapVote()
 			
 			if(GetMapsPlayerRequirementNeeds(eMap) != 0)
 				continue;
+
+			if(strncmp(eMap[Map_Name], "dr_", 3, false) == 0)
+				continue;
 			
+			if(strncmp(eMap[Map_Name], "deathrun_", 8, false) == 0)
+				continue;
+				
 			PushArrayString(aAllowedMaps, eMap[Map_Name]);
 		}
 		
