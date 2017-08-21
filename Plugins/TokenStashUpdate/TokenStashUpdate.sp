@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Token Stash Update";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -30,6 +30,7 @@ new String:g_szSteamID[128];
 new String:g_szApiKey[128];
 new String:g_szServerKey[128];
 new bool:g_bHibernate;
+new bool:g_bAutoUpdate;
 
 new Handle:g_hTimer;
 new g_iRestartCountDown;
@@ -41,6 +42,12 @@ public OnPluginStart()
 	
 	if(!LoadConfig())
 		SetFailState("Could not load config.");
+	
+	if(!g_bAutoUpdate)
+	{
+		ServerCommand("sv_setsteamaccount \"%s\"", g_szToken);
+		return;
+	}
 	
 	new iFileLastModified = GetFileTime(CONFIG_PATH, FileTime_LastChange);
 	if(iFileLastModified == -1)
@@ -99,9 +106,15 @@ public OnCompletedRequest(Handle:hRequest, bool:bFailure, bool:bRequestSuccessfu
 
 public OnBodyCallback(const String:szData[])
 {
-	if(StrEqual(szData, "ERROR") || StrEqual(szData, "INVALID_AUTH") || StrEqual(szData, "NO_TOKEN"))
+	new bool:bNoToken = bool:StrEqual(szData, "NO_TOKEN");
+	
+	if(bNoToken || StrEqual(szData, "ERROR") || StrEqual(szData, "INVALID_AUTH"))
 	{
 		LogError("TokenStash error: %s", szData);
+		
+		if(bNoToken)
+			RestartServerCountdown();
+		
 		return;
 	}
 	
@@ -290,6 +303,10 @@ bool:LoadConfig()
 		{
 			g_bHibernate = bool:StringToInt(szKeyValue[1]);
 		}
+		else if(StrEqual(szKeyValue[0], "tokenstash_autoupdate", false))
+		{
+			g_bAutoUpdate = bool:StringToInt(szKeyValue[1]);
+		}
 	}
 	
 	CloseHandle(fp);
@@ -310,6 +327,7 @@ SaveConfig()
 	WriteFileLine(fp, "tokenstash_apikey\t\"%s\"", g_szApiKey);
 	WriteFileLine(fp, "tokenstash_serverkey\t\"%s\"", g_szServerKey);
 	WriteFileLine(fp, "tokenstash_hibernate\t\"%i\"", g_bHibernate);
+	WriteFileLine(fp, "tokenstash_autoupdate\t\"%i\"", g_bAutoUpdate);
 	
 	CloseHandle(fp);
 }

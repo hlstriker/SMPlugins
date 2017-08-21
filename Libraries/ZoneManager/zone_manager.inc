@@ -33,6 +33,7 @@ public SharedPlugin:__pl_zone_manager =
 #define ZONE_TYPE_TELEPORT				10
 #define ZONE_TYPE_TELEPORT_DESTINATION	11
 #define ZONE_TYPE_FLASHLIGHT			12
+#define ZONE_TYPE_WEAPONSTRIP           13
 
 #define MAX_ZONE_TYPE_NAME_LEN		24
 #define MAX_ZONE_DATA_STRING_LENGTH	255
