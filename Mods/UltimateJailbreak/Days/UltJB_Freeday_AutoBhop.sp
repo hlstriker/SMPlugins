@@ -6,7 +6,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Freeday: Auto Bhop";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -20,10 +20,13 @@ public Plugin:myinfo =
 #define DAY_NAME	"Auto Bhop"
 new const DayType:DAY_TYPE = DAY_TYPE_FREEDAY;
 
+new Handle:g_hAutoBhop;
 
 public OnPluginStart()
 {
 	CreateConVar("freeday_auto_bhop_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
+	
+	g_hAutoBhop = FindConVar("sv_autobunnyhopping");
 }
 
 public UltJB_Day_OnRegisterReady()
@@ -33,33 +36,10 @@ public UltJB_Day_OnRegisterReady()
 
 public OnDayStart(iClient)
 {
-	for(new iPlayer=1; iPlayer<=MaxClients; iPlayer++)
-	{
-		if(!IsClientInGame(iPlayer) || !IsPlayerAlive(iPlayer))
-			continue;
-		
-		if(GetClientTeam(iPlayer) != TEAM_PRISONERS)
-			continue;
-		
-		SDKHook(iPlayer, SDKHook_PostThinkPost, OnPostThinkPost);
-	}
+	SetConVarInt(g_hAutoBhop, 1);
 }
 
 public OnDayEnd(iClient)
 {
-	for(new iPlayer=1; iPlayer<=MaxClients; iPlayer++)
-	{
-		if(!IsClientInGame(iPlayer))
-			continue;
-		
-		SDKUnhook(iPlayer, SDKHook_PostThinkPost, OnPostThinkPost);
-	}
-}
-
-public OnPostThinkPost(iClient)
-{
-	static iButtons;
-	iButtons = GetEntProp(iClient, Prop_Data, "m_nOldButtons");
-	iButtons &= ~IN_JUMP;
-	SetEntProp(iClient, Prop_Data, "m_nOldButtons", iButtons);
+	SetConVarInt(g_hAutoBhop, 0);
 }
