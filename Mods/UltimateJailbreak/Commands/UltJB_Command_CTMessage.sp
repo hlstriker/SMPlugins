@@ -79,7 +79,7 @@ public Action:OnMessageCT(iClient, iArgCount)
 	
 	if(iArgCount < 1)
 	{
-		ReplyToCommand(iClient, "[SM] Usage: sm_ctm <message>");
+		ReplyToCommand(iClient, "[SM] Usage: sm_g <message>");
 		return Plugin_Handled;
 	}
 	
@@ -101,7 +101,7 @@ public Action:OnMessageCT(iClient, iArgCount)
 	
 	if(strlen(szMessage) < 1)
 	{
-		ReplyToCommand(iClient, "[SM] Usage: sm_ctm <message>");
+		ReplyToCommand(iClient, "[SM] Usage: sm_g <message>");
 		return Plugin_Handled;
 	}
 	
