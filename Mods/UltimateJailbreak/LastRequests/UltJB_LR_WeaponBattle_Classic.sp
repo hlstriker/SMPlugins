@@ -7,7 +7,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "LR: Weapon Battle - Classic";
+new const String:PLUGIN_NAME[] = "[UltJB] LR: Weapon Battle - Classic";
 new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =

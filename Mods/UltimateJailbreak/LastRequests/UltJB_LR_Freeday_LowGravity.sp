@@ -5,7 +5,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "LR: Freeday - Low Gravity";
+new const String:PLUGIN_NAME[] = "[UltJB] LR: Freeday - Low Gravity";
 new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =

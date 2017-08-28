@@ -362,7 +362,7 @@ GetAdminsMaxTime(iClient)
 		case 1: return -1;		// Cannot timed punish
 		case 2: return 259200;	// 3 days
 		case 3: return 604800;	// 7 days
-		case 4: return 1296000;	// 15 days
+		case 4: return 0;		// Permanent
 	}
 	
 	return -1;
@@ -410,7 +410,7 @@ public Action:Command_TimedGag(iClient, iArgs)
 	if(iSeconds < 0)
 		iSeconds = 0;
 	
-	if(iSeconds < 1 || iSeconds > GetAdminsMaxTime(iClient))
+	if((iSeconds < 1 || iSeconds > GetAdminsMaxTime(iClient)) && GetAdminsMaxTime(iClient) > 0)
 	{
 		ReplyToCommand(iClient, "[SM] The time you entered was too long.");
 		return Plugin_Handled;
@@ -504,7 +504,7 @@ public Action:Command_TimedMute(iClient, iArgs)
 	if(iSeconds < 0)
 		iSeconds = 0;
 	
-	if(iSeconds < 1 || iSeconds > GetAdminsMaxTime(iClient))
+	if((iSeconds < 1 || iSeconds > GetAdminsMaxTime(iClient)) && GetAdminsMaxTime(iClient) > 0)
 	{
 		ReplyToCommand(iClient, "[SM] The time you entered was too long.");
 		return Plugin_Handled;
@@ -598,7 +598,7 @@ public Action:Command_TimedSilence(iClient, iArgs)
 	if(iSeconds < 0)
 		iSeconds = 0;
 	
-	if(iSeconds < 1 || iSeconds > GetAdminsMaxTime(iClient))
+	if((iSeconds < 1 || iSeconds > GetAdminsMaxTime(iClient)) && GetAdminsMaxTime(iClient) > 0)
 	{
 		ReplyToCommand(iClient, "[SM] The time you entered was too long.");
 		return Plugin_Handled;

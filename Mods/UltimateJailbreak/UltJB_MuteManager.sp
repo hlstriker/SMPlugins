@@ -14,7 +14,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "Ultimate Jailbreak: Mute Manager";
+new const String:PLUGIN_NAME[] = "[UltJB] Mute Manager";
 new const String:PLUGIN_VERSION[] = "1.20";
 
 public Plugin:myinfo =

@@ -11,7 +11,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "Ultimate Jailbreak: Logger";
+new const String:PLUGIN_NAME[] = "[UltJB] Logger";
 new const String:PLUGIN_VERSION[] = "1.7";
 
 public Plugin:myinfo =
@@ -364,7 +364,7 @@ public Action:OnTakeDamage(iVictim, &iAttacker, &iInflictor, &Float:fdamage, &iD
 	if(GetClientTeam(iOwner) != TEAM_GUARDS)
 		return;
 		
-	PrintToChat(iOwner, "You damaged a vent. This is against the rules unless it is LR or Last Guard.");
+	PrintHintText(iOwner, "You damaged a vent. This is against the rules unless it is LR or Last Guard.");
 	
 	for(new iClient=1; iClient<=MaxClients; iClient++) 
 	{

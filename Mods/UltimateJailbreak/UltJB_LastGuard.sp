@@ -13,7 +13,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "Ultimate Jailbreak: Last Guard";
+new const String:PLUGIN_NAME[] = "[UltJB] Last Guard";
 new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
@@ -170,12 +170,12 @@ public EventRoundStart_Post(Handle:hEvent, const String:szName[], bool:bDontBroa
 	if(iNumGuardsTotal >= GetConVarInt(cvar_guards_needed))
 	{
 		g_bCanLastGuard = true;
-		CPrintToChatAll("{green}[{lightred}SM{green}] {lightred}%i {olive}guard%s alive at round start. {yellow}Last Guard: {green}active{olive}!", iNumGuardsTotal, (iNumGuardsTotal == 1) ? "" : "s");
+		CPrintToChatAll("{green}[{lightred}SM{green}] {lightred}%i {olive}guard%s alive at round start. {yellow}Last Guard: {green}ENABLED{olive}!", iNumGuardsTotal, (iNumGuardsTotal == 1) ? "" : "s");
 	}
 	else
 	{
 		g_bCanLastGuard = false;
-		CPrintToChatAll("{green}[{lightred}SM{green}] {lightred}%i {olive}guard%s alive at round start. {yellow}Last Guard: {red}disabled{olive}.", iNumGuardsTotal, (iNumGuardsTotal == 1) ? "" : "s");
+		CPrintToChatAll("{green}[{lightred}SM{green}] {lightred}%i {olive}guard%s alive at round start. {yellow}Last Guard: {red}DISABLED{olive}.", iNumGuardsTotal, (iNumGuardsTotal == 1) ? "" : "s");
 	}
 }
 

@@ -5,8 +5,8 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "Freeday: Low Gravity";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_NAME[] = "[UltJB] Freeday: Low Gravity";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -35,7 +35,7 @@ public UltJB_Day_OnRegisterReady()
 
 public OnDayStart(iClient)
 {
-	SetLowGravityOnPrisoners();
+	SetLowGravityOnAll();
 }
 
 public OnDayEnd(iClient)
@@ -43,15 +43,15 @@ public OnDayEnd(iClient)
 	SetDefaultGravityOnAll();
 }
 
-SetLowGravityOnPrisoners()
+SetLowGravityOnAll()
 {
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
 		if(!IsClientInGame(iClient))
 			continue;
 		
-		if(GetClientTeam(iClient) != TEAM_PRISONERS)
-			continue;
+		//if(GetClientTeam(iClient) != TEAM_PRISONERS)
+			//continue;
 		
 		SetEntityGravity(iClient, LOW_GRAVITY_VALUE);
 		SDKHook(iClient, SDKHook_PostThinkPost, OnPostThinkPost);
