@@ -3,7 +3,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "[UltJB]  Cell Doors";
+new const String:PLUGIN_NAME[] = "[UltJB] Cell Doors";
 new const String:PLUGIN_VERSION[] = "1.0";
 
 public Plugin:myinfo =
