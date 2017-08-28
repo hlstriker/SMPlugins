@@ -2,7 +2,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "[UltJB]  Command Speed";
+new const String:PLUGIN_NAME[] = "[UltJB] Command Speed";
 new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =

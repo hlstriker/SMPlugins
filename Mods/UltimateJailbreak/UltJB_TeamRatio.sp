@@ -15,7 +15,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "[UltJB]  Team Ratio";
+new const String:PLUGIN_NAME[] = "[UltJB] Team Ratio";
 new const String:PLUGIN_VERSION[] = "1.13";
 
 public Plugin:myinfo =
