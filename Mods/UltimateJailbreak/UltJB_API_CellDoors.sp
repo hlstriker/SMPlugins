@@ -8,7 +8,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "Ultimate Jailbreak: Cell Doors API";
+new const String:PLUGIN_NAME[] = "[UltJB]  Cell Doors API";
 new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =

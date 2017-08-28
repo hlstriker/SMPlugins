@@ -9,7 +9,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "Admin Command: Xray Vision";
+new const String:PLUGIN_NAME[] = "[UltJB] Admin Xray Vision";
 new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =

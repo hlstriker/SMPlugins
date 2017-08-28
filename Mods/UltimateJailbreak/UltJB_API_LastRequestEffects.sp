@@ -3,7 +3,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "Ultimate Jailbreak: Last Request Effects";
+new const String:PLUGIN_NAME[] = "[UltJB]  Last Request Effects";
 new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =

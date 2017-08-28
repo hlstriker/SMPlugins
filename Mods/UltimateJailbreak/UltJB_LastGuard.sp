@@ -13,7 +13,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "Ultimate Jailbreak: Last Guard";
+new const String:PLUGIN_NAME[] = "[UltJB]  Last Guard";
 new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =

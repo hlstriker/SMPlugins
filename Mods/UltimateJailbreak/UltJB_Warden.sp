@@ -22,7 +22,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "Ultimate Jailbreak: Warden";
+new const String:PLUGIN_NAME[] = "[UltJB]  Warden";
 new const String:PLUGIN_VERSION[] = "1.34";
 
 public Plugin:myinfo =

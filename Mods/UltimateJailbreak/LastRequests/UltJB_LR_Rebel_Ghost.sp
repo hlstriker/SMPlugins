@@ -6,7 +6,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "LR: Rebel - Ghost";
+new const String:PLUGIN_NAME[] = "[UltJB] LR: Rebel - Ghost";
 new const String:PLUGIN_VERSION[] = "1.1";
 
 new bool:g_bIsGhostVisible;

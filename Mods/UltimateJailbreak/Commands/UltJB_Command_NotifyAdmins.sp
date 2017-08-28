@@ -11,7 +11,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "Ultimate Jailbreak: Command Notify Admins";
+new const String:PLUGIN_NAME[] = "[UltJB] Command Notify Admins";
 new const String:PLUGIN_VERSION[] = "1.9";
 
 public Plugin:myinfo =

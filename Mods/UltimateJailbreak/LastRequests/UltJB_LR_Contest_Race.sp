@@ -9,7 +9,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "LR: Contest - Race";
+new const String:PLUGIN_NAME[] = "[UltJB] LR: Contest - Race";
 new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
