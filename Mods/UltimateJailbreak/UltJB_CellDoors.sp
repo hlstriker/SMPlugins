@@ -26,6 +26,7 @@ public OnPluginStart()
 	cvar_cell_door_open_time = CreateConVar("ultjb_cell_door_open_time", "60", "How long to wait before the cell doors automatically open.", _, true, 1.0);
 	
 	RegAdminCmd("sm_celldoors_open", OnCellDoorsOpen, ADMFLAG_ROOT, "Forces the cell doors to open.");
+	RegAdminCmd("sm_cdo", OnCellDoorsOpen, ADMFLAG_ROOT, "Forces the cell doors to open.");
 	
 	HookEvent("round_start", EventRoundStart_Post, EventHookMode_PostNoCopy);
 }
