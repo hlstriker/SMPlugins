@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Team Ratio";
-new const String:PLUGIN_VERSION[] = "1.13";
+new const String:PLUGIN_VERSION[] = "1.14";
 
 public Plugin:myinfo =
 {
@@ -457,6 +457,9 @@ FixTeamRatio()
 			break;
 		
 		SetClientPendingTeam(iClient, CS_TEAM_T);
+		
+		ShiftArrayUp(g_aGuardQueue, 0);
+		SetArrayCell(g_aGuardQueue, 0, iClient);
 	}
 }
 

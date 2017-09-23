@@ -93,7 +93,7 @@ public OnPluginStart()
 	HookEvent("round_start", Event_RoundStart_Post, EventHookMode_PostNoCopy);
 	HookEvent("player_death", Event_PlayerDeath_Post, EventHookMode_PostNoCopy);
 	
-	RegConsoleCmd("sm_d", OnDaysMenu, "Opens the days menu.");
+	//RegConsoleCmd("sm_d", OnDaysMenu, "Opens the days menu."); - removed because of donator
 	RegConsoleCmd("sm_day", OnDaysMenu, "Opens the days menu.");
 	RegAdminCmd("sm_de", OnDaysEdit, ADMFLAG_UNBAN, "Edits the day configuration for the current map.");
 	RegAdminCmd("sm_daysedit", OnDaysEdit, ADMFLAG_UNBAN, "Edits the day configuration for the current map.");

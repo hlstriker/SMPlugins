@@ -23,7 +23,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warden";
-new const String:PLUGIN_VERSION[] = "1.34";
+new const String:PLUGIN_VERSION[] = "1.35";
 
 public Plugin:myinfo =
 {
@@ -897,11 +897,15 @@ public EventPlayerTeam_Post(Handle:hEvent, const String:szName[], bool:bDontBroa
 			AddPlayerToQueue(iClient, g_aQueueSecondary);
 			
 			RemoveGuardClanTag(iClient);
+			
+			TryRemoveClientFromWarden(iClient);
 		}
 		default:
 		{
 			RemovePlayerFromQueue(iClient, g_aQueuePrimary);
 			RemoveGuardClanTag(iClient);
+			
+			TryRemoveClientFromWarden(iClient);
 		}
 	}
 }
