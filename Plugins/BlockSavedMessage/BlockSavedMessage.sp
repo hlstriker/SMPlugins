@@ -3,7 +3,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Block saved message";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -35,6 +35,9 @@ public Action:MsgTextMsg(UserMsg:msg_id, Handle:hBuffer, const iPlayers[], iPlay
 		return Plugin_Handled;
 	
 	if(StrEqual(szMessage, "#Chat_SavePlayer_Spectator"))
+		return Plugin_Handled;
+		
+	if(StrEqual(szMessage, "#Item_Traded"))
 		return Plugin_Handled;
 	
 	return Plugin_Continue;
