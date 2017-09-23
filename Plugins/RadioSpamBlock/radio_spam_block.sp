@@ -2,7 +2,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -41,6 +41,7 @@ public OnPluginStart()
 	AddCommandListener(Command_Radio, "getout");
 	AddCommandListener(Command_Radio, "negative");
 	AddCommandListener(Command_Radio, "enemydown");
+	AddCommandListener(Command_Radio, "cheer");
 }
 
 public OnClientDisconnect(iClient)
