@@ -145,10 +145,7 @@ public Action:OnFreeKill(iClient, iArgCount)
 	strcopy(szReasonColored, sizeof(szReasonColored), szReason);
 	
 	if(iLen)
-	{
 		Format(szReasonColored, sizeof(szReasonColored), "{red}Message: {yellow}%s", szReason);
-		Format(szReason, sizeof(szReason), "Message: %s", szReason);
-	}
 	
 	Format(szReasonTemp, sizeof(szReasonTemp), "{red}[FREEKILL] {olive}%N {white}freekilled by {olive}%s{white}?", iClient, g_szKilledBy[iClient]);
 	
