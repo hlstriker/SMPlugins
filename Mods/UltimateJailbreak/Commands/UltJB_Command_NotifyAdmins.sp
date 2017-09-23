@@ -165,6 +165,8 @@ public Action:OnFreeKill(iClient, iArgCount)
 		EmitSoundToClientAny(iPlayer, FREEKILL_SOUND[6], iPlayer, 9, SNDLEVEL_NONE);
 	}
 	
+	LogAction(iClient, -1, "\"%L\" triggered freekill (text %s)", iClient, szReason);
+	
 	return Plugin_Handled;
 }
 
