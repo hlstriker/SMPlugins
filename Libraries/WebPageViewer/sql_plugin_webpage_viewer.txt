@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS plugin_webpage_viewer
+(
+	user_id		INT UNSIGNED		NOT NULL,
+	url		TEXT			NOT NULL,
+	utime		INT UNSIGNED		NOT NULL,
+	PRIMARY KEY ( user_id )
+) ENGINE = INNODB;

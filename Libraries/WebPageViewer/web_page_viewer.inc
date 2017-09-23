@@ -21,12 +21,11 @@ public SharedPlugin:__pl_web_page_viewer =
  * Opens a web page in a popup window.
  *
  * @param client			Client index.
- * @param web_page_url		Web page to open.
- * @param window_width		The width of the popup window.
- * @param window_height		The height of the popup window.
- * @noreturn
+ * @param url_format		Web page URL format.
+ * @param any				Variable number of format parameters.
+ * @return					True on success, false otherwise.
  */
-native WebPageViewer_OpenPage(client, const String:web_page_url[], window_width=786, window_height=518, bool:query_disabled_html_cvar=true);
+native bool:WebPageViewer_OpenPage(client, const String:url_format[], any:...);
 
 
 
