@@ -134,15 +134,18 @@ public Action:OnFreeKill(iClient, iArgCount)
 	g_fNextFreekillUsage[iClient] = GetEngineTime() + FREEKILL_USAGE_DELAY;
 	
 	new iLen;
-	decl String:szReason[256], String:szReasonTemp[256];
+	decl String:szReason[256], String:szReasonTemp[256], String:szReasonColored[256];
+	
 	for(new i=1; i<=iArgCount; i++)
 	{
 		GetCmdArg(i, szReasonTemp, sizeof(szReasonTemp));
 		iLen += FormatEx(szReason[iLen], sizeof(szReason)-iLen, " %s", szReasonTemp);
 	}
 	
+	strcopy(szReasonColored, sizeof(szReasonColored), szReason);
+	
 	if(iLen)
-		Format(szReason, sizeof(szReason), "{red}Message: {yellow}%s", szReason);
+		Format(szReasonColored, sizeof(szReasonColored), "{red}Message: {yellow}%s", szReason);
 	
 	Format(szReasonTemp, sizeof(szReasonTemp), "{red}[FREEKILL] {olive}%N {white}freekilled by {olive}%s{white}?", iClient, g_szKilledBy[iClient]);
 	
@@ -160,10 +163,12 @@ public Action:OnFreeKill(iClient, iArgCount)
 		CPrintToChat(iPlayer, szReasonTemp);
 		
 		if(iLen)
-			CPrintToChat(iPlayer, szReason);
+			CPrintToChat(iPlayer, szReasonColored);
 		
 		EmitSoundToClientAny(iPlayer, FREEKILL_SOUND[6], iPlayer, 9, SNDLEVEL_NONE);
 	}
+	
+	LogAction(iClient, -1, "\"%L\" triggered freekill (text %s)", iClient, szReason);
 	
 	return Plugin_Handled;
 }
