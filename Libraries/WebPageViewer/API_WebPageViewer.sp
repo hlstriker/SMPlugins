@@ -7,7 +7,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Web Page Viewer";
-new const String:PLUGIN_VERSION[] = "2.0";
+new const String:PLUGIN_VERSION[] = "2.1";
 
 public Plugin:myinfo =
 {
@@ -98,15 +98,21 @@ public _WebPageViewer_OpenPage(Handle:hPlugin, iNumParams)
 	
 	if(StrContains(szBuffer, "swoobles.com") != -1)
 	{
-		// From web page viewer = 1
-		if(StrContains(szBuffer, "?") != -1)
+		// Need to make sure the fragment portion comes after "wpv=1".
+		static String:szFragment[2048];
+		
+		new iFragmentPos = StrContains(szBuffer, "#");
+		if(iFragmentPos != -1)
 		{
-			Format(szBuffer, sizeof(szBuffer), "%s&wpv=1", szBuffer);
+			strcopy(szFragment, sizeof(szFragment), szBuffer[iFragmentPos]);
+			szBuffer[iFragmentPos] = '\x00';
 		}
-		else
-		{
-			Format(szBuffer, sizeof(szBuffer), "%s?wpv=1", szBuffer);
-		}
+		
+		// Add the wpv (web page viewer) variable.
+		StrCat(szBuffer, sizeof(szBuffer), (StrContains(szBuffer, "?") == -1) ? "?wpv=1" : "&wpv=1");
+		
+		if(iFragmentPos != -1)
+			StrCat(szBuffer, sizeof(szBuffer), szFragment);
 	}
 	
 	if(!DB_EscapeString(g_szDatabaseConfigName, szBuffer, szBuffer, sizeof(szBuffer)))
