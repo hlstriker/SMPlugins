@@ -1,5 +1,5 @@
 # SourceMod Plugins
-#### This repository contains some of the Swoobles' servers SourceMod plugins. Feel free to add pull requests if you see anything that needs fixed.
+#### This repository contains some of the Swoobles server's SourceMod plugins. Feel free to add pull requests if you see anything that needs fixed.
 ---
 ### Quick Links to Helpful Areas
 
