@@ -2,13 +2,14 @@
 #include <sdkhooks>
 #include <basecomm>
 #include <sdktools_functions>
+#include <sdktools_voice>
 #include <hls_color_chat>
 #include "Includes/ultjb_last_request"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Voice Chat";
-new const String:PLUGIN_VERSION[] = "1.10";
+new const String:PLUGIN_VERSION[] = "1.11";
 
 public Plugin:myinfo =
 {
@@ -26,6 +27,10 @@ new Handle:cvar_mute_prisoner_time;
 new bool:g_bSkipNextOnClientMute[MAXPLAYERS+1];
 new bool:g_bIsClientMutedBySourceMod[MAXPLAYERS+1];
 
+#define MUTE_MESSAGE_DELAY	4.0
+
+new const String:g_szRestrictedSound[] = "buttons/button11.wav";
+
 
 public OnPluginStart()
 {
@@ -37,6 +42,23 @@ public OnPluginStart()
 	HookEvent("round_end", Event_RoundEnd_Post, EventHookMode_PostNoCopy);
 	HookEvent("player_death", EventPlayerDeath_Post, EventHookMode_Post);
 	HookEvent("player_team", Event_PlayerTeam_Post, EventHookMode_Post);
+}
+
+public SquelchManager_OnClientStartSpeaking(iClient)
+{
+	if(!(GetClientListeningFlags(iClient) & VOICE_MUTED))
+		return;
+	
+	static Float:fNextMessageTime[MAXPLAYERS+1], Float:fCurTime;
+	fCurTime = GetEngineTime();
+	
+	if(fNextMessageTime[iClient] > fCurTime)
+		return;
+	
+	fNextMessageTime[iClient] = fCurTime + MUTE_MESSAGE_DELAY;
+	
+	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {red}Your microphone is muted right now.");
+	ClientCommand(iClient, "play %s", g_szRestrictedSound);
 }
 
 public EventPlayerDeath_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
