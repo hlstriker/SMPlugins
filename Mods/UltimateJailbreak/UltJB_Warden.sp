@@ -23,7 +23,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warden";
-new const String:PLUGIN_VERSION[] = "1.35";
+new const String:PLUGIN_VERSION[] = "1.36";
 
 public Plugin:myinfo =
 {
@@ -554,20 +554,38 @@ UpdatePointerBeamEffect(iClient)
 	
 	if(iWeapon > 0)
 	{
-		static String:szClassName[13];
+		static String:szClassName[20], iTemp, bool:bUseHandAttachment;
 		GetEntityClassname(iActiveWeapon, szClassName, sizeof(szClassName));
-		szClassName[12] = 0x00;
+		bUseHandAttachment = false;
 		
-		new bool:bIsKnife;
-		if(StrEqual(szClassName, "weapon_knife"))
-			bIsKnife = true;
+		iTemp = szClassName[7];
+		szClassName[19] = 0x00;
+		
+		szClassName[7] = 0x00;
+		if(StrEqual(szClassName, "weapon_"))
+		{
+			szClassName[7] = iTemp;
+			if(StrEqual(szClassName[7], "hegrenade")
+			|| StrEqual(szClassName[7], "smokegrenade")
+			|| StrEqual(szClassName[7], "incgrenade")
+			|| StrEqual(szClassName[7], "decoy")
+			|| StrEqual(szClassName[7], "molotov")
+			|| StrEqual(szClassName[7], "tagrenade")
+			|| StrEqual(szClassName[7], "flashbang"))
+				bUseHandAttachment = true;
+			
+			szClassName[12] = 0x00;
+			if(StrEqual(szClassName[7], "knife")
+			|| StrEqual(szClassName[7], "healt"))
+				bUseHandAttachment = true;
+		}
 		
 		for(new iPlayer=1; iPlayer<=MaxClients; iPlayer++)
 		{
 			if(iClient == iPlayer || !IsClientInGame(iPlayer))
 				continue;
 			
-			if(bIsKnife)
+			if(bUseHandAttachment)
 				TE_SetupBeamEnts(iEndEnt, iClient | 0x2000, g_iBeamIndex_NoWall, 0, 1, 1, POINTER_BUTTON_EXPIRE_TIME + 0.1, 0.4, 1.0, 0, 0.0, g_iBeamColor_Pointer, 20);
 			else
 				TE_SetupBeamEnts(iEndEnt, iWeapon | 0x5000, g_iBeamIndex_NoWall, 0, 1, 1, POINTER_BUTTON_EXPIRE_TIME + 0.1, 0.4, 1.0, 0, 0.0, g_iBeamColor_Pointer, 20);
