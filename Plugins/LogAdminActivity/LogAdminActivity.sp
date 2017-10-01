@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Log admin activity";
-new const String:PLUGIN_VERSION[] = "1.5";
+new const String:PLUGIN_VERSION[] = "1.6";
 
 public Plugin:myinfo =
 {
@@ -100,7 +100,7 @@ public Action:OnLogAction(Handle:hSource, Identity:ident, iClient, iTarget, cons
 	
 	// Try to find the command that was used with regex.
 	new RegexError:regError;
-	new Handle:hRegex = CompileRegex("^\".*<.*><.*><.*>\" ([A-Z a-z0-9_-]+) ?(\".*<.*><.*><.*>\")? ?(\\(.*\\)$)?", 0, _, _, regError);
+	new Handle:hRegex = CompileRegex("^\".*<.*><.*><.*>\" ([A-Z a-z0-9_-]+) ?(\".*<.*><.*><.*>\")? ?(\\(.*\\)$)? ?(\"(.*)\"$)?", 0, _, _, regError);
 	if(hRegex == INVALID_HANDLE)
 		return;
 	
@@ -134,6 +134,10 @@ public Action:OnLogAction(Handle:hSource, Identity:ident, iClient, iTarget, cons
 		}
 		*/
 		else if(iSubString == 3 && iNumSubStrings == 4)
+		{
+			GetRegexSubString(hRegex, iSubString, szCommandInfo, sizeof(szCommandInfo));
+		}
+		else if(iSubString == 5 && iNumSubStrings == 6)
 		{
 			GetRegexSubString(hRegex, iSubString, szCommandInfo, sizeof(szCommandInfo));
 		}
