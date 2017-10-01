@@ -13,7 +13,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.9";
+new const String:PLUGIN_VERSION[] = "1.10";
 
 public Plugin:myinfo =
 {
@@ -53,6 +53,7 @@ new DayType:g_iCurrentDayType;
 new g_iWardenCountForRound;
 new Float:g_fWardenSelectedTime;
 
+new Handle:cvar_force_allow_override;
 new Handle:cvar_select_time;
 new Handle:cvar_warday_freeze_time;
 new g_iTimerCountdown;
@@ -77,6 +78,7 @@ public OnPluginStart()
 	
 	cvar_select_time = CreateConVar("ultjb_day_select_time", "15", "The number of seconds a day can be selected after the warden is selected.", _, true, 1.0);
 	cvar_warday_freeze_time = CreateConVar("ultjb_warday_freeze_time", "30", "The number of seconds the prisoners should be frozen before warday starts.", _, true, 1.0);
+	cvar_force_allow_override = CreateConVar("ultjb_day_force_allow_override", "0", "Set to 1 to allow days every round.", _, true, 0.0, true, 1.0);
 	
 	g_hFwd_OnSpawnPost = CreateGlobalForward("UltJB_Day_OnSpawnPost", ET_Ignore, Param_Cell);
 	
@@ -880,6 +882,9 @@ SetDayUsed(iClient)
 
 bool:CanSelectFreeday(iClient)
 {
+	if(GetConVarBool(cvar_force_allow_override))
+		return true;
+	
 	if(UltJB_Warden_GetClientWardenCount(iClient) < 2)
 		return false;
 	
@@ -891,6 +896,9 @@ bool:CanSelectFreeday(iClient)
 
 bool:CanSelectWarday(iClient)
 {
+	if(GetConVarBool(cvar_force_allow_override))
+		return true;
+	
 	if(UltJB_Warden_GetClientWardenCount(iClient) < 2)
 		return false;
 	
