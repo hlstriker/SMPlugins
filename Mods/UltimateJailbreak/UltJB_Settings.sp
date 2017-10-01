@@ -17,7 +17,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Settings";
-new const String:PLUGIN_VERSION[] = "1.24";
+new const String:PLUGIN_VERSION[] = "1.25";
 
 public Plugin:myinfo =
 {
@@ -47,6 +47,7 @@ new const String:MODEL_HEALTHSHOT[] = "models/weapons/v_healthshot.mdl";
 
 new const String:SZ_SOUND_GUARDS_WIN[] = "sound/swoobles/ultimate_jailbreak/guards_win_v5.mp3";
 new const String:SZ_SOUND_PRISONERS_WIN[] = "sound/swoobles/ultimate_jailbreak/prisoners_win_v5.mp3";
+new const String:SZ_SOUND_ROUND_DRAW[] = "sound/radio/rounddraw.wav";
 
 new const String:SZ_OVERLAY_GUARDS_WIN[] = "materials/swoobles/ultimate_jailbreak/overlay_guards_win_v15.vtf";
 new const String:SZ_OVERLAY_GUARDS_WIN_VMT[] = "materials/swoobles/ultimate_jailbreak/overlay_guards_win_v15.vmt";
@@ -277,6 +278,7 @@ public OnMapStart()
 	
 	PrecacheSoundAny(SZ_SOUND_GUARDS_WIN[6]);
 	PrecacheSoundAny(SZ_SOUND_PRISONERS_WIN[6]);
+	PrecacheSound(SZ_SOUND_ROUND_DRAW[6]);
 	
 	g_iModelIndex_Healthshot = PrecacheModel(MODEL_HEALTHSHOT, true);
 	
@@ -354,11 +356,15 @@ public Action:CS_OnTerminateRound(&Float:fDelay, &CSRoundEndReason:reason)
 		{
 			EmitSoundToAllAny(SZ_SOUND_GUARDS_WIN[6], _, _, SNDLEVEL_NONE, _, _, 90);
 			ShowOverlayToAll(SZ_OVERLAY_GUARDS_WIN_VMT[10]);
-		}	
+		}
 		case CSRoundEnd_TerroristWin, CSRoundEnd_VIPKilled, CSRoundEnd_TerroristsEscaped, CSRoundEnd_HostagesNotRescued, CSRoundEnd_VIPNotEscaped, CSRoundEnd_CTSurrender, CSRoundEnd_TargetBombed:
 		{
 			EmitSoundToAllAny(SZ_SOUND_PRISONERS_WIN[6], _, _, SNDLEVEL_NONE, _, _, 90);
 			ShowOverlayToAll(SZ_OVERLAY_PRISONERS_WIN_VMT[10]);
+		}
+		case CSRoundEnd_Draw:
+		{
+			EmitSoundToAll(SZ_SOUND_ROUND_DRAW[6], _, _, SNDLEVEL_NONE);
 		}
 	}
 }
