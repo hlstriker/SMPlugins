@@ -13,7 +13,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.8";
+new const String:PLUGIN_VERSION[] = "1.9";
 
 public Plugin:myinfo =
 {
@@ -163,7 +163,11 @@ public UltJB_Settings_OnSpawnPost(iClient)
 		{
 			case TEAM_PRISONERS:
 			{
-				UltJB_LR_StripClientsWeapons(iClient);
+				decl eDay[Day];
+				GetArrayArray(g_aDays, g_iDayIDToIndex[g_iCurrentDayID], eDay);
+				
+				if(!(eDay[Day_Flags] & DAY_FLAG_KEEP_PRISONERS_WEAPONS))
+					UltJB_LR_StripClientsWeapons(iClient);
 				
 				if(g_hTimer_WardayFreeze != INVALID_HANDLE)
 					SetEntityMoveType(iClient, MOVETYPE_NONE);
@@ -625,7 +629,8 @@ bool:StartDay(iClient, iDayID)
 
 InitWarday(iClient, iFlags, iFreezeTime, Handle:hForwardFreezeEnd)
 {
-	StripTeamsWeapons(TEAM_PRISONERS);
+	if(!(iFlags & DAY_FLAG_KEEP_PRISONERS_WEAPONS))
+		StripTeamsWeapons(TEAM_PRISONERS);
 	
 	if(iFlags & DAY_FLAG_STRIP_GUARDS_WEAPONS)
 		StripTeamsWeapons(TEAM_GUARDS);
