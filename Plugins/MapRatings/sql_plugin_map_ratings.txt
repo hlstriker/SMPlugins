@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS plugin_map_ratings
+(
+	user_id		INT UNSIGNED		NOT NULL,
+	map_id		INT UNSIGNED		NOT NULL,
+	rating		TINYINT UNSIGNED	NOT NULL,
+	PRIMARY KEY ( user_id, map_id )
+) ENGINE = INNODB;
