@@ -4,7 +4,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Database User Bans";
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.6";
 
 public Plugin:myinfo =
 {
@@ -98,12 +98,12 @@ public Action:OnBanClient(iClient, iTime, iFlags, const String:szReason[], const
 	
 	if(iTime)
 	{
-		//ReplyToCommand(iAdminClient, "[SM] %N has been banned for %i minutes.", iClient, iTime);
+		ReplyToCommand(iAdminClient, "[SM] %N has been banned for %i minutes.", iClient, iTime);
 		PrintToChatAll("[SM] %N has been banned for %i minutes by %N.", iClient, iTime, iAdminClient);
 	}
 	else
 	{
-		//ReplyToCommand(iAdminClient, "[SM] %N has been banned permanently.", iClient);
+		ReplyToCommand(iAdminClient, "[SM] %N has been banned permanently.", iClient);
 		PrintToChatAll("[SM] %N has been banned permanently by %N.", iClient, iAdminClient);
 	}
 	
@@ -146,12 +146,12 @@ public Action:OnBanIdentity(const String:szIdentity[], iTime, iFlags, const Stri
 			
 			if(iTime)
 			{
-				//ReplyToCommand(iAdminClient, "[SM] %s has been banned for %i minutes.", szIdentity, iTime);
+				ReplyToCommand(iAdminClient, "[SM] %s has been banned for %i minutes.", szIdentity, iTime);
 				PrintToChatAll("[SM] %s has been banned for %i minutes by %N.", szIdentity, iTime, iAdminClient);
 			}
 			else
 			{
-				//ReplyToCommand(iAdminClient, "[SM] %s has been banned permanently.", szIdentity);
+				ReplyToCommand(iAdminClient, "[SM] %s has been banned permanently.", szIdentity);
 				PrintToChatAll("[SM] %s has been banned permanently by %N.", szIdentity, iAdminClient);
 			}
 		}
@@ -168,12 +168,12 @@ public Action:OnBanIdentity(const String:szIdentity[], iTime, iFlags, const Stri
 			
 			if(iTime)
 			{
-				//ReplyToCommand(iAdminClient, "[SM] %N has been banned for %i minutes.", iClient, iTime);
+				ReplyToCommand(iAdminClient, "[SM] %N has been banned for %i minutes.", iClient, iTime);
 				PrintToChatAll("[SM] %N has been banned for %i minutes by %N.", iClient, iTime, iAdminClient);
 			}
 			else
 			{
-				//ReplyToCommand(iAdminClient, "[SM] %N has been banned permanently.", iClient);
+				ReplyToCommand(iAdminClient, "[SM] %N has been banned permanently.", iClient);
 				PrintToChatAll("[SM] %N has been banned permanently by %N.", iClient, iAdminClient);
 			}
 			
@@ -202,7 +202,7 @@ public Action:OnRemoveBan(const String:szIdentity[], iFlags, const String:szComm
 			return Plugin_Handled;
 		}
 		
-		//ReplyToCommand(iAdminClient, "[SM] %s's ban has been lifted.", szIdentity);
+		ReplyToCommand(iAdminClient, "[SM] %s's ban has been lifted.", szIdentity);
 		PrintToChatAll("[SM] %s's ban has been lifted by %N.", szIdentity, iAdminClient);
 		
 		LogAction(iAdminClient, -1, "\"%L\" unbanned (authid \"%s\")", iAdminClient, szIdentity);
