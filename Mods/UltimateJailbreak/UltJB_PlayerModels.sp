@@ -13,7 +13,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Player Models";
-new const String:PLUGIN_VERSION[] = "1.13";
+new const String:PLUGIN_VERSION[] = "1.14";
 
 public Plugin:myinfo =
 {
@@ -36,70 +36,14 @@ new const String:PLAYER_MODEL_CT[] = "models/player/custom_player/legacy/ctm_swa
 
 new const String:PLAYER_MODELS_T[][] =
 {
-	"models/player/custom_player/swoobles/prisoners/male_black_big/male_black_big.mdl",
-	"models/player/custom_player/swoobles/prisoners/female_asian/female_asian.mdl",
-	"models/player/custom_player/swoobles/prisoners/male_white_hair/male_white_hair.mdl"
+	"models/player/custom_player/swoobles/prisoners/male_white_hair_new/male_white_hair_new.mdl"
 };
 
 new const String:PLAYER_MODEL_T_FILES[][] =
 {
-	"models/player/custom_player/swoobles/prisoners/female_asian/female_asian.dx90.vtx",
-	"models/player/custom_player/swoobles/prisoners/female_asian/female_asian.phy",
-	"models/player/custom_player/swoobles/prisoners/female_asian/female_asian.vvd",
-	
-	"models/player/custom_player/swoobles/prisoners/male_black_big/male_black_big.dx90.vtx",
-	"models/player/custom_player/swoobles/prisoners/male_black_big/male_black_big.phy",
-	"models/player/custom_player/swoobles/prisoners/male_black_big/male_black_big.vvd",
-	
-	"models/player/custom_player/swoobles/prisoners/male_white_hair/male_white_hair.dx90.vtx",
-	"models/player/custom_player/swoobles/prisoners/male_white_hair/male_white_hair.phy",
-	"models/player/custom_player/swoobles/prisoners/male_white_hair/male_white_hair.vvd",
-	
-	"materials/swoobles/player/prisoners/female_asian/denise_head01_d.vmt",
-	"materials/swoobles/player/prisoners/female_asian/denise_head01_d.vtf",
-	"materials/swoobles/player/prisoners/female_asian/denise_head01_normal.vtf",
-	"materials/swoobles/player/prisoners/female_asian/lara_brow_d.vmt",
-	"materials/swoobles/player/prisoners/female_asian/lara_brow_d.vtf",
-	"materials/swoobles/player/prisoners/female_asian/lara_eye_d.vmt",
-	"materials/swoobles/player/prisoners/female_asian/lara_eye_d.vtf",
-	"materials/swoobles/player/prisoners/female_asian/lara_eye_normal.vtf",
-	"materials/swoobles/player/prisoners/female_asian/lara_face_d.vmt",
-	"materials/swoobles/player/prisoners/female_asian/lara_face_d.vtf",
-	"materials/swoobles/player/prisoners/female_asian/lara_face_normal.vtf",
-	"materials/swoobles/player/prisoners/female_asian/lara_hair1_d.vmt",
-	"materials/swoobles/player/prisoners/female_asian/lara_hair1_d.vtf",
-	"materials/swoobles/player/prisoners/female_asian/lara_hair1_d_tr.vmt",
-	"materials/swoobles/player/prisoners/female_asian/lara_hair1_normal.vtf",
-	"materials/swoobles/player/prisoners/female_asian/lara_hair2_d.vmt",
-	"materials/swoobles/player/prisoners/female_asian/lara_hair2_d.vtf",
-	"materials/swoobles/player/prisoners/female_asian/lara_hair2_d_tr.vmt",
-	"materials/swoobles/player/prisoners/female_asian/lara_hair2_normal.vtf",
-	"materials/swoobles/player/prisoners/female_asian/lara_lashes_d.vmt",
-	"materials/swoobles/player/prisoners/female_asian/lara_lashes_d.vtf",
-	"materials/swoobles/player/prisoners/female_asian/lara_mouth_d.vmt",
-	"materials/swoobles/player/prisoners/female_asian/lara_mouth_d.vtf",
-	"materials/swoobles/player/prisoners/female_asian/lara_sh_d.vmt",
-	"materials/swoobles/player/prisoners/female_asian/lara_sh_d.vtf",
-	"materials/swoobles/player/prisoners/female_asian/shirt_d.vmt",
-	"materials/swoobles/player/prisoners/female_asian/shirt_d.vtf",
-	
-	"materials/swoobles/player/prisoners/male_black_big/eye_d.vmt",
-	"materials/swoobles/player/prisoners/male_black_big/eye_d.vtf",
-	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_bottom_d.vmt",
-	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_bottom_d.vtf",
-	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_bottom_d_frozen.vmt",
-	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_bottom_d_frozen.vtf",
-	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_bottom_normal.vtf",
-	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_head_d.vmt",
-	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_head_d.vtf",
-	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_head_normal.vtf",
-	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_top_d.vmt",
-	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_top_d.vtf",
-	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_top_d_frozen.vmt",
-	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_top_d_frozen.vtf",
-	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_top_normal.vtf",
-	"materials/swoobles/player/prisoners/male_black_big/prisoners_torso_d.vmt",
-	"materials/swoobles/player/prisoners/male_black_big/prisoners_torso_d.vtf",
+	"models/player/custom_player/swoobles/prisoners/male_white_hair_new/male_white_hair_new.dx90.vtx",
+	"models/player/custom_player/swoobles/prisoners/male_white_hair_new/male_white_hair_new.phy",
+	"models/player/custom_player/swoobles/prisoners/male_white_hair_new/male_white_hair_new.vvd",
 	
 	"materials/swoobles/player/prisoners/male_white_hair/charles01_body01_au_d.vmt",
 	"materials/swoobles/player/prisoners/male_white_hair/charles01_body01_au_d.vtf",
@@ -112,13 +56,10 @@ new const String:PLAYER_MODEL_T_FILES[][] =
 	"materials/swoobles/player/prisoners/male_white_hair/hair01_au_normal.vtf",
 	"materials/swoobles/player/prisoners/male_white_hair/hair02_au_d.vmt",
 	
-	"materials/swoobles/player/prisoners/shared/brown_eye_normal.vtf",
-	"materials/swoobles/player/prisoners/shared/brown_eye01_an_d.vmt",
-	"materials/swoobles/player/prisoners/shared/brown_eye01_an_d.vtf",
 	"materials/swoobles/player/prisoners/shared/prisoner1_body.vmt",
 	"materials/swoobles/player/prisoners/shared/prisoner1_body.vtf",
-	"materials/swoobles/player/prisoners/shared/prisoner1_body_frozen.vmt",
-	"materials/swoobles/player/prisoners/shared/prisoner1_body_frozen.vtf",
+	"materials/swoobles/player/prisoners/shared/prisoner1_body_white.vmt",
+	"materials/swoobles/player/prisoners/shared/prisoner1_body_white.vtf",
 	"materials/swoobles/player/prisoners/shared/prisoner1_body_normal.vtf"
 };
 
@@ -213,40 +154,19 @@ public UltJB_Settings_OnSpawnPost(iClient)
 	{
 		case TEAM_PRISONERS:
 		{
-			// Chance the player will get the big black prisoner model. Give them a bit of extra health!
-			if(GetRandomInt(1, 50) == 1)
+			new iIndex = GetRandomInt(0, sizeof(PLAYER_MODELS_T)-1);
+			
+			if(g_bLibLoaded_ModelSkinManager)
 			{
-				if(g_bLibLoaded_ModelSkinManager)
-				{
-					#if defined _model_skin_manager_included
-					MSManager_SetPlayerModel(iClient, PLAYER_MODELS_T[0]);
-					#else
-					SetEntityModel(iClient, PLAYER_MODELS_T[0]);
-					#endif
-				}
-				else
-				{
-					SetEntityModel(iClient, PLAYER_MODELS_T[0]);
-				}
-				
-				UltJB_LR_SetClientsHealth(iClient, GetEntProp(iClient, Prop_Data, "m_iHealth") + 25);
+				#if defined _model_skin_manager_included
+				MSManager_SetPlayerModel(iClient, PLAYER_MODELS_T[iIndex]);
+				#else
+				SetEntityModel(iClient, PLAYER_MODELS_T[iIndex]);
+				#endif
 			}
 			else
 			{
-				new iIndex = GetRandomInt(1, sizeof(PLAYER_MODELS_T)-1);
-				
-				if(g_bLibLoaded_ModelSkinManager)
-				{
-					#if defined _model_skin_manager_included
-					MSManager_SetPlayerModel(iClient, PLAYER_MODELS_T[iIndex]);
-					#else
-					SetEntityModel(iClient, PLAYER_MODELS_T[iIndex]);
-					#endif
-				}
-				else
-				{
-					SetEntityModel(iClient, PLAYER_MODELS_T[iIndex]);
-				}
+				SetEntityModel(iClient, PLAYER_MODELS_T[iIndex]);
 			}
 		}
 		case TEAM_GUARDS:
