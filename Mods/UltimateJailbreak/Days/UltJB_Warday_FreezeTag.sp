@@ -8,7 +8,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Freeze Tag";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -22,7 +22,7 @@ public Plugin:myinfo =
 #define DAY_NAME	"Freeze Tag"
 new const DayType:DAY_TYPE = DAY_TYPE_WARDAY;
 
-new const g_iColorFrozen[] = {100, 61, 174, 255};
+new const g_iColorFrozen[] = {117, 202, 255, 255};
 
 new Handle:cvar_freezetag_chances_before_death;
 new Handle:cvar_freezetag_ct_knife_add;
@@ -217,20 +217,18 @@ FreezeClient(iClient, bool:bFreeze=true)
 	if(bFreeze)
 	{
 		SetEntityMoveType(iClient, MOVETYPE_NONE);
+		SetEntityRenderColor(iClient, g_iColorFrozen[0], g_iColorFrozen[1], g_iColorFrozen[2], g_iColorFrozen[3]);
 		
 		if(GetClientTeam(iClient) == TEAM_PRISONERS)
 			SetEntProp(iClient, Prop_Send, "m_nSkin", 1);
-		else
-			SetEntityRenderColor(iClient, g_iColorFrozen[0], g_iColorFrozen[1], g_iColorFrozen[2], g_iColorFrozen[3]);
 	}
 	else
 	{
 		SetEntityMoveType(iClient, MOVETYPE_WALK);
+		SetEntityRenderColor(iClient);
 		
 		if(GetClientTeam(iClient) == TEAM_PRISONERS)
 			SetEntProp(iClient, Prop_Send, "m_nSkin", 0);
-		else
-			SetEntityRenderColor(iClient);
 	}	
 }
 
