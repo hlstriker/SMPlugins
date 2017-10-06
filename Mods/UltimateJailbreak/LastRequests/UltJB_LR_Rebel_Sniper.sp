@@ -49,7 +49,7 @@ public OnLastRequestEnd(iClient, iOpponent)
 PrepareWeapons(iClient)
 {
 	UltJB_LR_StripClientsWeapons(iClient, true);
-	UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_KNIFE);
+	UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_KNIFE_T);
 	UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_AWP);
 }
 
