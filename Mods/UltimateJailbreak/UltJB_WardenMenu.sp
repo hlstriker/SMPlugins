@@ -862,12 +862,12 @@ SetClientsColor(bool:bRemoveColor, const iColor[4]={255, 255, 255, 255}, bool:bI
                 iNewColor = g_iRingColors[iRingIndex];
         }
         
-        if(bRemoveColor)
+		if(bRemoveColor)
 		{
 			SetEntityRenderColor(iClient, 255, 255, 255, 255);
 			SetEntProp(iClient, Prop_Send, "m_nSkin", 0);
 		}
-        else
+		else
 		{
 			SetEntityRenderColor(iClient, iNewColor[0], iNewColor[1], iNewColor[2], iNewColor[3]);
 			SetEntProp(iClient, Prop_Send, "m_nSkin", 1);
