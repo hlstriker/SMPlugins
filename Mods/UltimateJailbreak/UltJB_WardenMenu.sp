@@ -39,20 +39,23 @@ new const String:g_szRingNames[][] =
 {
 	"Green",
 	"Red",
-	"Yellow"
+	"Yellow",
+	"Blue"
 };
 
 new g_iRingColors[][] =
 {
 	{0, 255, 0, 255},
 	{255, 0, 0, 255},
-	{255, 255, 0, 255}
+	{255, 255, 0, 255},
+	{0, 255, 255, 255}
 };
 
 enum
 {
 	MENUINFO_TYPE_HEALING_AREA,
-	MENUINFO_TYPE_RINGS
+	MENUINFO_TYPE_RINGS,
+	MENUINFO_TYPE_CLIENTCOLORS
 };
 
 enum
@@ -61,6 +64,13 @@ enum
 	MENUINFO_MANAGERING_SIZE_INCREASE,
 	MENUINFO_MANAGERING_SIZE_DECREASE,
 	MENUINFO_MANAGERING_REMOVE
+};
+
+enum
+{
+	MENUINFO_CLIENTCOLOR_SETRING,
+	MENUINFO_CLIENTCOLOR_REMOVERING,
+	MENUINFO_CLIENTCOLOR_REMOVEALL
 };
 
 new bool:g_bRingSet[sizeof(g_iRingColors)];
@@ -234,6 +244,9 @@ DisplayMenu_WardenMenu(iClient, iStartItem=0)
 	IntToString(_:MENUINFO_TYPE_RINGS, szInfo, sizeof(szInfo));
 	AddMenuItem(hMenu, szInfo, "Open rings menu");
 	
+	IntToString(_:MENUINFO_TYPE_CLIENTCOLORS, szInfo, sizeof(szInfo));
+	AddMenuItem(hMenu, szInfo, "Set client colors");
+	
 	if(!DisplayMenuAtItem(hMenu, iClient, iStartItem, 0))
 	{
 		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {red}Could not display menu: warden menu.");
@@ -280,6 +293,10 @@ public MenuHandle_WardenMenu(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 		case MENUINFO_TYPE_RINGS:
 		{
 			DisplayMenu_RingMenu(iParam1);
+		}
+		case MENUINFO_TYPE_CLIENTCOLORS:
+		{
+			DisplayMenu_ClientColorMenu(iParam1);
 		}
 		default:
 		{
@@ -441,6 +458,90 @@ public MenuHandle_ManageRing(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 	}
 	
 	DisplayMenu_ManageRing(iParam1, iRingIndex, GetMenuSelectionPosition());
+}
+
+DisplayMenu_ClientColorMenu(iClient, iStartItem=0)
+{
+	if(UltJB_Warden_GetWarden() != iClient)
+	{
+		DisplayMustBeWardenMessage(iClient);
+		return;
+	}
+	
+	decl String:szInfo[4];
+	
+	new Handle:hMenu = CreateMenu(MenuHandle_ClientColorMenu);
+	SetMenuTitle(hMenu, "Client Color Menu");
+	
+	IntToString(_:MENUINFO_CLIENTCOLOR_SETRING, szInfo, sizeof(szInfo));
+	AddMenuItem(hMenu, szInfo, "Set client ring color");
+	
+	IntToString(_:MENUINFO_CLIENTCOLOR_REMOVERING, szInfo, sizeof(szInfo));
+	AddMenuItem(hMenu, szInfo, "Remove client ring color");
+	
+	IntToString(_:MENUINFO_CLIENTCOLOR_REMOVEALL, szInfo, sizeof(szInfo));
+	AddMenuItem(hMenu, szInfo, "Remove all client colors");
+	
+	SetMenuExitBackButton(hMenu, true);
+	
+	if(!DisplayMenuAtItem(hMenu, iClient, iStartItem, 0))
+	{
+		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {red}Could not display menu: client color menu.");
+		return;
+	}
+}
+
+public MenuHandle_ClientColorMenu(Handle:hMenu, MenuAction:action, iParam1, iParam2)
+{
+	if(action == MenuAction_End)
+	{
+		CloseHandle(hMenu);
+		return;
+	}
+	
+	if(action == MenuAction_Cancel)
+	{
+		if(iParam2 != MenuCancel_ExitBack)
+			return;
+		
+		DisplayMenu_WardenMenu(iParam1);
+		return;
+	}
+	
+	if(action != MenuAction_Select)
+		return;
+	
+	if(UltJB_Warden_GetWarden() != iParam1)
+	{
+		DisplayMustBeWardenMessage(iParam1);
+		return;
+	}
+	
+	decl String:szInfo[4];
+	GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
+	
+	switch(StringToInt(szInfo))
+	{
+		case MENUINFO_CLIENTCOLOR_SETRING:
+		{
+			SetClientsColor(false, _, true, true);
+			DisplayMenu_ClientColorMenu(iParam1, GetMenuSelectionPosition());
+		}
+		case MENUINFO_CLIENTCOLOR_REMOVERING:
+		{
+			SetClientsColor(true, _, true, false);
+			DisplayMenu_ClientColorMenu(iParam1, GetMenuSelectionPosition());
+		}
+		case MENUINFO_CLIENTCOLOR_REMOVEALL:
+		{
+			SetClientsColor(true, _, false, false);
+			DisplayMenu_ClientColorMenu(iParam1, GetMenuSelectionPosition());
+		}
+		default:
+		{
+			DisplayMenu_WardenMenu(iParam1);
+		}
+	}
 }
 
 DisplayMustBeWardenMessage(iClient)
@@ -730,4 +831,68 @@ PlayHealingAreaSound(iEnt, bool:bStart=true)
 PlayHealingClientSound()
 {
 	EmitAmbientSoundAny(SOUND_HEAL_PLAYER[6], g_fHealingAreaOrigin, SOUND_FROM_WORLD, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.6, 130);
+}
+
+SetClientsColor(bool:bRemoveColor, const iColor[4]={255, 255, 255, 255}, bool:bInRingsOnly=false, bool:bUseRingColor=true)
+{
+    decl iRingIndex, iNewColor[4];
+    for(new iClient=1; iClient<=MaxClients; iClient++)
+    {
+        if(!IsClientInGame(iClient))
+            continue;
+        
+        if(!IsPlayerAlive(iClient))
+            continue;
+        
+        if(GetClientTeam(iClient) != TEAM_PRISONERS)
+            continue;
+        
+        iNewColor[0] = iColor[0];
+        iNewColor[1] = iColor[1];
+        iNewColor[2] = iColor[2];
+        iNewColor[3] = iColor[3];
+        
+        if(bInRingsOnly)
+        {
+            iRingIndex = GetClientsRingIndex(iClient);
+            if(iRingIndex == -1)
+                continue;
+            
+            if(bUseRingColor)
+                iNewColor = g_iRingColors[iRingIndex];
+        }
+        
+        if(bRemoveColor)
+		{
+			SetEntityRenderColor(iClient, 255, 255, 255, 255);
+			SetEntProp(iClient, Prop_Send, "m_nSkin", 0);
+		}
+        else
+		{
+			SetEntityRenderColor(iClient, iNewColor[0], iNewColor[1], iNewColor[2], iNewColor[3]);
+			SetEntProp(iClient, Prop_Send, "m_nSkin", 1);
+		}
+    }
+}
+
+GetClientsRingIndex(iClient)
+{
+    decl Float:fClientOrigin[3], Float:fRadius;
+    for(new i=0; i<sizeof(g_bRingSet); i++)
+    {
+        if(!g_bRingSet[i])
+            continue;
+        
+        if(g_fRingCustomRadius[i] == 0.0)
+            fRadius = RING_RADIUS * g_fRingSize[i];
+        else
+            fRadius = g_fRingCustomRadius[i];
+        
+        GetClientAbsOrigin(iClient, fClientOrigin);
+        
+        if(GetVectorDistance(fClientOrigin, g_fRingOrigin[i]) <= fRadius)
+            return i;
+    }
+    
+    return -1;
 }
