@@ -835,33 +835,34 @@ PlayHealingClientSound()
 
 SetClientsColor(bool:bRemoveColor, const iColor[4]={255, 255, 255, 255}, bool:bInRingsOnly=false, bool:bUseRingColor=true)
 {
-    decl iRingIndex, iNewColor[4];
-    for(new iClient=1; iClient<=MaxClients; iClient++)
-    {
-        if(!IsClientInGame(iClient))
-            continue;
-        
-        if(!IsPlayerAlive(iClient))
-            continue;
-        
-        if(GetClientTeam(iClient) != TEAM_PRISONERS)
-            continue;
-        
-        iNewColor[0] = iColor[0];
-        iNewColor[1] = iColor[1];
-        iNewColor[2] = iColor[2];
-        iNewColor[3] = iColor[3];
-        
-        if(bInRingsOnly)
-        {
-            iRingIndex = GetClientsRingIndex(iClient);
-            if(iRingIndex == -1)
-                continue;
-            
-            if(bUseRingColor)
-                iNewColor = g_iRingColors[iRingIndex];
-        }
-        
+	decl iRingIndex, iNewColor[4];
+	for(new iClient=1; iClient<=MaxClients; iClient++)
+	{
+		if(!IsClientInGame(iClient))
+			continue;
+
+		if(!IsPlayerAlive(iClient))
+			continue;
+
+		if(GetClientTeam(iClient) != TEAM_PRISONERS)
+			continue;
+
+		iNewColor[0] = iColor[0];
+		iNewColor[1] = iColor[1];
+		iNewColor[2] = iColor[2];
+		iNewColor[3] = iColor[3];
+
+		if(bInRingsOnly)
+		{
+			iRingIndex = GetClientsRingIndex(iClient);
+			
+			if(iRingIndex == -1)
+			continue;
+
+			if(bUseRingColor)
+			iNewColor = g_iRingColors[iRingIndex];
+		}
+		
 		if(bRemoveColor)
 		{
 			SetEntityRenderColor(iClient, 255, 255, 255, 255);
@@ -877,22 +878,22 @@ SetClientsColor(bool:bRemoveColor, const iColor[4]={255, 255, 255, 255}, bool:bI
 
 GetClientsRingIndex(iClient)
 {
-    decl Float:fClientOrigin[3], Float:fRadius;
-    for(new i=0; i<sizeof(g_bRingSet); i++)
-    {
-        if(!g_bRingSet[i])
-            continue;
-        
-        if(g_fRingCustomRadius[i] == 0.0)
-            fRadius = RING_RADIUS * g_fRingSize[i];
-        else
-            fRadius = g_fRingCustomRadius[i];
-        
-        GetClientAbsOrigin(iClient, fClientOrigin);
-        
-        if(GetVectorDistance(fClientOrigin, g_fRingOrigin[i]) <= fRadius)
-            return i;
-    }
-    
-    return -1;
+	decl Float:fClientOrigin[3], Float:fRadius;
+	for(new i=0; i<sizeof(g_bRingSet); i++)
+	{
+		if(!g_bRingSet[i])
+			continue;
+
+		if(g_fRingCustomRadius[i] == 0.0)
+			fRadius = RING_RADIUS * g_fRingSize[i];
+		else
+			fRadius = g_fRingCustomRadius[i];
+
+		GetClientAbsOrigin(iClient, fClientOrigin);
+
+		if(GetVectorDistance(fClientOrigin, g_fRingOrigin[i]) <= fRadius)
+		return i;
+	}
+
+	return -1;
 }
