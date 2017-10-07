@@ -1,6 +1,7 @@
 #include <sourcemod>
 #include <sdkhooks>
 #include <sdktools_functions>
+#include <hls_color_chat>
 #include "../Includes/ultjb_last_request"
 #include "../Includes/ultjb_weapon_selection"
 #include "../Includes/ultjb_days"
@@ -8,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: CT Retake";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -38,7 +39,7 @@ public OnPluginStart()
 
 public UltJB_Day_OnRegisterReady()
 {
-	new iDayID = UltJB_Day_RegisterDay(DAY_NAME, DAY_TYPE, DAY_FLAG_STRIP_GUARDS_WEAPONS | DAY_FLAG_ALLOW_WEAPON_PICKUPS, OnDayStart, OnDayEnd);
+	new iDayID = UltJB_Day_RegisterDay(DAY_NAME, DAY_TYPE, DAY_FLAG_STRIP_GUARDS_WEAPONS | DAY_FLAG_KEEP_PRISONERS_WEAPONS | DAY_FLAG_ALLOW_WEAPON_PICKUPS | DAY_FLAG_ALLOW_WEAPON_DROPS, OnDayStart, OnDayEnd);
 	UltJB_Day_SetFreezeTime(iDayID, 0);
 }
 
@@ -54,7 +55,7 @@ public OnDayStart(iClient)
 			FreezeClient(iPlayer);
 			PerformBlind(iPlayer, 255);
 			
-			SDKHook(iPlayer, SDKHook_OnTakeDamage, OnTakeDamage);
+			SDKHook(iPlayer, SDKHook_OnTakeDamage, CTInvuln);
 		}
 	}
 	
@@ -94,7 +95,7 @@ ShowCountdown_Unfreeze()
 StartTimer_GuardInvincible()
 {
 	StopTimer_GuardInvincible();
-	g_hTimer_GuardInvincible = CreateTimer(75.0, Timer_GuardInvincible);
+	g_hTimer_GuardInvincible = CreateTimer(70.0, Timer_GuardInvincible);
 }
 
 StopTimer_GuardInvincible()
@@ -109,6 +110,24 @@ StopTimer_GuardInvincible()
 public Action:Timer_GuardFreeze(Handle:hTimer)
 {
 	g_iTimerCountdownFreeze++;
+	
+	if(g_iTimerCountdownFreeze == 5)
+		CPrintToChatAll("{red}----------------------------------");
+	
+	if(g_iTimerCountdownFreeze == 5)
+		CPrintToChatAll("{red}- {green}Guards are frozen for 60 seconds.");
+		
+	if(g_iTimerCountdownFreeze == 6)
+		CPrintToChatAll("{red}- {green}Prisoners run around the map finding weapons.");
+		
+	if(g_iTimerCountdownFreeze == 7)
+		CPrintToChatAll("{red}- {green}When guards are unfrozen, they have to retake the map from the Prisoners.");
+		
+	if(g_iTimerCountdownFreeze == 8)
+		CPrintToChatAll("{red}- {green}Prisoners do not camp the Guards. Guards are invulnerable until it says so.");
+		
+	if(g_iTimerCountdownFreeze == 9)
+		CPrintToChatAll("{red}----------------------------------");
 	
 	if(g_iTimerCountdownFreeze < GetConVarInt(cvar_ctretake_freeze_time))
 	{
@@ -147,7 +166,7 @@ public Action:Timer_GuardInvincible(Handle:hTimer)
 			continue;
 		
 		if(GetClientTeam(iClient) == TEAM_GUARDS)
-			SDKUnhook(iClient, SDKHook_OnTakeDamage, OnTakeDamage);
+			SDKUnhook(iClient, SDKHook_OnTakeDamage, CTInvuln);
 	}
 	
 	PrintHintTextToAll("<font color='#6FC41A'>Guards are now vulnerable!</font>");
@@ -167,7 +186,7 @@ FreezeClient(iClient, bool:bFreeze=true)
 	}
 }
 
-public Action:OnTakeDamage(iVictim, &iAttacker, &iInflictor, &Float:fDamage, &iDamageType)
+public Action:CTInvuln(iVictim, &iAttacker, &iInflictor, &Float:fDamage, &iDamageType)
 {
 	if(!(1 <= iAttacker <= MaxClients))
 		return Plugin_Continue;
@@ -175,14 +194,6 @@ public Action:OnTakeDamage(iVictim, &iAttacker, &iInflictor, &Float:fDamage, &iD
 	if((UltJB_LR_GetLastRequestFlags(iAttacker) & LR_FLAG_FREEDAY)
 	|| (UltJB_LR_GetLastRequestFlags(iVictim) & LR_FLAG_FREEDAY))
 		return Plugin_Continue;
-
-	if (GetClientTeam(iAttacker) != TEAM_PRISONERS)
-	{
-		fDamage = 0.0;
-		return Plugin_Changed;
-	}
-	
-	SDKHooks_TakeDamage(iAttacker, iVictim, iVictim, fDamage);
 
 	fDamage = 0.0;
 
