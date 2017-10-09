@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Database User Sessions";
-new const String:PLUGIN_VERSION[] = "1.6";
+new const String:PLUGIN_VERSION[] = "1.7";
 
 public Plugin:myinfo =
 {
@@ -92,7 +92,8 @@ bool:Query_CreateUserSessionsTable()
 		INDEX ( map_sess_id ),\
 		INDEX ( user_id, user_ip ),\
 		INDEX ( server_id, utime_start ),\
-		INDEX ( user_id, server_id )\
+		INDEX ( user_id, server_id ),\
+		INDEX ( user_id, utime_start )\
 	) ENGINE = INNODB");
 	
 	if(hQuery == INVALID_HANDLE)
