@@ -16,7 +16,7 @@
 #pragma dynamic 500000
 
 new const String:PLUGIN_NAME[] = "Map Voting";
-new const String:PLUGIN_VERSION[] = "1.16";
+new const String:PLUGIN_VERSION[] = "1.17";
 
 public Plugin:myinfo =
 {
@@ -1554,7 +1554,11 @@ DisplayMenu_NominateMapSelectAll(iClient)
 	new Handle:hMenu = CreateMenu(MenuHandle_NominateMapSelect);
 	SetMenuTitle(hMenu, "All maps");
 	
-	decl eMap[Map], eCategory[Category], String:szInfo[12], String:szBuffer[256], iLen;
+	decl String:szCurrentMap[MAX_MAP_NAME_LENGTH];
+	GetCurrentMap(szCurrentMap, sizeof(szCurrentMap));
+	StringToLower(szCurrentMap, sizeof(szCurrentMap));
+	
+	decl eMap[Map], eCategory[Category], String:szInfo[12], String:szBuffer[256], iLen, bool:bDisabled;
 	for(new i=0; i<GetArraySize(g_aMaps); i++)
 	{
 		GetArrayArray(g_aMaps, i, eMap);
@@ -1570,8 +1574,10 @@ DisplayMenu_NominateMapSelectAll(iClient)
 		
 		iLen += FormatEx(szBuffer[iLen], sizeof(szBuffer)-iLen, eMap[Map_Name]);
 		
+		bDisabled = TryAppendMapsDisabledStatus(szCurrentMap, eMap[Map_Name], szBuffer, iLen, sizeof(szBuffer));
+		
 		IntToString(i, szInfo, sizeof(szInfo));
-		AddMenuItem(hMenu, szInfo, szBuffer);
+		AddMenuItem(hMenu, szInfo, szBuffer, bDisabled ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 	}
 	
 	if(GetArraySize(g_aCategories) != 1)
@@ -1582,6 +1588,32 @@ DisplayMenu_NominateMapSelectAll(iClient)
 		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {red}Could not display menu: nominate map select all.");
 		return;
 	}
+}
+
+bool:TryAppendMapsDisabledStatus(const String:szCurrentMap[], const String:szMapName[], String:szBuffer[], &iLen, const iMaxLen)
+{
+	// Current map.
+	if(StrEqual(szCurrentMap, szMapName))
+	{
+		iLen += FormatEx(szBuffer[iLen], iMaxLen-iLen, " *current map*");
+		return true;
+	}
+	
+	// Recently played.
+	if(WasMapRecentlyPlayed(szMapName))
+	{
+		iLen += FormatEx(szBuffer[iLen], iMaxLen-iLen, " *recently played*");
+		return true;
+	}
+	
+	// Already nominated.
+	if(IsMapNominated(szMapName))
+	{
+		iLen += FormatEx(szBuffer[iLen], iMaxLen-iLen, " *nominated*");
+		return true;
+	}
+	
+	return false;
 }
 
 DisplayMenu_NominateMapSelect(iClient, iCategoryIndex)
@@ -1612,7 +1644,7 @@ DisplayMenu_NominateMapSelect(iClient, iCategoryIndex)
 	
 	new Handle:aNeedPlayersMapIndexes = CreateArray();
 	
-	decl eMap[Map], String:szInfo[12], iMapIndex, bool:bNominated, bool:bRecentlyPlayed, bool:bCurrentMap;
+	decl eMap[Map], String:szInfo[12], iMapIndex, bool:bDisabled;
 	for(new i=0; i<GetArraySize(eCategory[Category_MapIndexes]); i++)
 	{
 		iLen = 0;
@@ -1628,47 +1660,16 @@ DisplayMenu_NominateMapSelect(iClient, iCategoryIndex)
 		
 		iLen += FormatEx(szBuffer[iLen], sizeof(szBuffer)-iLen, eMap[Map_Name]);
 		
-		// Current map.
-		if(StrEqual(szCurrentMap, eMap[Map_Name]))
-		{
-			iLen += FormatEx(szBuffer[iLen], sizeof(szBuffer)-iLen, " *current map*");
-			bCurrentMap = true;
-		}
-		else
-		{
-			bCurrentMap = false;
-		}
+		bDisabled = TryAppendMapsDisabledStatus(szCurrentMap, eMap[Map_Name], szBuffer, iLen, sizeof(szBuffer));
 		
-		// Recently played.
-		if(!bCurrentMap && WasMapRecentlyPlayed(eMap[Map_Name]))
-		{
-			iLen += FormatEx(szBuffer[iLen], sizeof(szBuffer)-iLen, " *recently played*");
-			bRecentlyPlayed = true;
-		}
-		else
-		{
-			bRecentlyPlayed = false;
-		}
-		
-		// Already nominated.
-		if(!bCurrentMap && !bRecentlyPlayed && IsMapNominated(eMap[Map_Name]))
-		{
-			iLen += FormatEx(szBuffer[iLen], sizeof(szBuffer)-iLen, " *nominated*");
-			bNominated = true;
-		}
-		else
-		{
-			bNominated = false;
-		}
-		
-		if(!bCurrentMap && !bRecentlyPlayed && !bNominated && GetMapsPlayerRequirementNeeds(eMap) != 0)
+		if(!bDisabled && GetMapsPlayerRequirementNeeds(eMap) != 0)
 		{
 			PushArrayCell(aNeedPlayersMapIndexes, iMapIndex);
 			continue;
 		}
 		
 		IntToString(iMapIndex, szInfo, sizeof(szInfo));
-		AddMenuItem(hMenu, szInfo, szBuffer, (bCategoryDisabled || bCurrentMap || bNominated || bRecentlyPlayed) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+		AddMenuItem(hMenu, szInfo, szBuffer, (bCategoryDisabled || bDisabled) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 	}
 	
 	decl iPlayersNeeded;
