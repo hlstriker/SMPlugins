@@ -6,7 +6,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Client Cookies";
-new const String:PLUGIN_VERSION[] = "1.5";
+new const String:PLUGIN_VERSION[] = "1.6";
 
 public Plugin:myinfo =
 {
@@ -69,7 +69,10 @@ public _ClientCookies_HasCookie(Handle:hPlugin, iNumParams)
 	new iCookieType = GetNativeCell(2);
 	if(iCookieType < 0 || iCookieType >= _:NUM_CC_TYPES)
 	{
-		LogError("Invalid cookie type %i", iCookieType);
+		decl String:szPluginName[PLATFORM_MAX_PATH];
+		GetPluginFilename(hPlugin, szPluginName, sizeof(szPluginName));
+		
+		LogError("Invalid cookie type %i [%s]", iCookieType, szPluginName);
 		return false;
 	}
 	
@@ -87,7 +90,10 @@ public _ClientCookies_SetCookie(Handle:hPlugin, iNumParams)
 	new iCookieType = GetNativeCell(2);
 	if(iCookieType < 0 || iCookieType >= _:NUM_CC_TYPES)
 	{
-		LogError("Invalid cookie type %i", iCookieType);
+		decl String:szPluginName[PLATFORM_MAX_PATH];
+		GetPluginFilename(hPlugin, szPluginName, sizeof(szPluginName));
+		
+		LogError("Invalid cookie type %i [%s]", iCookieType, szPluginName);
 		return;
 	}
 	
@@ -136,7 +142,10 @@ public _ClientCookies_GetCookie(Handle:hPlugin, iNumParams)
 	new iCookieType = GetNativeCell(2);
 	if(iCookieType < 0 || iCookieType >= _:NUM_CC_TYPES)
 	{
-		LogError("Invalid cookie type %i", iCookieType);
+		decl String:szPluginName[PLATFORM_MAX_PATH];
+		GetPluginFilename(hPlugin, szPluginName, sizeof(szPluginName));
+		
+		LogError("Invalid cookie type %i [%s]", iCookieType, szPluginName);
 		return 0;
 	}
 	
