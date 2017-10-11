@@ -8,12 +8,13 @@
 
 #undef REQUIRE_PLUGIN
 #include "../../Libraries/ModelSkinManager/model_skin_manager"
+#include "../../Libraries/MapCookies/map_cookies"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Skill Server Weapons";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
@@ -37,7 +38,8 @@ public Plugin:myinfo =
 
 #define EF_NODRAW	32
 
-#define CATEGORY_HIDE_WEAPONS	-1
+#define CATEGORY_HIDE_WEAPONS			-1
+#define CATEGORY_ADMIN_TOGGLE_WEAPONS	-2
 
 enum WeaponCategory
 {
@@ -75,6 +77,7 @@ new g_iPistolIndex[MAXPLAYERS+1];
 new bool:g_bShouldHideWeapons[MAXPLAYERS+1];
 
 new bool:g_bLibLoaded_ModelSkinManager;
+new bool:g_bLibLoaded_MapCookies;
 
 
 public OnPluginStart()
@@ -103,18 +106,31 @@ public OnPluginStart()
 public OnAllPluginsLoaded()
 {
 	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
+	g_bLibLoaded_MapCookies = LibraryExists("map_cookies");
 }
 
 public OnLibraryAdded(const String:szName[])
 {
 	if(StrEqual(szName, "model_skin_manager"))
+	{
 		g_bLibLoaded_ModelSkinManager = true;
+	}
+	else if(StrEqual(szName, "map_cookies"))
+	{
+		g_bLibLoaded_MapCookies = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
 {
 	if(StrEqual(szName, "model_skin_manager"))
+	{
 		g_bLibLoaded_ModelSkinManager = false;
+	}
+	else if(StrEqual(szName, "map_cookies"))
+	{
+		g_bLibLoaded_MapCookies = false;
+	}
 }
 
 public Action:OnWeaponSelect(iClient, iArgNum)
@@ -153,6 +169,24 @@ DisplayMenu_CategorySelect(iClient)
 	else
 		AddMenuItem(hMenu, szInfo, "Hide weapons");
 	
+	if(g_bLibLoaded_MapCookies)
+	{
+		#if defined _map_cookies_included
+		if(CheckCommandAccess(iClient, "sm_zonemanager", ADMFLAG_ROOT))
+		{
+			decl String:szDisplay[32];
+			FormatEx(szDisplay, sizeof(szDisplay), "%sDisable weapons mid-map", (MapCookies_HasCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU) && MapCookies_GetCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU)) ? "[\xE2\x9C\x93] " : "");
+			
+			AddMenuItem(hMenu, "", "", ITEMDRAW_SPACER);
+			
+			IntToString(_:CATEGORY_ADMIN_TOGGLE_WEAPONS, szInfo, sizeof(szInfo));
+			AddMenuItem(hMenu, szInfo, szDisplay);
+		}
+		#endif
+	}
+	
+	SetMenuPagination(hMenu, false);
+	SetMenuExitButton(hMenu, true);
 	if(!DisplayMenu(hMenu, iClient, 0))
 		CPrintToChat(iClient, "{red}There are no weapon categories.");
 }
@@ -172,6 +206,15 @@ public MenuHandle_CategorySelect(Handle:hMenu, MenuAction:action, iParam1, iPara
 	GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
 	
 	new iCategory = StringToInt(szInfo);
+	if(iCategory == CATEGORY_ADMIN_TOGGLE_WEAPONS)
+	{
+		new bDisabled = !(MapCookies_HasCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU) && MapCookies_GetCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU));
+		MapCookies_SetCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU, bDisabled);
+		
+		DisplayMenu_CategorySelect(iParam1);
+		return;
+	}
+	
 	if(iCategory == CATEGORY_HIDE_WEAPONS)
 	{
 		g_bShouldHideWeapons[iParam1] = !g_bShouldHideWeapons[iParam1];
@@ -271,6 +314,17 @@ public MenuHandle_WeaponSelect(Handle:hMenu, MenuAction:action, iParam1, iParam2
 	{
 		CPrintToChat(iParam1, "{red}The next time you respawn you will use your default.");
 		return;
+	}
+	
+	if(g_bLibLoaded_MapCookies)
+	{
+		#if defined _map_cookies_included
+		if(MapCookies_HasCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU) && MapCookies_GetCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU))
+		{
+			CPrintToChat(iParam1, "{red}You will be given the selected weapon on respawn.");
+			return;
+		}
+		#endif
 	}
 	
 	GivePlayerWeapon(iParam1, iIndex, true);
