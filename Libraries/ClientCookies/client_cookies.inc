@@ -47,6 +47,7 @@ enum ClientCookieType
 	CC_TYPE_SPOOFED_SKINS_GLOVES_PAINT,
 	CC_TYPE_SPOOFED_SKINS_WEAPONS_TYPE,
 	CC_TYPE_SPOOFED_SKINS_WEAPONS_PAINT,
+	CC_TYPE_POINTS,
 	
 	NUM_CC_TYPES = 256 // Set this to a high number since its used to allocate the array size. We dont want to recompile the API each time we add a new cookie type.
 };
