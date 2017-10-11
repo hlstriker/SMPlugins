@@ -6,7 +6,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Client Cookies";
-new const String:PLUGIN_VERSION[] = "1.6";
+new const String:PLUGIN_VERSION[] = "1.7";
 
 public Plugin:myinfo =
 {
@@ -127,7 +127,7 @@ public OnClientDisconnect(iClient)
 InsertClientCookie(iUserID, iCookieType, iValue)
 {
 	DB_TQuery(g_szDatabaseConfigName, _, DBPrio_Low, _, "\
-		INSERT INTO gs_user_cookies (cookie_user_id, cookie_type, cookie_value) VALUES (%i, %i, %i) ON DUPLICATE KEY UPDATE cookie_value=%i",
+		INSERT INTO gs_user_cookies (cookie_user_id, cookie_type, cookie_value, post_increment) VALUES (%i, %i, %i + post_increment, 0) ON DUPLICATE KEY UPDATE cookie_value=%i + post_increment, post_increment = 0",
 		iUserID, iCookieType, iValue, iValue);
 }
 
@@ -180,6 +180,7 @@ bool:Query_CreateTable_ClientCookies()
 		cookie_user_id		INT UNSIGNED		NOT NULL,\
 		cookie_type			SMALLINT UNSIGNED	NOT NULL,\
 		cookie_value		INT					NOT NULL,\
+		post_increment		INT					NOT NULL,\
 		PRIMARY KEY ( cookie_user_id, cookie_type )\
 	)\
 	ENGINE INNODB");
