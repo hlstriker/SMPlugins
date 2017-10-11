@@ -6,7 +6,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Client Cookies";
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
 {
@@ -21,6 +21,7 @@ new Handle:cvar_database_servers_configname;
 new String:g_szDatabaseConfigName[64];
 
 new g_iClientCookies[MAXPLAYERS+1][NUM_CC_TYPES];
+new g_iClientCookiesPostIncrement[MAXPLAYERS+1][NUM_CC_TYPES];
 new bool:g_bHaveCookiesChanged[MAXPLAYERS+1][NUM_CC_TYPES];
 new bool:g_bHasCookie[MAXPLAYERS+1][NUM_CC_TYPES];
 new bool:g_bHaveCookiesLoaded[MAXPLAYERS+1];
@@ -98,7 +99,7 @@ public _ClientCookies_SetCookie(Handle:hPlugin, iNumParams)
 	}
 	
 	new iClient = GetNativeCell(1);
-	new iValue = GetNativeCell(3);
+	new iValue = GetNativeCell(3) - g_iClientCookiesPostIncrement[iClient][iCookieType];
 	
 	if(g_bHasCookie[iClient][iCookieType] && g_iClientCookies[iClient][iCookieType] == iValue)
 		return;
@@ -127,7 +128,7 @@ public OnClientDisconnect(iClient)
 InsertClientCookie(iUserID, iCookieType, iValue)
 {
 	DB_TQuery(g_szDatabaseConfigName, _, DBPrio_Low, _, "\
-		INSERT INTO gs_user_cookies (cookie_user_id, cookie_type, cookie_value, post_increment) VALUES (%i, %i, %i + post_increment, 0) ON DUPLICATE KEY UPDATE cookie_value=%i + post_increment, post_increment = 0",
+		INSERT INTO gs_user_cookies (cookie_user_id, cookie_type, cookie_value, post_increment) VALUES (%i, %i, %i + post_increment, 0) ON DUPLICATE KEY UPDATE cookie_value = %i + post_increment, post_increment = 0",
 		iUserID, iCookieType, iValue, iValue);
 }
 
@@ -149,7 +150,9 @@ public _ClientCookies_GetCookie(Handle:hPlugin, iNumParams)
 		return 0;
 	}
 	
-	return g_iClientCookies[GetNativeCell(1)][iCookieType];
+	new iClient = GetNativeCell(1);
+	
+	return (g_iClientCookies[iClient][iCookieType] + g_iClientCookiesPostIncrement[iClient][iCookieType]);
 }
 
 public OnAllPluginsLoaded()
@@ -200,7 +203,7 @@ bool:Query_CreateTable_ClientCookies()
 public DBUsers_OnUserIDReady(iClient, iUserID)
 {
 	DB_TQuery(g_szDatabaseConfigName, Query_GetCookies, DBPrio_Low, GetClientSerial(iClient), "\
-		SELECT cookie_type, cookie_value FROM gs_user_cookies WHERE cookie_user_id = %i", iUserID);
+		SELECT cookie_type, cookie_value, post_increment FROM gs_user_cookies WHERE cookie_user_id = %i", iUserID);
 }
 
 public OnClientConnected(iClient)
@@ -210,6 +213,7 @@ public OnClientConnected(iClient)
 	for(new i=0; i<sizeof(g_iClientCookies[]); i++)
 	{
 		g_iClientCookies[iClient][i] = 0;
+		g_iClientCookiesPostIncrement[iClient][i] = 0;
 		g_bHaveCookiesChanged[iClient][i] = false;
 		g_bHasCookie[iClient][i] = false;
 	}
@@ -232,6 +236,7 @@ public Query_GetCookies(Handle:hDatabase, Handle:hQuery, any:iClientSerial)
 			continue;
 		
 		g_iClientCookies[iClient][iCookieType] = SQL_FetchInt(hQuery, 1);
+		g_iClientCookiesPostIncrement[iClient][iCookieType] = SQL_FetchInt(hQuery, 2);
 		g_bHasCookie[iClient][iCookieType] = true;
 	}
 	
