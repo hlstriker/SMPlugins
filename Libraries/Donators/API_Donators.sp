@@ -13,7 +13,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Donators";
-new const String:PLUGIN_VERSION[] = "2.6";
+new const String:PLUGIN_VERSION[] = "2.7";
 
 public Plugin:myinfo =
 {
@@ -46,21 +46,24 @@ const Float:MESSAGE_DISPLAY_DELAY = 120.0;
 new Float:g_fNextMessageDisplay[MAXPLAYERS+1];
 
 new bool:g_bLibLoaded_ModelSkinManager;
+new bool:g_bLibLoaded_UserPoints;
 
 
 public OnPluginStart()
 {
 	CreateConVar("api_donators_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	
-	RegConsoleCmd("sm_store", OnOpenDonatorMenu, "Opens the donator menu.");
-	RegConsoleCmd("sm_shop", OnOpenDonatorMenu, "Opens the donator menu.");
-	RegConsoleCmd("sm_models", OnOpenDonatorMenu, "Opens the donator menu.");
-	RegConsoleCmd("sm_skins", OnOpenDonatorMenu, "Opens the donator menu.");
 	RegConsoleCmd("sm_d", OnOpenDonatorMenu, "Opens the donator menu.");
 	RegConsoleCmd("sm_donator", OnOpenDonatorMenu, "Opens the donator menu.");
 	RegConsoleCmd("sm_donate", OnOpenDonatorMenu, "Opens the donator menu.");
-	RegConsoleCmd("sm_points", OnOpenDonatorMenu, "Opens the donator menu.");
-	RegConsoleCmd("sm_credits", OnOpenDonatorMenu, "Opens the donator menu.");
+	
+	RegConsoleCmd("sm_points", OnOpenDonatorMenu_Points, "Opens the donator menu.");
+	RegConsoleCmd("sm_credits", OnOpenDonatorMenu_Points, "Opens the donator menu.");
+	
+	RegConsoleCmd("sm_store", OnOpenDonatorMenu_Store, "Opens the donator menu.");
+	RegConsoleCmd("sm_shop", OnOpenDonatorMenu_Store, "Opens the donator menu.");
+	RegConsoleCmd("sm_models", OnOpenDonatorMenu_Store, "Opens the donator menu.");
+	RegConsoleCmd("sm_skins", OnOpenDonatorMenu_Store, "Opens the donator menu.");
 	
 	g_hFwd_OnStatusLoaded = CreateGlobalForward("Donators_OnStatusLoaded", ET_Ignore, Param_Cell);
 	g_hFwd_OnRegisterSettingsReady = CreateGlobalForward("Donators_OnRegisterSettingsReady", ET_Ignore);
@@ -211,19 +214,33 @@ public DB_OnStartConnectionSetup()
 public OnAllPluginsLoaded()
 {
 	cvar_database_bridge_configname = FindConVar("sm_database_bridge_configname");
+	
 	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
+	g_bLibLoaded_UserPoints = LibraryExists("user_points");
 }
 
 public OnLibraryAdded(const String:szName[])
 {
 	if(StrEqual(szName, "model_skin_manager"))
+	{
 		g_bLibLoaded_ModelSkinManager = true;
+	}
+	else if(StrEqual(szName, "user_points"))
+	{
+		g_bLibLoaded_UserPoints = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
 {
 	if(StrEqual(szName, "model_skin_manager"))
+	{
 		g_bLibLoaded_ModelSkinManager = false;
+	}
+	else if(StrEqual(szName, "user_points"))
+	{
+		g_bLibLoaded_UserPoints = false;
+	}
 }
 
 public DBServers_OnServerIDReady(iServerID, iGameID)
@@ -449,6 +466,38 @@ public Action:OnOpenDonatorMenu(iClient, iArgNum)
 {
 	if(!iClient)
 		return Plugin_Handled;
+	
+	if(IsDonator(iClient))
+		DisplayMenu_Settings(iClient);
+	else
+		DisplayMenu_NonDonator(iClient);
+	
+	return Plugin_Handled;
+}
+
+public Action:OnOpenDonatorMenu_Points(iClient, iArgNum)
+{
+	if(!iClient)
+		return Plugin_Handled;
+	
+	if(g_bLibLoaded_UserPoints)
+		return Plugin_Handled;
+	
+	if(IsDonator(iClient))
+		DisplayMenu_Settings(iClient);
+	else
+		DisplayMenu_NonDonator(iClient);
+	
+	return Plugin_Handled;
+}
+
+public Action:OnOpenDonatorMenu_Store(iClient, iArgNum)
+{
+	if(!iClient)
+		return Plugin_Handled;
+	
+	// TODO: Return if the store is loaded.
+	// -->
 	
 	if(IsDonator(iClient))
 		DisplayMenu_Settings(iClient);
