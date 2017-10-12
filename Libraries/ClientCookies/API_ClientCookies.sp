@@ -6,7 +6,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Client Cookies";
-new const String:PLUGIN_VERSION[] = "1.8";
+new const String:PLUGIN_VERSION[] = "1.9";
 
 public Plugin:myinfo =
 {
@@ -19,6 +19,8 @@ public Plugin:myinfo =
 
 new Handle:cvar_database_servers_configname;
 new String:g_szDatabaseConfigName[64];
+
+new g_iCachedUserID[MAXPLAYERS+1];
 
 new g_iClientCookies[MAXPLAYERS+1][NUM_CC_TYPES];
 new g_iClientCookiesPostIncrement[MAXPLAYERS+1][NUM_CC_TYPES];
@@ -111,17 +113,21 @@ public _ClientCookies_SetCookie(Handle:hPlugin, iNumParams)
 
 public OnClientDisconnect(iClient)
 {
+	g_iCachedUserID[iClient] = DBUsers_GetUserID(iClient);
+}
+
+public OnClientDisconnect_Post(iClient)
+{
 	if(!g_bHaveCookiesLoaded[iClient])
 		return;
 	
-	new iUserID = DBUsers_GetUserID(iClient);
-	if(iUserID < 1)
+	if(g_iCachedUserID[iClient] < 1)
 		return;
 	
 	for(new i=0; i<sizeof(g_bHaveCookiesChanged[]); i++)
 	{
 		if(g_bHaveCookiesChanged[iClient][i])
-			InsertClientCookie(iUserID, i, g_iClientCookies[iClient][i]);
+			InsertClientCookie(g_iCachedUserID[iClient], i, g_iClientCookies[iClient][i]);
 	}
 }
 
