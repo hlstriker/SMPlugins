@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "User Points";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -217,7 +217,8 @@ public Event_Intermission_Post(Handle:hEvent, const String:szName[], bool:bDontB
 		}
 		else
 		{
-			CPrintToChat(iClient, "{olive}Remember to type {yellow}!shop {olive}to see {yellow}items you can get{olive}!");
+			// TODO: Display this message if the store library is loaded.
+			//CPrintToChat(iClient, "{olive}Remember to type {yellow}!shop {olive}to see {yellow}items you can get{olive}!");
 		}
 	}
 }
