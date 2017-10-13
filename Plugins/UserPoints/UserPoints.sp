@@ -4,12 +4,13 @@
 #include "../../Libraries/ClientTimes/client_times"
 #include "../../Libraries/WebPageViewer/web_page_viewer"
 #include "../../Libraries/Donators/donators"
+#include "../../Libraries/DatabaseUserStats/database_user_stats"
 #include <hls_color_chat>
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "User Points";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -26,6 +27,7 @@ new Handle:cvar_points_count_afk_time;
 new Handle:cvar_points_clantag_bonus_percent;
 new Handle:cvar_points_event_bonus_percent;
 new Handle:cvar_points_donator_bonus_percent;
+new Handle:cvar_points_hours_played_bonus_percent;
 
 const Float:POINT_DISPLAY_DELAY = 120.0;
 new Float:g_fNextPointDisplay[MAXPLAYERS+1];
@@ -49,6 +51,9 @@ public OnPluginStart()
 	
 	if((cvar_points_donator_bonus_percent = FindConVar("points_donator_bonus_percent")) == INVALID_HANDLE)
 		cvar_points_donator_bonus_percent = CreateConVar("points_donator_bonus_percent", "150", "The percent of donator bonus points to give.");
+	
+	if((cvar_points_hours_played_bonus_percent = FindConVar("points_hours_played_bonus_percent")) == INVALID_HANDLE)
+		cvar_points_hours_played_bonus_percent = CreateConVar("points_hours_played_bonus_percent", "0.05", "The percent of bonus points to give per hours played.");
 	
 	if((cvar_tag_url = FindConVar("clan_tag_url")) == INVALID_HANDLE)
 		cvar_tag_url = CreateConVar("clan_tag_url", "http://swoobles.com/forums/thread-7728.html#posts", "The URL to the clan tag help page.");
@@ -133,18 +138,19 @@ public OnClientDisconnect(iClient)
 	if(IsFakeClient(iClient) || !ClientCookies_HaveCookiesLoaded(iClient))
 		return;
 	
-	decl iPoints, iTagPoints, iSpecialPoints, iDonatorPoints;
-	new iTotalPoints = GetDisconnectPoints(iClient, iPoints, iTagPoints, iSpecialPoints, iDonatorPoints);
+	decl iPoints, iTagPoints, iSpecialPoints, iDonatorPoints, iHoursPlayedPoints;
+	new iTotalPoints = GetDisconnectPoints(iClient, iPoints, iTagPoints, iSpecialPoints, iDonatorPoints, iHoursPlayedPoints);
 	if(iTotalPoints)
 		ClientCookies_SetCookie(iClient, CC_TYPE_SWOOBLES_POINTS, ClientCookies_GetCookie(iClient, CC_TYPE_SWOOBLES_POINTS) + iTotalPoints);
 }
 
-GetDisconnectPoints(iClient, &iPoints, &iTagPoints, &iSpecialPoints, &iDonatorPoints)
+GetDisconnectPoints(iClient, &iPoints, &iTagPoints, &iSpecialPoints, &iDonatorPoints, &iHoursPlayedPoints)
 {
 	iPoints = 0;
 	iTagPoints = 0;
 	iSpecialPoints = 0;
 	iDonatorPoints = 0;
+	iHoursPlayedPoints = 0;
 	
 	decl iTimePlayed;
 	
@@ -182,29 +188,41 @@ GetDisconnectPoints(iClient, &iPoints, &iTagPoints, &iSpecialPoints, &iDonatorPo
 	else
 		iNumDonatorPoints = 0;
 	
+	// Give a percent bonus for every hour played.
+	new iNumHoursPlayedPoints = RoundToFloor(iNumPoints * (GetPointsPerHourBonusPercent(iClient) / 100.0));
+	
 	// Set the by reference points before calculating the total points.
 	iPoints = iNumPoints;
 	iTagPoints = iNumTagPoints;
 	iSpecialPoints = iNumSpecialPoints;
 	iDonatorPoints = iNumDonatorPoints;
+	iHoursPlayedPoints = iNumHoursPlayedPoints;
 	
 	// Add bonus points to the total.
 	iNumPoints += iNumTagPoints;
 	iNumPoints += iNumSpecialPoints;
 	iNumPoints += iNumDonatorPoints;
+	iNumPoints += iNumHoursPlayedPoints;
 	
 	return iNumPoints;
 }
 
+Float:GetPointsPerHourBonusPercent(iClient)
+{
+	return (float(DBUserStats_GetGlobalTimePlayed(iClient) + ClientTimes_GetTimePlayed(iClient)) / 60.0) * GetConVarFloat(cvar_points_hours_played_bonus_percent);
+}
+
 public Event_Intermission_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
 {
-	decl iTotalPoints, iPoints, iTagPoints, iSpecialPoints, iDonatorPoints;
+	decl iTotalPoints, iPoints, iTagPoints, iSpecialPoints, iDonatorPoints, iHoursPlayedPoints;
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
 		if(!IsClientInGame(iClient) || IsFakeClient(iClient))
 			continue;
 		
-		iTotalPoints = GetDisconnectPoints(iClient, iPoints, iTagPoints, iSpecialPoints, iDonatorPoints);
+		CPrintToChat(iClient, "{yellow}Points per minute bonus: {purple}%.02f%%{yellow} (based on hours played)", GetPointsPerHourBonusPercent(iClient));
+		
+		iTotalPoints = GetDisconnectPoints(iClient, iPoints, iTagPoints, iSpecialPoints, iDonatorPoints, iHoursPlayedPoints);
 		if(iTotalPoints)
 		{
 			if(iSpecialPoints)
