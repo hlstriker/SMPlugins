@@ -209,7 +209,7 @@ GetDisconnectPoints(iClient, &iPoints, &iTagPoints, &iSpecialPoints, &iDonatorPo
 
 Float:GetPointsPerHourBonusPercent(iClient)
 {
-	return (float(DBUserStats_GetGlobalTimePlayed(iClient) + ClientTimes_GetTimePlayed(iClient)) / 60.0) * GetConVarFloat(cvar_points_hours_played_bonus_percent);
+	return (float(DBUserStats_GetGlobalTimePlayed(iClient) + ClientTimes_GetTimePlayed(iClient)) / 60.0 / 60.0) * GetConVarFloat(cvar_points_hours_played_bonus_percent);
 }
 
 public Event_Intermission_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
