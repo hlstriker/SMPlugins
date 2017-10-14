@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Movement Styles";
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
 {
@@ -41,6 +41,7 @@ enum _:Style
 
 new Handle:g_hFwd_OnRegisterReady;
 new Handle:g_hFwd_OnBitsChanged;
+new Handle:g_hFwd_OnBitsChangedPost;
 new Handle:g_hFwd_OnMenuBitChanged;
 
 new g_iStyleBits[MAXPLAYERS+1];
@@ -54,6 +55,7 @@ public OnPluginStart()
 	g_aStyles = CreateArray(Style);
 	g_hFwd_OnRegisterReady = CreateGlobalForward("MovementStyles_OnRegisterReady", ET_Ignore);
 	g_hFwd_OnBitsChanged = CreateGlobalForward("MovementStyles_OnBitsChanged", ET_Ignore, Param_Cell, Param_Cell, Param_CellByRef);
+	g_hFwd_OnBitsChangedPost = CreateGlobalForward("MovementStyles_OnBitsChanged_Post", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
 	g_hFwd_OnMenuBitChanged = CreateGlobalForward("MovementStyles_OnMenuBitChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_CellByRef);
 	
 	RegConsoleCmd("sm_style", OnStylesSelect, "Opens the styles selection menu.");
@@ -66,8 +68,7 @@ public OnClientPutInServer(iClient)
 	g_iStyleBits[iClient] = 0;
 	g_iStyleBitsRespawn[iClient] = VerifyBitMask(g_iDefaultBits);
 	
-	if(!IsFakeClient(iClient))
-		SDKHook(iClient, SDKHook_SpawnPost, OnSpawnPost);
+	SDKHook(iClient, SDKHook_SpawnPost, OnSpawnPost);
 }
 
 public ClientCookies_OnCookiesLoaded(iClient)
@@ -128,6 +129,12 @@ public OnSpawnPost(iClient)
 	Call_PushCell(iClient);
 	Call_PushCell(g_iStyleBits[iClient]);
 	Call_PushCellRef(g_iStyleBitsRespawn[iClient]);
+	Call_Finish(result);
+	
+	Call_StartForward(g_hFwd_OnBitsChangedPost);
+	Call_PushCell(iClient);
+	Call_PushCell(g_iStyleBits[iClient]);
+	Call_PushCell(g_iStyleBitsRespawn[iClient]);
 	Call_Finish(result);
 	
 	if(g_iStyleBits[iClient] == g_iStyleBitsRespawn[iClient])
