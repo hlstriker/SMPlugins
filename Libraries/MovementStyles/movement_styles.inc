@@ -54,6 +54,7 @@ functag public Callback_OnDeactivated(client);
 
 forward MovementStyles_OnRegisterReady();
 forward MovementStyles_OnBitsChanged(client, old_bits, &new_bits);
+forward MovementStyles_OnBitsChanged_Post(client, old_bits, new_bits);
 forward Action:MovementStyles_OnMenuBitChanged(client, bit_being_toggled, bool:toggled_on_or_off, &bits_to_force_menu_visual_only); // bits_to_force_menu_visual_only is to be used in combination with new_bits from MovementStyles_OnBitsChanged()
 
 
