@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Movement Styles";
-new const String:PLUGIN_VERSION[] = "1.8";
+new const String:PLUGIN_VERSION[] = "1.9";
 
 public Plugin:myinfo =
 {
@@ -460,18 +460,18 @@ public MenuHandle_StylesSelect(Handle:hMenu, MenuAction:action, iParam1, iParam2
 
 ToggleStyleBit(iClient, iBit)
 {
-	new result, iBitsToForceMenuVisualOnly;
+	new result, iExtraBitsToForceOn;
 	Call_StartForward(g_hFwd_OnMenuBitChanged);
 	Call_PushCell(iClient);
 	Call_PushCell(iBit);
 	Call_PushCell((iBit && (g_iStyleBitsRespawn[iClient] & iBit)) ? false : true);
-	Call_PushCellRef(iBitsToForceMenuVisualOnly);
+	Call_PushCellRef(iExtraBitsToForceOn);
 	Call_Finish(result);
 	
 	if(result > _:Plugin_Continue)
 		return;
 	
-	iBitsToForceMenuVisualOnly = VerifyBitMask(iBitsToForceMenuVisualOnly);
+	iExtraBitsToForceOn = VerifyBitMask(iExtraBitsToForceOn);
 	
 	if(!iBit)
 	{
@@ -479,7 +479,7 @@ ToggleStyleBit(iClient, iBit)
 		ClientCookies_SetCookie(iClient, CC_TYPE_MOVEMENT_STYLE_BITS, g_iStyleBitsRespawn[iClient]);
 		
 		// Don't set the menu visual only bits in the cookie.
-		g_iStyleBitsRespawn[iClient] |= iBitsToForceMenuVisualOnly;
+		g_iStyleBitsRespawn[iClient] |= iExtraBitsToForceOn;
 		
 		return;
 	}
@@ -497,5 +497,5 @@ ToggleStyleBit(iClient, iBit)
 	ClientCookies_SetCookie(iClient, CC_TYPE_MOVEMENT_STYLE_BITS, g_iStyleBitsRespawn[iClient]);
 	
 	// Don't set the menu visual only bits in the cookie.
-	g_iStyleBitsRespawn[iClient] |= iBitsToForceMenuVisualOnly;
+	g_iStyleBitsRespawn[iClient] |= iExtraBitsToForceOn;
 }
