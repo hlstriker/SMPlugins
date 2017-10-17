@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Movement Styles";
-new const String:PLUGIN_VERSION[] = "1.9";
+new const String:PLUGIN_VERSION[] = "1.10";
 
 public Plugin:myinfo =
 {
@@ -27,19 +27,19 @@ public Plugin:myinfo =
 new g_iRegisteredBitMask;
 new g_iDefaultBits;
 
-new g_iStyleIDToIndex[MAX_STYLES+1] = {INVALID_STYLE_ID, ...};
 new Handle:g_aStyles;
 enum _:Style
 {
-	Style_ID,
-	Style_Bit,
+	Style_Bits,
 	String:Style_Name[MAX_STYLE_NAME_LENGTH],
 	Handle:Style_ForwardActivated,
 	Handle:Style_ForwardDeactivated,
-	Style_Order
+	Style_Order,
+	bool:Style_IsMultiStyle
 };
 
 new Handle:g_hFwd_OnRegisterReady;
+new Handle:g_hFwd_OnRegisterMultiReady;
 new Handle:g_hFwd_OnBitsChanged;
 new Handle:g_hFwd_OnBitsChangedPost;
 new Handle:g_hFwd_OnMenuBitChanged;
@@ -54,6 +54,7 @@ public OnPluginStart()
 	
 	g_aStyles = CreateArray(Style);
 	g_hFwd_OnRegisterReady = CreateGlobalForward("MovementStyles_OnRegisterReady", ET_Ignore);
+	g_hFwd_OnRegisterMultiReady = CreateGlobalForward("MovementStyles_OnRegisterMultiReady", ET_Ignore);
 	g_hFwd_OnBitsChanged = CreateGlobalForward("MovementStyles_OnBitsChanged", ET_Ignore, Param_Cell, Param_Cell, Param_CellByRef);
 	g_hFwd_OnBitsChangedPost = CreateGlobalForward("MovementStyles_OnBitsChanged_Post", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
 	g_hFwd_OnMenuBitChanged = CreateGlobalForward("MovementStyles_OnMenuBitChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_CellByRef);
@@ -79,23 +80,22 @@ public ClientCookies_OnCookiesLoaded(iClient)
 		g_iStyleBitsRespawn[iClient] = VerifyBitMask(ClientCookies_GetCookie(iClient, CC_TYPE_MOVEMENT_STYLE_BITS));
 		
 #if !defined ALLOW_STYLE_COMBINATIONS
-		// If we don't allow multiple style combinations we need to make sure the style bits being loaded doesn't contain multiple bits.
-		new bool:bFoundAlready;
-		for(new i=0; i<32; i++)
+		// If we don't allow multiple style combinations we need to make sure the style bits being loaded are a valid style.
+		new bool:bFound;
+		decl eStyle[Style];
+		for(new i=0; i<GetArraySize(g_aStyles); i++)
 		{
-			if(!(g_iStyleBitsRespawn[iClient] & (1<<i)))
+			GetArrayArray(g_aStyles, i, eStyle);
+			
+			if(g_iStyleBitsRespawn[iClient] != eStyle[Style_Bits])
 				continue;
 			
-			if(!bFoundAlready)
-			{
-				bFoundAlready = true;
-				continue;
-			}
-			
-			// There are more than 1 bits set. Just set the style bits to 0.
-			g_iStyleBitsRespawn[iClient] = 0;
+			bFound = true;
 			break;
 		}
+		
+		if(!bFound)
+			g_iStyleBitsRespawn[iClient] = 0;
 #endif
 	}
 	else
@@ -148,14 +148,17 @@ public OnSpawnPost(iClient)
 	{
 		GetArrayArray(g_aStyles, i, eStyle);
 		
-		if(eStyle[Style_ID] == STYLE_ID_NONE)
+		if(eStyle[Style_Bits] == STYLE_BIT_NONE)
 			continue;
 		
-		if((g_iStyleBits[iClient] & eStyle[Style_Bit]) && !(g_iStyleBitsRespawn[iClient] & eStyle[Style_Bit]))
+		if(eStyle[Style_IsMultiStyle])
+			continue;
+		
+		if((g_iStyleBits[iClient] & eStyle[Style_Bits]) && !(g_iStyleBitsRespawn[iClient] & eStyle[Style_Bits]))
 		{
 			Forward_ActivatedDeactivated(iClient, eStyle[Style_ForwardDeactivated]);
 		}
-		else if(!(g_iStyleBits[iClient] & eStyle[Style_Bit]) && (g_iStyleBitsRespawn[iClient] & eStyle[Style_Bit]))
+		else if(!(g_iStyleBits[iClient] & eStyle[Style_Bits]) && (g_iStyleBitsRespawn[iClient] & eStyle[Style_Bits]))
 		{
 			Forward_ActivatedDeactivated(iClient, eStyle[Style_ForwardActivated]);
 		}
@@ -200,20 +203,22 @@ public OnMapStart()
 	Call_StartForward(g_hFwd_OnRegisterReady);
 	Call_Finish(result);
 	
+	Call_StartForward(g_hFwd_OnRegisterMultiReady);
+	Call_Finish(result);
+	
 	SortStyles();
 }
 
 SortStyles()
 {
 	new iArraySize = GetArraySize(g_aStyles);
-	decl iOrder, eStyle[Style], j, iIndex, iID;
+	decl iOrder, eStyle[Style], j, iIndex;
 	
 	for(new i=0; i<iArraySize; i++)
 	{
 		GetArrayArray(g_aStyles, i, eStyle);
 		iOrder = eStyle[Style_Order];
 		iIndex = 0;
-		iID = eStyle[Style_ID];
 		
 		for(j=i+1; j<iArraySize; j++)
 		{
@@ -230,30 +235,27 @@ SortStyles()
 			continue;
 		
 		SwapArrayItems(g_aStyles, i, iIndex);
-		
-		// We must swap the IDtoIndex too.
-		g_iStyleIDToIndex[eStyle[Style_ID]] = i;
-		g_iStyleIDToIndex[iID] = iIndex;
 	}
 }
 
 CreateStyleNone()
 {
 	decl eStyle[Style];
-	eStyle[Style_ID] = STYLE_ID_NONE;
-	eStyle[Style_Bit] = STYLE_BIT_NONE;
+	eStyle[Style_Bits] = STYLE_BIT_NONE;
 	strcopy(eStyle[Style_Name], MAX_STYLE_NAME_LENGTH, "None");
 	eStyle[Style_ForwardActivated] = INVALID_HANDLE;
 	eStyle[Style_ForwardDeactivated] = INVALID_HANDLE;
 	eStyle[Style_Order] = -1;
+	eStyle[Style_IsMultiStyle] = false;
 	
-	g_iStyleIDToIndex[STYLE_ID_NONE] = PushArrayArray(g_aStyles, eStyle);
+	PushArrayArray(g_aStyles, eStyle);
 }
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
 {
 	RegPluginLibrary("movement_styles");
 	CreateNative("MovementStyles_RegisterStyle", _MovementStyles_RegisterStyle);
+	CreateNative("MovementStyles_RegisterMultiStyle", _MovementStyles_RegisterMultiStyle);
 	CreateNative("MovementStyles_GetStyleBits", _MovementStyles_GetStyleBits);
 	CreateNative("MovementStyles_GetStyleNames", _MovementStyles_GetStyleNames);
 	CreateNative("MovementStyles_GetTotalStylesRegistered", _MovementStyles_GetTotalStylesRegistered);
@@ -264,12 +266,6 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 
 public _MovementStyles_SetDefaultBits(Handle:hPlugin, iNumParams)
 {
-	if(iNumParams != 1)
-	{
-		LogError("Invalid number of parameters for MovementStyles_SetDefaultBits()");
-		return;
-	}
-	
 	g_iDefaultBits = GetNativeCell(1);
 }
 
@@ -280,12 +276,6 @@ public _MovementStyles_GetTotalStylesRegistered(Handle:hPlugin, iNumParams)
 
 public _MovementStyles_GetStyleBits(Handle:hPlugin, iNumParams)
 {
-	if(iNumParams != 1)
-	{
-		LogError("Invalid number of parameters for MovementStyles_GetStyleBits()");
-		return VerifyBitMask(g_iDefaultBits);
-	}
-	
 	new iClient = GetNativeCell(1);
 	if(!(1 <= iClient <= MaxClients))
 		return VerifyBitMask(g_iDefaultBits);
@@ -295,12 +285,6 @@ public _MovementStyles_GetStyleBits(Handle:hPlugin, iNumParams)
 
 public _MovementStyles_GetStyleNames(Handle:hPlugin, iNumParams)
 {
-	if(iNumParams != 2)
-	{
-		LogError("Invalid number of parameters for MovementStyles_GetStyleNames()");
-		return false;
-	}
-	
 	new Handle:hStyleNames = GetNativeCell(2);
 	if(hStyleNames == INVALID_HANDLE)
 		return false;
@@ -312,10 +296,13 @@ public _MovementStyles_GetStyleNames(Handle:hPlugin, iNumParams)
 	{
 		GetArrayArray(g_aStyles, i, eStyle);
 		
-		if(eStyle[Style_ID] == STYLE_ID_NONE)
+		if(eStyle[Style_Bits] == STYLE_BIT_NONE)
 			continue;
 		
-		if(!(g_iStyleBits[iClient] & eStyle[Style_Bit]))
+		if(eStyle[Style_IsMultiStyle])
+			continue;
+		
+		if(!(g_iStyleBits[iClient] & eStyle[Style_Bits]))
 			continue;
 		
 		PushArrayString(hStyleNames, eStyle[Style_Name]);
@@ -329,45 +316,50 @@ public _MovementStyles_GetStyleNames(Handle:hPlugin, iNumParams)
 
 public _MovementStyles_RegisterStyle(Handle:hPlugin, iNumParams)
 {
-	if(iNumParams < 5 || iNumParams > 6)
+	if(iNumParams != 5)
 	{
-		LogError("Invalid number of parameters.");
+		decl String:szPlugin[PLATFORM_MAX_PATH];
+		GetPluginFilename(hPlugin, szPlugin, sizeof(szPlugin));
+		
+		LogError("Invalid number of parameters. [%s]", szPlugin);
 		return false;
 	}
 	
-	new iStyleID = GetNativeCell(1);
+	new iStyleBits = GetNativeCell(1);
+	
+	if(GetNumBitsSet(iStyleBits) != 1)
+	{
+		decl String:szPlugin[PLATFORM_MAX_PATH];
+		GetPluginFilename(hPlugin, szPlugin, sizeof(szPlugin));
+		
+		LogError("Could not register style because it's not using a single bit. Maybe use MovementStyles_OnRegisterMultiReady(). [%s]", szPlugin);
+		return false;
+	}
 	
 	decl eStyle[Style];
 	for(new i=0; i<GetArraySize(g_aStyles); i++)
 	{
 		GetArrayArray(g_aStyles, i, eStyle);
-		if(eStyle[Style_ID] != iStyleID)
+		if(eStyle[Style_Bits] != iStyleBits)
 			continue;
 		
 		RemoveFromArray(g_aStyles, i);
 		break;
 	}
 	
-	eStyle[Style_ID] = iStyleID;
-	eStyle[Style_Bit] = GetNativeCell(2);
-	g_iRegisteredBitMask |= eStyle[Style_Bit];
+	eStyle[Style_Bits] = iStyleBits;
+	g_iRegisteredBitMask |= eStyle[Style_Bits];
 	
-	if(iNumParams >= 6)
-	{
-		eStyle[Style_Order] = GetNativeCell(6);
-		
-		if(eStyle[Style_Order] < 0)
-			eStyle[Style_Order] = 0;
-	}
-	else
+	eStyle[Style_Order] = GetNativeCell(5);
+	if(eStyle[Style_Order] < 0)
 		eStyle[Style_Order] = 0;
 	
 	decl String:szStyleName[MAX_STYLE_NAME_LENGTH];
-	GetNativeString(3, szStyleName, sizeof(szStyleName));
+	GetNativeString(2, szStyleName, sizeof(szStyleName));
 	strcopy(eStyle[Style_Name], MAX_STYLE_NAME_LENGTH, szStyleName);
 	
 	// Activated callback.
-	new Function:callback = GetNativeCell(4);
+	new Function:callback = GetNativeCell(3);
 	if(callback != INVALID_FUNCTION)
 	{
 		eStyle[Style_ForwardActivated] = CreateForward(ET_Ignore, Param_Cell);
@@ -379,7 +371,7 @@ public _MovementStyles_RegisterStyle(Handle:hPlugin, iNumParams)
 	}
 	
 	// Deactivated callback.
-	callback = GetNativeCell(5);
+	callback = GetNativeCell(4);
 	if(callback != INVALID_FUNCTION)
 	{
 		eStyle[Style_ForwardDeactivated] = CreateForward(ET_Ignore, Param_Cell);
@@ -390,9 +382,71 @@ public _MovementStyles_RegisterStyle(Handle:hPlugin, iNumParams)
 		eStyle[Style_ForwardDeactivated] = INVALID_HANDLE;
 	}
 	
-	g_iStyleIDToIndex[iStyleID] = PushArrayArray(g_aStyles, eStyle);
+	eStyle[Style_IsMultiStyle] = false;
+	PushArrayArray(g_aStyles, eStyle);
 	
 	return true;
+}
+
+public _MovementStyles_RegisterMultiStyle(Handle:hPlugin, iNumParams)
+{
+	if(iNumParams != 3)
+	{
+		decl String:szPlugin[PLATFORM_MAX_PATH];
+		GetPluginFilename(hPlugin, szPlugin, sizeof(szPlugin));
+		
+		LogError("Invalid number of parameters. [%s]", szPlugin);
+		return false;
+	}
+	
+	decl eStyle[Style];
+	eStyle[Style_Bits] = GetNativeCell(1);
+	
+	if(GetNumBitsSet(eStyle[Style_Bits]) < 2)
+	{
+		decl String:szPlugin[PLATFORM_MAX_PATH];
+		GetPluginFilename(hPlugin, szPlugin, sizeof(szPlugin));
+		
+		LogError("Could not register multi-style. Need a minimum of 2 styles. [%s]", szPlugin);
+		return false;
+	}
+	
+	if(!(g_iRegisteredBitMask & eStyle[Style_Bits]))
+	{
+		decl String:szPlugin[PLATFORM_MAX_PATH];
+		GetPluginFilename(hPlugin, szPlugin, sizeof(szPlugin));
+		
+		LogError("Could not register multi-style. One or more bits being used was not registered. [%s]", szPlugin);
+		return false;
+	}
+	
+	eStyle[Style_Order] = GetNativeCell(3);
+	if(eStyle[Style_Order] < 0)
+		eStyle[Style_Order] = 0;
+	
+	decl String:szStyleName[MAX_STYLE_NAME_LENGTH];
+	GetNativeString(2, szStyleName, sizeof(szStyleName));
+	strcopy(eStyle[Style_Name], MAX_STYLE_NAME_LENGTH, szStyleName);
+	
+	eStyle[Style_ForwardActivated] = INVALID_HANDLE;
+	eStyle[Style_ForwardDeactivated] = INVALID_HANDLE;
+	
+	eStyle[Style_IsMultiStyle] = true;
+	PushArrayArray(g_aStyles, eStyle);
+	
+	return true;
+}
+
+GetNumBitsSet(iBits)
+{
+	new iCount;
+	for(new i=0; i<32; i++)
+	{
+		if((1<<i) & iBits)
+			iCount++;
+	}
+	
+	return iCount;
 }
 
 public Action:OnStylesSelect(iClient, iArgNum)
@@ -415,18 +469,43 @@ DisplayMenu_StylesSelect(iClient, iStartItem=0)
 	new Handle:hMenu = CreateMenu(MenuHandle_StylesSelect);
 	SetMenuTitle(hMenu, "Select your styles");
 	
-	decl eStyle[Style], String:szInfo[4], String:szBuffer[MAX_STYLE_NAME_LENGTH+24];
+	decl eStyle[Style], String:szInfo[12], String:szBuffer[MAX_STYLE_NAME_LENGTH+24], bool:bOn, bool:bRespawn;
 	for(new i=0; i<GetArraySize(g_aStyles); i++)
 	{
 		GetArrayArray(g_aStyles, i, eStyle);
 		
-		if(eStyle[Style_ID] == STYLE_ID_NONE)
+		if(eStyle[Style_Bits] == STYLE_BIT_NONE)
 		{
 			strcopy(szBuffer, sizeof(szBuffer), "Disable All");
 		}
 		else
 		{
-			Format(szBuffer, sizeof(szBuffer), "%s %s%s", eStyle[Style_Name], (g_iStyleBitsRespawn[iClient] & eStyle[Style_Bit]) ? "[ON]" : "[OFF]", ((g_iStyleBits[iClient] & eStyle[Style_Bit]) != (g_iStyleBitsRespawn[iClient] & eStyle[Style_Bit])) ? " *Respawn*" : "");
+			if(eStyle[Style_IsMultiStyle])
+			{
+				if(g_iStyleBitsRespawn[iClient] == eStyle[Style_Bits])
+					bOn = true;
+				else
+					bOn = false;
+				
+				if((g_iStyleBits[iClient] == eStyle[Style_Bits]) != (g_iStyleBitsRespawn[iClient] == eStyle[Style_Bits]))
+					bRespawn = true;
+				else
+					bRespawn = false;
+			}
+			else
+			{
+				if(g_iStyleBitsRespawn[iClient] & eStyle[Style_Bits])
+					bOn = true;
+				else
+					bOn = false;
+				
+				if((g_iStyleBits[iClient] & eStyle[Style_Bits]) != (g_iStyleBitsRespawn[iClient] & eStyle[Style_Bits]))
+					bRespawn = true;
+				else
+					bRespawn = false;
+			}
+			
+			Format(szBuffer, sizeof(szBuffer), "%s %s%s", eStyle[Style_Name], bOn ? "[ON]" : "[OFF]", bRespawn ? " *Respawn*" : "");
 		}
 		
 		IntToString(i, szInfo, sizeof(szInfo));
@@ -448,23 +527,30 @@ public MenuHandle_StylesSelect(Handle:hMenu, MenuAction:action, iParam1, iParam2
 	if(action != MenuAction_Select)
 		return;
 	
-	decl eStyle[Style], String:szInfo[4];
+	decl eStyle[Style], String:szInfo[12];
 	GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
 	GetArrayArray(g_aStyles, StringToInt(szInfo), eStyle);
 	
-	ToggleStyleBit(iParam1, eStyle[Style_Bit]);
+	ToggleStyleBits(iParam1, eStyle[Style_Bits], eStyle[Style_IsMultiStyle]);
 	
 	PrintToChat(iParam1, "[SM] Styles will update when you respawn.");
 	DisplayMenu_StylesSelect(iParam1, GetMenuSelectionPosition());
 }
 
-ToggleStyleBit(iClient, iBit)
+ToggleStyleBits(iClient, iBits, bool:bIsMultiStyle)
 {
+	new bool:bToggleMultiOn = !(iBits == (g_iStyleBitsRespawn[iClient] & iBits));
+	
 	new result, iExtraBitsToForceOn;
 	Call_StartForward(g_hFwd_OnMenuBitChanged);
 	Call_PushCell(iClient);
-	Call_PushCell(iBit);
-	Call_PushCell((iBit && (g_iStyleBitsRespawn[iClient] & iBit)) ? false : true);
+	Call_PushCell(iBits);
+	
+	if(bIsMultiStyle)
+		Call_PushCell(bToggleMultiOn);
+	else
+		Call_PushCell((iBits && (g_iStyleBitsRespawn[iClient] & iBits)) ? false : true);
+	
 	Call_PushCellRef(iExtraBitsToForceOn);
 	Call_Finish(result);
 	
@@ -473,29 +559,57 @@ ToggleStyleBit(iClient, iBit)
 	
 	iExtraBitsToForceOn = VerifyBitMask(iExtraBitsToForceOn);
 	
-	if(!iBit)
+	if(bIsMultiStyle)
+	{
+		if(bToggleMultiOn)
+		{
+#if defined ALLOW_STYLE_COMBINATIONS
+			g_iStyleBitsRespawn[iClient] |= iBits;
+#else
+			g_iStyleBitsRespawn[iClient] = iBits;
+#endif
+		}
+		else
+		{
+#if defined ALLOW_STYLE_COMBINATIONS
+			g_iStyleBitsRespawn[iClient] &= ~iBits;
+#else
+			g_iStyleBitsRespawn[iClient] = 0;
+#endif
+		}
+		
+		ClientCookies_SetCookie(iClient, CC_TYPE_MOVEMENT_STYLE_BITS, g_iStyleBitsRespawn[iClient]);
+		
+		// Don't set the extra bits in the cookie.
+		g_iStyleBitsRespawn[iClient] |= iExtraBitsToForceOn;
+		
+		return;
+	}
+	
+	if(!iBits)
 	{
 		g_iStyleBitsRespawn[iClient] = 0;
 		ClientCookies_SetCookie(iClient, CC_TYPE_MOVEMENT_STYLE_BITS, g_iStyleBitsRespawn[iClient]);
 		
-		// Don't set the menu visual only bits in the cookie.
+		// Don't set the extra bits in the cookie.
 		g_iStyleBitsRespawn[iClient] |= iExtraBitsToForceOn;
 		
 		return;
 	}
 	
 #if defined ALLOW_STYLE_COMBINATIONS
-	g_iStyleBitsRespawn[iClient] ^= iBit; // This allows multiple styles to be selected at once.
+	// Allows multiple styles to be selected at once.
+	g_iStyleBitsRespawn[iClient] ^= iBits;
 #else
-	// This allows only 1 style to be selected at once.
-	if(g_iStyleBitsRespawn[iClient] & iBit)
+	// Allows only 1 style to be selected at once.
+	if(g_iStyleBitsRespawn[iClient] & iBits)
 		g_iStyleBitsRespawn[iClient] = 0;
 	else
-		g_iStyleBitsRespawn[iClient] = iBit;
+		g_iStyleBitsRespawn[iClient] = iBits;
 #endif
 	
 	ClientCookies_SetCookie(iClient, CC_TYPE_MOVEMENT_STYLE_BITS, g_iStyleBitsRespawn[iClient]);
 	
-	// Don't set the menu visual only bits in the cookie.
+	// Don't set the extra bits in the cookie.
 	g_iStyleBitsRespawn[iClient] |= iExtraBitsToForceOn;
 }

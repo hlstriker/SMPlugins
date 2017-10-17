@@ -19,22 +19,6 @@ public SharedPlugin:__pl_movement_styles =
 #define MAX_STYLE_NAME_LENGTH	32
 
 
-// WARNING: Never change the order of the STYLE_ID and STYLE_BIT definitions!
-enum
-{
-	STYLE_ID_NONE = 0,
-	STYLE_ID_AUTO_BHOP,
-	STYLE_ID_PRO_TIMER,
-	STYLE_ID_NO_SPEED_CAP,
-	STYLE_ID_LOW_GRAVITY,
-	STYLE_ID_FORWARD_ONLY,
-	STYLE_ID_STRAFE_ONLY,
-	STYLE_ID_BACKWARD_ONLY,
-	STYLE_ID_SIDEWAYS_BHOP_ONLY,
-	STYLE_ID_HALF_SIDEWAYS_BHOP_ONLY,
-	STYLE_ID_NO_LAND_CAP,
-};
-
 #define STYLE_BIT_NONE						0
 #define STYLE_BIT_AUTO_BHOP					(1<<0)
 #define STYLE_BIT_PRO_TIMER					(1<<1)
@@ -53,12 +37,14 @@ functag public Callback_OnDeactivated(client);
 
 
 forward MovementStyles_OnRegisterReady();
+forward MovementStyles_OnRegisterMultiReady();
 forward MovementStyles_OnBitsChanged(client, old_bits, &new_bits);
 forward MovementStyles_OnBitsChanged_Post(client, old_bits, new_bits);
 forward Action:MovementStyles_OnMenuBitChanged(client, bit_being_toggled, bool:toggled_on_or_off, &extra_bits_to_force_on);
 
 
-native bool:MovementStyles_RegisterStyle(style_id, style_bit, const String:style_type_name[], Callback_OnActivated:activated_callback=INVALID_FUNCTION, Callback_OnDeactivated:deactivated_callback=INVALID_FUNCTION, order=0);
+native bool:MovementStyles_RegisterStyle(style_bit, const String:style_name[], Callback_OnActivated:activated_callback=INVALID_FUNCTION, Callback_OnDeactivated:deactivated_callback=INVALID_FUNCTION, order=0);
+native bool:MovementStyles_RegisterMultiStyle(style_bits, const String:style_name[], order=0);
 native MovementStyles_GetTotalStylesRegistered();
 
 native MovementStyles_GetStyleBits(client);
