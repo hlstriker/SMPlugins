@@ -4,7 +4,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Client Air Accelerate";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -17,6 +17,7 @@ public Plugin:myinfo =
 
 #define USE_DEFAULT_AIR_ACCELERATE	-9999999.0
 new Float:g_fCustomAirAccelerate[MAXPLAYERS+1];
+new g_iLastSetTick[MAXPLAYERS+1];
 
 new Handle:cvar_airaccelerate;
 new Float:g_fDefaultAirAccelerate;
@@ -52,6 +53,7 @@ public _ClientAirAccel_SetCustomValue(Handle:hPlugin, iNumParams)
 	
 	new iClient = GetNativeCell(1);
 	g_fCustomAirAccelerate[iClient] = fValue;
+	g_iLastSetTick[iClient] = GetGameTickCount();
 	
 	if(IsFakeClient(iClient))
 		return;
@@ -62,6 +64,9 @@ public _ClientAirAccel_SetCustomValue(Handle:hPlugin, iNumParams)
 public _ClientAirAccel_ClearCustomValue(Handle:hPlugin, iNumParams)
 {
 	new iClient = GetNativeCell(1);
+	if(g_iLastSetTick[iClient] == GetGameTickCount())
+		return;
+	
 	g_fCustomAirAccelerate[iClient] = USE_DEFAULT_AIR_ACCELERATE;
 	
 	if(IsFakeClient(iClient))
