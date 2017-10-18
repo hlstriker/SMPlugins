@@ -4,7 +4,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: No Speed Cap";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -23,5 +23,5 @@ public OnPluginStart()
 
 public MovementStyles_OnRegisterReady()
 {
-	MovementStyles_RegisterStyle(STYLE_ID_NO_SPEED_CAP, STYLE_BIT_NO_SPEED_CAP, "No Speed Cap", _, _, 20);
+	MovementStyles_RegisterStyle(STYLE_BIT_NO_SPEED_CAP, "No Speed Cap", _, _, 20);
 }

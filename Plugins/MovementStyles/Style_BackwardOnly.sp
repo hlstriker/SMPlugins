@@ -4,7 +4,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: Backward Only";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -25,7 +25,7 @@ public OnPluginStart()
 
 public MovementStyles_OnRegisterReady()
 {
-	MovementStyles_RegisterStyle(STYLE_ID_BACKWARD_ONLY, STYLE_BIT_BACKWARD_ONLY, "S-Only", OnActivated, OnDeactivated, 56);
+	MovementStyles_RegisterStyle(STYLE_BIT_BACKWARD_ONLY, "S-Only", OnActivated, OnDeactivated, 56);
 }
 
 public OnClientConnected(iClient)

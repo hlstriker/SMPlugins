@@ -4,7 +4,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: Force Auto Bhop";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -36,16 +36,16 @@ public MovementStyles_OnBitsChanged(iClient, iOldBits, &iNewBits)
 	iNewBits |= STYLE_BIT_AUTO_BHOP;
 }
 
-public Action:MovementStyles_OnMenuBitChanged(iClient, iBitBeingToggled, bool:bBeingToggledOn, &iBitsToForceMenuVisualOnly)
+public Action:MovementStyles_OnMenuBitsChanged(iClient, iBitsBeingToggled, bool:bBeingToggledOn, &iBitsToForceMenuVisualOnly)
 {
 	if(GetConVarBool(cvar_force_auto_bhop_but_not_legit))
 	{
-		if(iBitBeingToggled == STYLE_BIT_NO_LAND_CAP && bBeingToggledOn)
+		if(iBitsBeingToggled == STYLE_BIT_NO_LAND_CAP && bBeingToggledOn)
 			return;
 		
 		new iBits = MovementStyles_GetStyleBits(iClient);
 		
-		if(iBitBeingToggled == STYLE_BIT_NONE)
+		if(iBitsBeingToggled == STYLE_BIT_NONE)
 		{
 			// Disable all is being selected.
 			iBits = STYLE_BIT_NONE;
@@ -53,9 +53,9 @@ public Action:MovementStyles_OnMenuBitChanged(iClient, iBitBeingToggled, bool:bB
 		else
 		{
 			if(bBeingToggledOn)
-				iBits |= iBitBeingToggled;
+				iBits |= iBitsBeingToggled;
 			else
-				iBits &= ~iBitBeingToggled;
+				iBits &= ~iBitsBeingToggled;
 		}
 		
 		if(iBits == STYLE_BIT_NONE)

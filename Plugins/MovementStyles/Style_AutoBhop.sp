@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: Auto Bhop";
-new const String:PLUGIN_VERSION[] = "2.1";
+new const String:PLUGIN_VERSION[] = "2.2";
 
 public Plugin:myinfo =
 {
@@ -43,7 +43,7 @@ public OnConVarChanged(Handle:hConVar, const String:szOldValue[], const String:s
 
 public MovementStyles_OnRegisterReady()
 {
-	MovementStyles_RegisterStyle(STYLE_ID_AUTO_BHOP, STYLE_BIT_AUTO_BHOP, "Auto Bhop", OnActivated, OnDeactivated, 5);
+	MovementStyles_RegisterStyle(STYLE_BIT_AUTO_BHOP, "Auto Bhop", OnActivated, OnDeactivated, 5);
 }
 
 public OnClientConnected(iClient)

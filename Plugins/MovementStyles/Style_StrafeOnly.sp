@@ -4,7 +4,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: Strafe Only";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -25,7 +25,7 @@ public OnPluginStart()
 
 public MovementStyles_OnRegisterReady()
 {
-	MovementStyles_RegisterStyle(STYLE_ID_STRAFE_ONLY, STYLE_BIT_STRAFE_ONLY, "A/D-Only", OnActivated, OnDeactivated, 60);
+	MovementStyles_RegisterStyle(STYLE_BIT_STRAFE_ONLY, "A/D-Only", OnActivated, OnDeactivated, 60);
 }
 
 public OnClientConnected(iClient)
