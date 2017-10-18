@@ -30,6 +30,7 @@ public SharedPlugin:__pl_movement_styles =
 #define STYLE_BIT_SIDEWAYS_BHOP_ONLY		(1<<7)
 #define STYLE_BIT_HALF_SIDEWAYS_BHOP_ONLY	(1<<8)
 #define STYLE_BIT_NO_LAND_CAP				(1<<9)
+#define STYLE_BIT_THIRDPERSON				(1<<10)
 
 
 functag public Callback_OnActivated(client);
