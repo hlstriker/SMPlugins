@@ -1,10 +1,11 @@
 #include <sourcemod>
 #include "../../Libraries/MovementStyles/movement_styles"
+#include "../../Plugins/ClientAirAccelerate/client_air_accelerate"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: Sideways Bhop Only";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
@@ -23,6 +24,10 @@ public Plugin:myinfo =
 new Handle:cvar_add_autobhop;
 new Handle:cvar_force_autobhop;
 
+#define USE_DEFAULT_AIRACCELERATE	-1.0
+new Handle:cvar_custom_airaccelerate;
+new Handle:cvar_custom_airaccelerate_autobhop;
+
 new bool:g_bActivated[MAXPLAYERS+1];
 
 
@@ -32,6 +37,11 @@ public OnPluginStart()
 	
 	cvar_add_autobhop = CreateConVar("style_sideways_add_autobhop", "0", "Add an additional auto-bhop style for this style too.", _, true, 0.0, true, 1.0);
 	cvar_force_autobhop = CreateConVar("style_sideways_force_autobhop", "0", "Force auto-bhop on this style.", _, true, 0.0, true, 1.0);
+	
+	new String:szDefault[4];
+	FloatToString(USE_DEFAULT_AIRACCELERATE, szDefault, sizeof(szDefault));
+	cvar_custom_airaccelerate = CreateConVar("style_sideways_airaccel", szDefault, "Set to use a custom sv_airaccelerate for this style.");
+	cvar_custom_airaccelerate_autobhop = CreateConVar("style_sideways_airaccel_autobhop", szDefault, "Set to use a custom sv_airaccelerate for this style's auto-bhop variant.");
 }
 
 public MovementStyles_OnRegisterReady()
@@ -69,6 +79,33 @@ TryForceAutoBhopBits(iBits)
 		return iBits;
 	
 	return (iBits | STYLE_BIT_AUTO_BHOP);
+}
+
+public MovementStyles_OnBitsChanged_Post(iClient, iOldBits, iNewBits)
+{
+	static Float:fCustomAirAccelerate;
+	
+	if(iNewBits == THIS_STYLE_BIT)
+	{
+		fCustomAirAccelerate = GetConVarFloat(cvar_custom_airaccelerate);
+	}
+	else if(iNewBits == (THIS_STYLE_BIT | STYLE_BIT_AUTO_BHOP))
+	{
+		fCustomAirAccelerate = GetConVarFloat(cvar_custom_airaccelerate_autobhop);
+	}
+	else
+	{
+		ClientAirAccel_ClearCustomValue(iClient);
+		return;
+	}
+	
+	if(fCustomAirAccelerate == USE_DEFAULT_AIRACCELERATE)
+	{
+		ClientAirAccel_ClearCustomValue(iClient);
+		return;
+	}
+	
+	ClientAirAccel_SetCustomValue(iClient, fCustomAirAccelerate);
 }
 
 public OnClientConnected(iClient)
