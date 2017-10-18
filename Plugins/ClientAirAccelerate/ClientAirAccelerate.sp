@@ -4,7 +4,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Client Air Accelerate";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -15,7 +15,7 @@ public Plugin:myinfo =
 	url = "www.swoobles.com"
 }
 
-#define USE_DEFAULT_AIR_ACCELERATE	-9999999.0
+new bool:g_bHasCustomAirAccelerate[MAXPLAYERS+1];
 new Float:g_fCustomAirAccelerate[MAXPLAYERS+1];
 new g_iLastSetTick[MAXPLAYERS+1];
 
@@ -53,6 +53,7 @@ public _ClientAirAccel_SetCustomValue(Handle:hPlugin, iNumParams)
 	
 	new iClient = GetNativeCell(1);
 	g_fCustomAirAccelerate[iClient] = fValue;
+	g_bHasCustomAirAccelerate[iClient] = true;
 	g_iLastSetTick[iClient] = GetGameTickCount();
 	
 	if(IsFakeClient(iClient))
@@ -67,7 +68,7 @@ public _ClientAirAccel_ClearCustomValue(Handle:hPlugin, iNumParams)
 	if(g_iLastSetTick[iClient] == GetGameTickCount())
 		return;
 	
-	g_fCustomAirAccelerate[iClient] = USE_DEFAULT_AIR_ACCELERATE;
+	g_bHasCustomAirAccelerate[iClient] = false;
 	
 	if(IsFakeClient(iClient))
 		return;
@@ -89,7 +90,7 @@ public OnConVarChanged(Handle:hConVar, const String:szOldValue[], const String:s
 		if(!IsClientInGame(iClient) || IsFakeClient(iClient))
 			continue;
 		
-		if(g_fCustomAirAccelerate[iClient] == USE_DEFAULT_AIR_ACCELERATE)
+		if(!g_bHasCustomAirAccelerate[iClient])
 			SendConVarValue(iClient, cvar_airaccelerate, szNewValue);
 	}
 }
@@ -103,7 +104,7 @@ public OnClientPutInServer(iClient)
 		SendConVarValue(iClient, cvar_airaccelerate, szValue);
 	}
 	
-	g_fCustomAirAccelerate[iClient] = USE_DEFAULT_AIR_ACCELERATE;
+	g_bHasCustomAirAccelerate[iClient] = false;
 	SDKHook(iClient, SDKHook_PreThink, OnPreThink);
 }
 
@@ -111,10 +112,10 @@ public Action:OnPreThink(iClient)
 {
 	g_bSkipChange = true;
 	
-	if(g_fCustomAirAccelerate[iClient] == USE_DEFAULT_AIR_ACCELERATE)
-		SetConVarFloat(cvar_airaccelerate, g_fDefaultAirAccelerate);
-	else
+	if(g_bHasCustomAirAccelerate[iClient])
 		SetConVarFloat(cvar_airaccelerate, g_fCustomAirAccelerate[iClient]);
+	else
+		SetConVarFloat(cvar_airaccelerate, g_fDefaultAirAccelerate);
 	
 	g_bSkipChange = false;
 	
