@@ -40,10 +40,10 @@ forward MovementStyles_OnRegisterReady();
 forward MovementStyles_OnRegisterMultiReady();
 forward MovementStyles_OnBitsChanged(client, old_bits, &new_bits);
 forward MovementStyles_OnBitsChanged_Post(client, old_bits, new_bits);
-forward Action:MovementStyles_OnMenuBitChanged(client, bit_being_toggled, bool:toggled_on_or_off, &extra_bits_to_force_on);
+forward Action:MovementStyles_OnMenuBitsChanged(client, bits_being_toggled, bool:toggled_on_or_off, &extra_bits_to_force_on);
 
 
-native bool:MovementStyles_RegisterStyle(style_bit, const String:style_name[], Callback_OnActivated:activated_callback=INVALID_FUNCTION, Callback_OnDeactivated:deactivated_callback=INVALID_FUNCTION, order=0);
+native bool:MovementStyles_RegisterStyle(style_bit, const String:style_name[], Callback_OnActivated:activated_callback=INVALID_FUNCTION, Callback_OnDeactivated:deactivated_callback=INVALID_FUNCTION, order=0, const String:custom_menu_name[]="");
 native bool:MovementStyles_RegisterMultiStyle(style_bits, const String:style_name[], order=0);
 native MovementStyles_GetTotalStylesRegistered();
 

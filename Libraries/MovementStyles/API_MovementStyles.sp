@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Movement Styles";
-new const String:PLUGIN_VERSION[] = "1.10";
+new const String:PLUGIN_VERSION[] = "1.11";
 
 public Plugin:myinfo =
 {
@@ -32,6 +32,7 @@ enum _:Style
 {
 	Style_Bits,
 	String:Style_Name[MAX_STYLE_NAME_LENGTH],
+	String:Style_MenuName[MAX_STYLE_NAME_LENGTH],
 	Handle:Style_ForwardActivated,
 	Handle:Style_ForwardDeactivated,
 	Style_Order,
@@ -42,7 +43,7 @@ new Handle:g_hFwd_OnRegisterReady;
 new Handle:g_hFwd_OnRegisterMultiReady;
 new Handle:g_hFwd_OnBitsChanged;
 new Handle:g_hFwd_OnBitsChangedPost;
-new Handle:g_hFwd_OnMenuBitChanged;
+new Handle:g_hFwd_OnMenuBitsChanged;
 
 new g_iStyleBits[MAXPLAYERS+1];
 new g_iStyleBitsRespawn[MAXPLAYERS+1];
@@ -57,7 +58,7 @@ public OnPluginStart()
 	g_hFwd_OnRegisterMultiReady = CreateGlobalForward("MovementStyles_OnRegisterMultiReady", ET_Ignore);
 	g_hFwd_OnBitsChanged = CreateGlobalForward("MovementStyles_OnBitsChanged", ET_Ignore, Param_Cell, Param_Cell, Param_CellByRef);
 	g_hFwd_OnBitsChangedPost = CreateGlobalForward("MovementStyles_OnBitsChanged_Post", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
-	g_hFwd_OnMenuBitChanged = CreateGlobalForward("MovementStyles_OnMenuBitChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_CellByRef);
+	g_hFwd_OnMenuBitsChanged = CreateGlobalForward("MovementStyles_OnMenuBitsChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_CellByRef);
 	
 	RegConsoleCmd("sm_style", OnStylesSelect, "Opens the styles selection menu.");
 	RegConsoleCmd("sm_styles", OnStylesSelect, "Opens the styles selection menu.");
@@ -316,7 +317,7 @@ public _MovementStyles_GetStyleNames(Handle:hPlugin, iNumParams)
 
 public _MovementStyles_RegisterStyle(Handle:hPlugin, iNumParams)
 {
-	if(iNumParams != 5)
+	if(iNumParams != 6)
 	{
 		decl String:szPlugin[PLATFORM_MAX_PATH];
 		GetPluginFilename(hPlugin, szPlugin, sizeof(szPlugin));
@@ -382,6 +383,9 @@ public _MovementStyles_RegisterStyle(Handle:hPlugin, iNumParams)
 		eStyle[Style_ForwardDeactivated] = INVALID_HANDLE;
 	}
 	
+	GetNativeString(6, szStyleName, sizeof(szStyleName));
+	strcopy(eStyle[Style_MenuName], MAX_STYLE_NAME_LENGTH, szStyleName);
+	
 	eStyle[Style_IsMultiStyle] = false;
 	PushArrayArray(g_aStyles, eStyle);
 	
@@ -411,7 +415,7 @@ public _MovementStyles_RegisterMultiStyle(Handle:hPlugin, iNumParams)
 		return false;
 	}
 	
-	if(!(g_iRegisteredBitMask & eStyle[Style_Bits]))
+	if(eStyle[Style_Bits] != (g_iRegisteredBitMask & eStyle[Style_Bits]))
 	{
 		decl String:szPlugin[PLATFORM_MAX_PATH];
 		GetPluginFilename(hPlugin, szPlugin, sizeof(szPlugin));
@@ -427,6 +431,7 @@ public _MovementStyles_RegisterMultiStyle(Handle:hPlugin, iNumParams)
 	decl String:szStyleName[MAX_STYLE_NAME_LENGTH];
 	GetNativeString(2, szStyleName, sizeof(szStyleName));
 	strcopy(eStyle[Style_Name], MAX_STYLE_NAME_LENGTH, szStyleName);
+	strcopy(eStyle[Style_MenuName], MAX_STYLE_NAME_LENGTH, "");
 	
 	eStyle[Style_ForwardActivated] = INVALID_HANDLE;
 	eStyle[Style_ForwardDeactivated] = INVALID_HANDLE;
@@ -505,7 +510,12 @@ DisplayMenu_StylesSelect(iClient, iStartItem=0)
 					bRespawn = false;
 			}
 			
-			Format(szBuffer, sizeof(szBuffer), "%s %s%s", eStyle[Style_Name], bOn ? "[ON]" : "[OFF]", bRespawn ? " *Respawn*" : "");
+			if(strlen(eStyle[Style_MenuName]))
+				strcopy(szBuffer, sizeof(szBuffer), eStyle[Style_MenuName]);
+			else
+				strcopy(szBuffer, sizeof(szBuffer), eStyle[Style_Name]);
+			
+			Format(szBuffer, sizeof(szBuffer), "%s %s%s", szBuffer, bOn ? "[ON]" : "[OFF]", bRespawn ? " *Respawn*" : "");
 		}
 		
 		IntToString(i, szInfo, sizeof(szInfo));
@@ -542,7 +552,7 @@ ToggleStyleBits(iClient, iBits, bool:bIsMultiStyle)
 	new bool:bToggleMultiOn = !(iBits == (g_iStyleBitsRespawn[iClient] & iBits));
 	
 	new result, iExtraBitsToForceOn;
-	Call_StartForward(g_hFwd_OnMenuBitChanged);
+	Call_StartForward(g_hFwd_OnMenuBitsChanged);
 	Call_PushCell(iClient);
 	Call_PushCell(iBits);
 	
