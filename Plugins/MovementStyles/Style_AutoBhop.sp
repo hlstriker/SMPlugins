@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: Auto Bhop";
-new const String:PLUGIN_VERSION[] = "2.2";
+new const String:PLUGIN_VERSION[] = "2.3";
 
 public Plugin:myinfo =
 {
@@ -64,12 +64,18 @@ public OnClientPutInServer(iClient)
 
 public OnActivated(iClient)
 {
+	if(IsFakeClient(iClient))
+		return;
+	
 	g_bActivated[iClient] = true;
 	SendConVarValue(iClient, cvar_autobunnyhopping, "1");
 }
 
 public OnDeactivated(iClient)
 {
+	if(IsFakeClient(iClient))
+		return;
+	
 	g_bActivated[iClient] = false;
 	SendConVarValue(iClient, cvar_autobunnyhopping, "0");
 }
