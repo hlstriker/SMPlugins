@@ -31,6 +31,7 @@ public SharedPlugin:__pl_movement_styles =
 #define STYLE_BIT_HALF_SIDEWAYS_BHOP_ONLY	(1<<8)
 #define STYLE_BIT_NO_LAND_CAP				(1<<9)
 #define STYLE_BIT_THIRDPERSON				(1<<10)
+#define STYLE_BIT_ROCKET_JUMP				(1<<11)
 
 
 functag public Callback_OnActivated(client);
@@ -42,6 +43,7 @@ forward MovementStyles_OnRegisterMultiReady();
 forward MovementStyles_OnBitsChanged(client, old_bits, &new_bits);
 forward MovementStyles_OnBitsChanged_Post(client, old_bits, new_bits);
 forward Action:MovementStyles_OnMenuBitsChanged(client, bits_being_toggled, bool:toggled_on_or_off, &extra_bits_to_force_on);
+forward MovementStyles_OnSpawnPostForwardsSent(client);
 
 
 native bool:MovementStyles_RegisterStyle(style_bit, const String:style_name[], Callback_OnActivated:activated_callback=INVALID_FUNCTION, Callback_OnDeactivated:deactivated_callback=INVALID_FUNCTION, order=0, const String:custom_menu_name[]="");

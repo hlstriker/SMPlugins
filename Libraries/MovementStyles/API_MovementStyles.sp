@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Movement Styles";
-new const String:PLUGIN_VERSION[] = "1.11";
+new const String:PLUGIN_VERSION[] = "1.12";
 
 public Plugin:myinfo =
 {
@@ -44,6 +44,7 @@ new Handle:g_hFwd_OnRegisterMultiReady;
 new Handle:g_hFwd_OnBitsChanged;
 new Handle:g_hFwd_OnBitsChangedPost;
 new Handle:g_hFwd_OnMenuBitsChanged;
+new Handle:g_hFwd_OnSpawnPostForwardsSent;
 
 new g_iStyleBits[MAXPLAYERS+1];
 new g_iStyleBitsRespawn[MAXPLAYERS+1];
@@ -59,6 +60,7 @@ public OnPluginStart()
 	g_hFwd_OnBitsChanged = CreateGlobalForward("MovementStyles_OnBitsChanged", ET_Ignore, Param_Cell, Param_Cell, Param_CellByRef);
 	g_hFwd_OnBitsChangedPost = CreateGlobalForward("MovementStyles_OnBitsChanged_Post", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
 	g_hFwd_OnMenuBitsChanged = CreateGlobalForward("MovementStyles_OnMenuBitsChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_CellByRef);
+	g_hFwd_OnSpawnPostForwardsSent = CreateGlobalForward("MovementStyles_OnSpawnPostForwardsSent", ET_Ignore, Param_Cell);
 	
 	RegConsoleCmd("sm_style", OnStylesSelect, "Opens the styles selection menu.");
 	RegConsoleCmd("sm_styles", OnStylesSelect, "Opens the styles selection menu.");
@@ -139,7 +141,10 @@ public OnSpawnPost(iClient)
 	Call_Finish(result);
 	
 	if(g_iStyleBits[iClient] == g_iStyleBitsRespawn[iClient])
+	{
+		Forward_OnSpawnPostForwardsSent(iClient);
 		return;
+	}
 	
 	// Verify since the respawn bits could have changed since it's passed by ref.
 	g_iStyleBitsRespawn[iClient] = VerifyBitMask(g_iStyleBitsRespawn[iClient]);
@@ -166,6 +171,15 @@ public OnSpawnPost(iClient)
 	}
 	
 	g_iStyleBits[iClient] = g_iStyleBitsRespawn[iClient];
+	Forward_OnSpawnPostForwardsSent(iClient);
+}
+
+Forward_OnSpawnPostForwardsSent(iClient)
+{
+	decl result;
+	Call_StartForward(g_hFwd_OnSpawnPostForwardsSent);
+	Call_PushCell(iClient);
+	Call_Finish(result);
 }
 
 Forward_ActivatedDeactivated(iClient, Handle:hForward)
