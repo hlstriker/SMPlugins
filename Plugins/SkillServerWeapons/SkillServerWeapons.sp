@@ -4,6 +4,7 @@
 #include <sdktools_entinput>
 #include <cstrike>
 #include "../../Libraries/ClientCookies/client_cookies"
+#include "../../Libraries/MovementStyles/movement_styles"
 #include <hls_color_chat>
 
 #undef REQUIRE_PLUGIN
@@ -14,7 +15,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Skill Server Weapons";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -485,6 +486,9 @@ TryGiveTeamDefaultPistol(iClient)
 public OnSpawnPost(iClient)
 {
 	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
+		return;
+	
+	if(MovementStyles_GetStyleBits(iClient) & STYLE_BIT_ROCKET_JUMP)
 		return;
 	
 	if(g_bLibLoaded_ModelSkinManager)
