@@ -112,7 +112,10 @@ public OnDeactivated(iClient)
 
 SetThirdPerson(iClient)
 {
-	ClientCommand(iClient, "thirdperson;cam_idealdist 150;cam_idealyaw 0");
+	if(IsPlayerAlive(iClient))
+		ClientCommand(iClient, "thirdperson;cam_idealdist 150;cam_idealyaw 0");
+	else
+		SetFirstPerson(iClient);
 }
 
 SetFirstPerson(iClient)
