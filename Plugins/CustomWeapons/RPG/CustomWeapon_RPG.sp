@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Custom Weapon: RPG";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -315,6 +315,7 @@ TryClientHooks(iClient)
 	SDKHook(iClient, SDKHook_PreThinkPost, OnPreThinkPost);
 	SDKHook(iClient, SDKHook_WeaponSwitchPost, OnWeaponSwitchPost);
 	SDKHook(iClient, SDKHook_SpawnPost, OnSpawnPost);
+	SDKHook(iClient, SDKHook_WeaponDropPost, OnWeaponDropPost);
 	
 	g_bHooked[iClient] = true;
 }
@@ -327,8 +328,30 @@ TryClientUnhooks(iClient)
 	SDKUnhook(iClient, SDKHook_PreThinkPost, OnPreThinkPost);
 	SDKUnhook(iClient, SDKHook_WeaponSwitchPost, OnWeaponSwitchPost);
 	SDKUnhook(iClient, SDKHook_SpawnPost, OnSpawnPost);
+	SDKUnhook(iClient, SDKHook_WeaponDropPost, OnWeaponDropPost);
 	
 	g_bHooked[iClient] = false;
+}
+
+public OnWeaponDropPost(iClient, iWeapon)
+{
+	if(!IsValidEntity(iWeapon))
+		return;
+	
+	RequestFrame(RequestFrame_UpdateDroppedModel, EntIndexToEntRef(iWeapon));
+}
+
+public RequestFrame_UpdateDroppedModel(any:iWeaponRef)
+{
+	new iWeapon = EntRefToEntIndex(iWeaponRef);
+	if(iWeapon < 1)
+		return;
+	
+	if(GetEntityFlags(iWeapon) & FL_KILLME)
+		return;
+	
+	SetEntProp(iWeapon, Prop_Send, "m_nModelIndex", g_iModelIndex_RocketLauncherWorld);
+	SetEntPropString(iWeapon, Prop_Data, "m_ModelName", MODEL_ROCKET_LAUNCHER_WORLD);
 }
 
 public OnClientConnected(iClient)
