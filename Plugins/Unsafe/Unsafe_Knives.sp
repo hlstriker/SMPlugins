@@ -19,9 +19,6 @@ public Plugin:myinfo =
 	url = "www.swoobles.com"
 }
 
-#define KNIFE_INDEX_T	1
-#define KNIFE_INDEX_CT	2
-
 new const String:g_szKnifeNames[][] =
 {
 	"Default",
@@ -310,36 +307,6 @@ PlayerHooks(iClient)
 	
 	g_iKnifeIndex[iClient] = GetRandomKnifeIndex();
 	SDKHook(iClient, SDKHook_WeaponEquip, OnWeaponEquip);
-	SDKHook(iClient, SDKHook_WeaponCanUse, OnWeaponCanUse);
-}
-
-public Action:OnWeaponCanUse(iClient, iWeapon)
-{
-	if(GetPlayerWeaponSlot(iClient, CS_SLOT_KNIFE) != -1)
-		return;
-	
-	// Allow custom knife pickups by turning the knife back into a team default.
-	static iItemDefIndex;
-	iItemDefIndex = GetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex");
-	
-	for(new i=3; i<sizeof(g_iItemDefinitionIndexes); i++)
-	{
-		if(iItemDefIndex != g_iItemDefinitionIndexes[i])
-			continue;
-		
-		new iTeam = GetClientTeam(iClient);
-		SetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex", g_iItemDefinitionIndexes[(iTeam == CS_TEAM_T) ? KNIFE_INDEX_T : KNIFE_INDEX_CT]);
-		SetEntProp(iWeapon, Prop_Send, "m_nFallbackPaintKit", 0);
-		
-		new iWorldModel = GetEntPropEnt(iWeapon, Prop_Send, "m_hWeaponWorldModel");
-		if(iWorldModel > 0)
-		{
-			SetEntProp(iWorldModel, Prop_Send, "m_nModelIndex", g_iModelIndex_WorldModels[(iTeam == CS_TEAM_T) ? KNIFE_INDEX_T : KNIFE_INDEX_CT]);
-			SetEntPropString(iWorldModel, Prop_Data, "m_ModelName", g_szWorldModels[(iTeam == CS_TEAM_T) ? KNIFE_INDEX_T : KNIFE_INDEX_CT]);
-		}
-		
-		break;
-	}
 }
 
 public OnWeaponEquip(iClient, iWeapon)
