@@ -287,6 +287,10 @@ public OnWeaponEquip(iClient, iWeapon)
 	if(!g_iKnifeIndex[iClient])
 		return;
 	
+	static bool:bSkipNextEquip[MAXPLAYERS+1];
+	if(bSkipNextEquip[iClient])
+		return;
+	
 	if(iWeapon < 1 || !IsValidEntity(iWeapon))
 		return;
 	
@@ -298,8 +302,12 @@ public OnWeaponEquip(iClient, iWeapon)
 	if(!StrEqual(szClassName, "weapon_knife"))
 		return;
 	
-	RemovePlayerItem(iClient, iWeapon); // Call this so we never see the original knife model.
+	RemovePlayerItem(iClient, iWeapon);
 	SetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex", g_iItemDefinitionIndexes[g_iKnifeIndex[iClient]]);
+	
+	bSkipNextEquip[iClient] = true;
+	EquipPlayerWeapon(iClient, iWeapon);
+	bSkipNextEquip[iClient] = false;
 }
 
 public ClientCookies_OnCookiesLoaded(iClient)
