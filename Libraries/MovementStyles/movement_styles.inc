@@ -54,3 +54,17 @@ native MovementStyles_GetStyleBits(client);
 native bool:MovementStyles_GetStyleNames(client, Handle:names_array);
 
 native MovementStyles_SetDefaultBits(bits); // Safe to call this in MovementStyles_OnRegisterReady().
+
+
+
+#if !defined REQUIRE_PLUGIN
+public __pl_movement_styles_SetNTVOptional()
+{
+	MarkNativeAsOptional("MovementStyles_RegisterStyle");
+	MarkNativeAsOptional("MovementStyles_RegisterMultiStyle");
+	MarkNativeAsOptional("MovementStyles_GetTotalStylesRegistered");
+	MarkNativeAsOptional("MovementStyles_GetStyleBits");
+	MarkNativeAsOptional("MovementStyles_GetStyleNames");
+	MarkNativeAsOptional("MovementStyles_SetDefaultBits");
+}
+#endif
