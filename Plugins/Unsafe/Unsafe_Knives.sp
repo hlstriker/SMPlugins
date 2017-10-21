@@ -1,13 +1,14 @@
 #include <sourcemod>
 #include <sdkhooks>
 #include <sdktools_functions>
+#include <cstrike>
 #include "../../Libraries/ClientCookies/client_cookies"
 #include <hls_color_chat>
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Knives";
-new const String:PLUGIN_VERSION[] = "1.22";
+new const String:PLUGIN_VERSION[] = "2.0";
 
 public Plugin:myinfo =
 {
@@ -17,6 +18,9 @@ public Plugin:myinfo =
 	version = PLUGIN_VERSION,
 	url = "www.swoobles.com"
 }
+
+#define KNIFE_INDEX_T	1
+#define KNIFE_INDEX_CT	2
 
 new const String:g_szKnifeNames[][] =
 {
@@ -72,6 +76,26 @@ new const String:g_szKnifeEnts[][] =
 	"weapon_knife_survival_bowie"
 };
 
+new const String:g_szWorldModels[][] =
+{
+	"",
+	"models/weapons/w_knife_default_t.mdl",
+	"models/weapons/w_knife_default_ct.mdl",
+	"models/weapons/w_knife_gg.mdl",
+	"models/weapons/w_knife_falchion_advanced.mdl",
+	"models/weapons/w_knife_bayonet.mdl",
+	"models/weapons/w_knife_m9_bay.mdl",
+	"models/weapons/w_knife_gut.mdl",
+	"models/weapons/w_knife_flip.mdl",
+	"models/weapons/w_knife_karam.mdl",
+	"models/weapons/w_knife_tactical.mdl",
+	"models/weapons/w_knife_butterfly.mdl",
+	"models/weapons/w_knife_push.mdl",
+	"models/weapons/w_knife_survival_bowie.mdl"
+};
+
+new g_iModelIndex_WorldModels[sizeof(g_szWorldModels)];
+
 new g_iKnifeIndex[MAXPLAYERS+1];
 new Handle:g_hForwardMenuBack[MAXPLAYERS+1];
 new Handle:g_hForwardMenuSelect[MAXPLAYERS+1];
@@ -106,6 +130,12 @@ public OnLibraryRemoved(const String:szName[])
 	{
 		g_bLibLoaded_SkillServerWeapons = false;
 	}
+}
+
+public OnMapStart()
+{
+	for(new i=1; i<sizeof(g_szWorldModels); i++)
+		g_iModelIndex_WorldModels[i] = PrecacheModel(g_szWorldModels[i], true);
 }
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
@@ -280,15 +310,41 @@ PlayerHooks(iClient)
 	
 	g_iKnifeIndex[iClient] = GetRandomKnifeIndex();
 	SDKHook(iClient, SDKHook_WeaponEquip, OnWeaponEquip);
+	SDKHook(iClient, SDKHook_WeaponCanUse, OnWeaponCanUse);
+}
+
+public Action:OnWeaponCanUse(iClient, iWeapon)
+{
+	if(GetPlayerWeaponSlot(iClient, CS_SLOT_KNIFE) != -1)
+		return;
+	
+	// Allow custom knife pickups by turning the knife back into a team default.
+	static iItemDefIndex;
+	iItemDefIndex = GetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex");
+	
+	for(new i=3; i<sizeof(g_iItemDefinitionIndexes); i++)
+	{
+		if(iItemDefIndex != g_iItemDefinitionIndexes[i])
+			continue;
+		
+		new iTeam = GetClientTeam(iClient);
+		SetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex", g_iItemDefinitionIndexes[(iTeam == CS_TEAM_T) ? KNIFE_INDEX_T : KNIFE_INDEX_CT]);
+		SetEntProp(iWeapon, Prop_Send, "m_nFallbackPaintKit", 0);
+		
+		new iWorldModel = GetEntPropEnt(iWeapon, Prop_Send, "m_hWeaponWorldModel");
+		if(iWorldModel > 0)
+		{
+			SetEntProp(iWorldModel, Prop_Send, "m_nModelIndex", g_iModelIndex_WorldModels[(iTeam == CS_TEAM_T) ? KNIFE_INDEX_T : KNIFE_INDEX_CT]);
+			SetEntPropString(iWorldModel, Prop_Data, "m_ModelName", g_szWorldModels[(iTeam == CS_TEAM_T) ? KNIFE_INDEX_T : KNIFE_INDEX_CT]);
+		}
+		
+		break;
+	}
 }
 
 public OnWeaponEquip(iClient, iWeapon)
 {
 	if(!g_iKnifeIndex[iClient])
-		return;
-	
-	static bool:bSkipNextEquip[MAXPLAYERS+1];
-	if(bSkipNextEquip[iClient])
 		return;
 	
 	if(iWeapon < 1 || !IsValidEntity(iWeapon))
@@ -298,16 +354,21 @@ public OnWeaponEquip(iClient, iWeapon)
 	if(!GetEntityClassname(iWeapon, szClassName, sizeof(szClassName)))
 		return;
 	
-	szClassName[12] = '\x00';
-	if(!StrEqual(szClassName, "weapon_knife"))
+	if(strlen(szClassName) < 12)
 		return;
 	
-	RemovePlayerItem(iClient, iWeapon);
-	SetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex", g_iItemDefinitionIndexes[g_iKnifeIndex[iClient]]);
+	szClassName[12] = '\x00';
+	if(!StrEqual(szClassName[7], "knife") && !StrEqual(szClassName[7], "bayon"))
+		return;
 	
-	bSkipNextEquip[iClient] = true;
-	EquipPlayerWeapon(iClient, iWeapon);
-	bSkipNextEquip[iClient] = false;
+	new iWorldModel = GetEntPropEnt(iWeapon, Prop_Send, "m_hWeaponWorldModel");
+	if(iWorldModel > 0)
+	{
+		SetEntProp(iWorldModel, Prop_Send, "m_nModelIndex", g_iModelIndex_WorldModels[g_iKnifeIndex[iClient]]);
+		SetEntPropString(iWorldModel, Prop_Data, "m_ModelName", g_szWorldModels[g_iKnifeIndex[iClient]]);
+	}
+	
+	SetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex", g_iItemDefinitionIndexes[g_iKnifeIndex[iClient]]);
 }
 
 public ClientCookies_OnCookiesLoaded(iClient)
