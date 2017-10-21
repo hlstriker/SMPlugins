@@ -4,18 +4,19 @@
 #include <sdktools_entinput>
 #include <cstrike>
 #include "../../Libraries/ClientCookies/client_cookies"
-#include "../../Libraries/MovementStyles/movement_styles"
 #include <hls_color_chat>
 
 #undef REQUIRE_PLUGIN
 #include "../../Libraries/ModelSkinManager/model_skin_manager"
 #include "../../Libraries/MapCookies/map_cookies"
+#include "../../Libraries/MovementStyles/movement_styles"
+#include "../../Plugins/Unsafe/unsafe_knives"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Skill Server Weapons";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -79,6 +80,8 @@ new bool:g_bShouldHideWeapons[MAXPLAYERS+1];
 
 new bool:g_bLibLoaded_ModelSkinManager;
 new bool:g_bLibLoaded_MapCookies;
+new bool:g_bLibLoaded_MovementStyles;
+new bool:g_bLibLoaded_UnsafeKnives;
 
 
 public OnPluginStart()
@@ -104,10 +107,18 @@ public OnPluginStart()
 	RegConsoleCmd("sm_ws", OnWeaponSelect, "Opens the weapon selection menu.");
 }
 
+public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
+{
+	RegPluginLibrary("skill_server_weapons");
+	return APLRes_Success;
+}
+
 public OnAllPluginsLoaded()
 {
 	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
 	g_bLibLoaded_MapCookies = LibraryExists("map_cookies");
+	g_bLibLoaded_MovementStyles = LibraryExists("movement_styles");
+	g_bLibLoaded_UnsafeKnives = LibraryExists("unsafe_knives");
 }
 
 public OnLibraryAdded(const String:szName[])
@@ -120,6 +131,14 @@ public OnLibraryAdded(const String:szName[])
 	{
 		g_bLibLoaded_MapCookies = true;
 	}
+	else if(StrEqual(szName, "movement_styles"))
+	{
+		g_bLibLoaded_MovementStyles = true;
+	}
+	else if(StrEqual(szName, "unsafe_knives"))
+	{
+		g_bLibLoaded_UnsafeKnives = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
@@ -131,6 +150,14 @@ public OnLibraryRemoved(const String:szName[])
 	else if(StrEqual(szName, "map_cookies"))
 	{
 		g_bLibLoaded_MapCookies = false;
+	}
+	else if(StrEqual(szName, "movement_styles"))
+	{
+		g_bLibLoaded_MovementStyles = false;
+	}
+	else if(StrEqual(szName, "unsafe_knives"))
+	{
+		g_bLibLoaded_UnsafeKnives = false;
 	}
 }
 
@@ -227,6 +254,14 @@ public MenuHandle_CategorySelect(Handle:hMenu, MenuAction:action, iParam1, iPara
 		return;
 	}
 	
+	if(g_bLibLoaded_UnsafeKnives && iCategory == _:CATEGORY_KNIFE)
+	{
+		#if defined _unsafe_knives_included
+		Knives_OpenKnifeMenu(iParam1, OnUnsafeKnivesMenuSelect, OnUnsafeKnivesMenuBack);
+		return;
+		#endif
+	}
+	
 	DisplayMenu_WeaponSelect(iParam1, iCategory);
 }
 
@@ -314,21 +349,84 @@ public MenuHandle_WeaponSelect(Handle:hMenu, MenuAction:action, iParam1, iParam2
 	if(iIndex == USE_DEFAULT_WEAPON)
 	{
 		CPrintToChat(iParam1, "{red}The next time you respawn you will use your default.");
+		DisplayMenu_CategorySelect(iParam1);
 		return;
 	}
 	
+	if(!IsPlayerAlive(iParam1))
+	{
+		PrintSelectedWeaponOnRespawn(iParam1);
+		DisplayMenu_CategorySelect(iParam1);
+		return;
+	}
+	
+	if(!CanGiveMidRoundWeapon(iParam1))
+	{
+		DisplayMenu_CategorySelect(iParam1);
+		return;
+	}
+	
+	GivePlayerWeapon(iParam1, iIndex, true);
+	DisplayMenu_CategorySelect(iParam1);
+}
+
+bool:CanGiveMidRoundWeapon(iClient)
+{
 	if(g_bLibLoaded_MapCookies)
 	{
 		#if defined _map_cookies_included
 		if(MapCookies_HasCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU) && MapCookies_GetCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU))
 		{
-			CPrintToChat(iParam1, "{red}You will be given the selected weapon on respawn.");
-			return;
+			PrintSelectedWeaponOnRespawn(iClient);
+			return false;
 		}
 		#endif
 	}
 	
-	GivePlayerWeapon(iParam1, iIndex, true);
+	return true;
+}
+
+PrintSelectedWeaponOnRespawn(iClient)
+{
+	CPrintToChat(iClient, "{red}You will be given the selected weapon on respawn.");
+}
+
+public OnUnsafeKnivesMenuBack(iClient)
+{
+	DisplayMenu_CategorySelect(iClient);
+}
+
+public OnUnsafeKnivesMenuSelect(iClient)
+{
+	g_iKnifeIndex[iClient] = USE_DEFAULT_WEAPON;
+	DisplayMenu_CategorySelect(iClient);
+	
+	if(!IsPlayerAlive(iClient))
+	{
+		PrintSelectedWeaponOnRespawn(iClient);
+		return;
+	}
+	
+	if(!g_bLibLoaded_UnsafeKnives)
+		return;
+	
+	if(!CanGiveMidRoundWeapon(iClient))
+		return;
+	
+	decl String:szKnifeClassName[32];
+	
+	#if defined _unsafe_knives_included
+	if(!Knives_GetUsedKnifeClassname(iClient, szKnifeClassName, sizeof(szKnifeClassName)))
+	{
+		CPrintToChat(iClient, "{red}The next time you respawn you will use your default.");
+		return;
+	}
+	#else
+	return;
+	#endif
+	
+	StripClientWeaponsOfCategoryType(iClient, _:CATEGORY_KNIFE);
+	GivePlayerWeaponByName(iClient, szKnifeClassName);
 }
 
 GivePlayerWeapon(iClient, iIndex, bool:bStripWeaponsOfSameCategory)
@@ -341,15 +439,21 @@ GivePlayerWeapon(iClient, iIndex, bool:bStripWeaponsOfSameCategory)
 		StripClientWeaponsOfCategoryType(iClient, _:eWeaponData[WEAPON_CATEGORY]);
 	
 	// Give the weapon.
+	new iWeapon = GivePlayerWeaponByName(iClient, eWeaponData[WEAPON_ENT_NAME], eWeaponData[WEAPON_TEAM]);
+	SDKHook(iWeapon, SDKHook_ReloadPost, OnWeaponReload);
+	
+	return iWeapon;
+}
+
+GivePlayerWeaponByName(iClient, const String:szEntName[], iTeam=WEAPON_TEAM_ANY)
+{
 	new iClientTeam = GetClientTeam(iClient);
 	
-	if(eWeaponData[WEAPON_TEAM] != WEAPON_TEAM_ANY)
-		SetEntProp(iClient, Prop_Send, "m_iTeamNum", eWeaponData[WEAPON_TEAM]);
+	if(iTeam != WEAPON_TEAM_ANY)
+		SetEntProp(iClient, Prop_Send, "m_iTeamNum", iTeam);
 	
-	new iWeapon = GivePlayerItemCustom(iClient, eWeaponData[WEAPON_ENT_NAME]);
+	new iWeapon = GivePlayerItemCustom(iClient, szEntName);
 	SetEntProp(iClient, Prop_Send, "m_iTeamNum", iClientTeam);
-	
-	SDKHook(iWeapon, SDKHook_ReloadPost, OnWeaponReload);
 	
 	return iWeapon;
 }
@@ -488,8 +592,13 @@ public OnSpawnPost(iClient)
 	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
 		return;
 	
-	if(MovementStyles_GetStyleBits(iClient) & STYLE_BIT_ROCKET_JUMP)
-		return;
+	if(g_bLibLoaded_MovementStyles)
+	{
+		#if defined _movement_styles_included
+		if(MovementStyles_GetStyleBits(iClient) & STYLE_BIT_ROCKET_JUMP)
+			return;
+		#endif
+	}
 	
 	if(g_bLibLoaded_ModelSkinManager)
 	{
