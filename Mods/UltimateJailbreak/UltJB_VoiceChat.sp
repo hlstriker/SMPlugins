@@ -5,11 +5,12 @@
 #include <sdktools_voice>
 #include <hls_color_chat>
 #include "Includes/ultjb_last_request"
+#include "../../Libraries/TimedPunishments/timed_punishments"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Voice Chat";
-new const String:PLUGIN_VERSION[] = "1.11";
+new const String:PLUGIN_VERSION[] = "1.12";
 
 public Plugin:myinfo =
 {
@@ -249,6 +250,11 @@ public BaseComm_OnClientMute(iClient, bool:bMuteState)
 UnmutePlayer(iClient)
 {
 	if(g_bIsClientMutedBySourceMod[iClient])
+		return;
+	
+	new iSecondsLeft = TimedPunishment_GetSecondsLeft(iClient, TP_TYPE_MUTE);
+	
+	if(iSecondsLeft >= 0)
 		return;
 	
 	BaseComm_SetClientMute(iClient, false);
