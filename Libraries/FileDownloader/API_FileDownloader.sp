@@ -2,9 +2,10 @@
 #include <socket>
 
 #pragma semicolon 1
+#pragma dynamic 9000000
 
 new const String:PLUGIN_NAME[] = "API: File Downloader";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -32,7 +33,10 @@ public Plugin:myinfo =
 #define PACK_LOCATION_FAILED_FORWARD	4
 
 new const String:KEY_REQUEST[]		= "req";
+new const String:KEY_REQUEST_LEN[]	= "reqlen";
 new const String:KEY_SAVE_PATH[]	= "save";
+
+new const String:POST_BOUNDARY[]	= "--SwooblesFormBoundaryr55pgTcYXsURugXEXwsY4xMcVXqJ4cLVvWKTL76w";
 
 enum DownloadEndCode
 {
@@ -58,7 +62,7 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 
 public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 {
-	if(iNumParams != 4)
+	if(iNumParams < 4 || iNumParams > 6)
 	{
 		LogError("Invalid number of parameters.");
 		return;
@@ -101,7 +105,8 @@ public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 	}
 	
 	new Handle:hPackStrings = CreateTrie();
-	SetTrieString(hPackStrings, KEY_REQUEST, "");
+	SetTrieArray(hPackStrings, KEY_REQUEST, {0}, 0);
+	SetTrieValue(hPackStrings, KEY_REQUEST_LEN, 1);
 	SetTrieString(hPackStrings, KEY_SAVE_PATH, szSavePath);
 	
 	new Handle:hPack = CreateDataPack();
@@ -119,11 +124,69 @@ public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 		return;
 	}
 	
-	decl String:szHostName[64], String:szLocation[128], String:szFileName[64], String:szRequest[MAX_URL_LENGTH];
+	decl String:szHostName[64], String:szLocation[128], String:szFileName[64];
 	ParseURL(szURL, szHostName, sizeof(szHostName), szLocation, sizeof(szLocation), szFileName, sizeof(szFileName));
-	FormatEx(szRequest, sizeof(szRequest), "GET %s/%s HTTP/1.0\r\nHost: %s\r\nConnection: close\r\nPragma: no-cache\r\nCache-Control: no-cache\r\n\r\n", szLocation, szFileName, szHostName);
 	
-	SetTrieString(hPackStrings, KEY_REQUEST, szRequest);
+	new bool:bSetRequest;
+	if(iNumParams == 6)
+	{
+		new iPostFileDataLen = GetNativeCell(6);
+		if(iPostFileDataLen > 0)
+		{
+			decl iPostFileData[iPostFileDataLen];
+			GetNativeArray(5, iPostFileData, iPostFileDataLen);
+			
+			new iRequestLen = iPostFileDataLen + MAX_URL_LENGTH + (sizeof(POST_BOUNDARY) * 3);
+			decl String:szRequest[iRequestLen];
+			
+			new iPayLoadStartSize = 148 + sizeof(POST_BOUNDARY);
+			decl String:szPayloadStart[iPayLoadStartSize];
+			new iPayloadStartLen = FormatEx(szPayloadStart, iPayLoadStartSize, "\
+				--%s\r\n\
+				Content-Disposition: form-data; name=\"file\"; filename=\"file_from_dl_api\"\r\n\
+				Content-Type: application/octet-stream\r\n\
+				\r\n", POST_BOUNDARY);
+			
+			new iPayloadEndSize = 16 + sizeof(POST_BOUNDARY);
+			decl String:szPayloadEnd[iPayloadEndSize];
+			new iPayloadEndLen = FormatEx(szPayloadEnd, iPayloadEndSize, "\
+				\r\n\
+				--%s--", POST_BOUNDARY);
+			
+			new iLen = FormatEx(szRequest, iRequestLen, "\
+				POST %s/%s HTTP/1.0\r\n\
+				Host: %s\r\n\
+				Connection: close\r\n\
+				Pragma: no-cache\r\n\
+				Cache-Control: no-cache\r\n\
+				Content-Length: %i\r\n\
+				Content-Type: multipart/form-data; boundary=%s\r\n\
+				\r\n",
+				szLocation, szFileName, szHostName, iPayloadStartLen + iPostFileDataLen + iPayloadEndLen, POST_BOUNDARY);
+			
+			iLen += FormatEx(szRequest[iLen], iRequestLen-iLen, szPayloadStart);
+			
+			for(new i=0; i<iPostFileDataLen; i++)
+			{
+				szRequest[iLen] = iPostFileData[i];
+				iLen++;
+			}
+			
+			iLen += FormatEx(szRequest[iLen], iRequestLen-iLen, szPayloadEnd);
+			
+			SetTrieArray(hPackStrings, KEY_REQUEST, szRequest, iLen);
+			SetTrieValue(hPackStrings, KEY_REQUEST_LEN, iLen);
+			bSetRequest = true;
+		}
+	}
+	
+	if(!bSetRequest)
+	{
+		decl String:szRequest[MAX_URL_LENGTH];
+		new iLen = FormatEx(szRequest, sizeof(szRequest), "GET %s/%s HTTP/1.0\r\nHost: %s\r\nConnection: close\r\nPragma: no-cache\r\nCache-Control: no-cache\r\n\r\n", szLocation, szFileName, szHostName);
+		SetTrieArray(hPackStrings, KEY_REQUEST, szRequest, iLen);
+		SetTrieValue(hPackStrings, KEY_REQUEST_LEN, MAX_URL_LENGTH);
+	}
 	
 	new Handle:hSocket = SocketCreate(SOCKET_TCP, OnSocketError);
 	SocketSetArg(hSocket, hPack);
@@ -161,10 +224,13 @@ public OnSocketConnected(Handle:hSocket, any:hPack)
 	SetPackGhettoPosition(hPack, PACK_LOCATION_PACK_STRINGS);
 	new Handle:hPackStrings = Handle:ReadPackCell(hPack);
 	
-	decl String:szRequest[MAX_URL_LENGTH];
-	GetTrieString(hPackStrings, KEY_REQUEST, szRequest, sizeof(szRequest));
+	decl iRequestLen;
+	GetTrieValue(hPackStrings, KEY_REQUEST_LEN, iRequestLen);
 	
-	SocketSend(hSocket, szRequest);
+	decl String:szRequest[iRequestLen];
+	GetTrieArray(hPackStrings, KEY_REQUEST, szRequest, iRequestLen);
+	
+	SocketSend(hSocket, szRequest, iRequestLen);
 }
 
 SetPackGhettoPosition(Handle:hPack, iPosition)
