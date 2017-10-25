@@ -2,10 +2,10 @@
 #include <socket>
 
 #pragma semicolon 1
-#pragma dynamic 9000000
+#pragma dynamic 18000000
 
 new const String:PLUGIN_NAME[] = "API: File Downloader";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
@@ -198,8 +198,12 @@ CreateDirectoryStructure(const String:szSavePath[])
 {
 	new iStrLen;
 	decl String:szExplode[24][128], String:szTempPath[PLATFORM_MAX_PATH];
-	new iNumExplodes = ExplodeString(szSavePath, "/", szExplode, sizeof(szExplode), sizeof(szExplode[]));
-	for(new i=0; i<(iNumExplodes - 1); i++)
+	
+	strcopy(szTempPath, sizeof(szTempPath), szSavePath);
+	ReplaceString(szTempPath, sizeof(szTempPath), "\\", "/");
+	
+	new iNumStrings = ExplodeString(szTempPath, "/", szExplode, sizeof(szExplode), sizeof(szExplode[]));
+	for(new i=0; i<(iNumStrings - 1); i++)
 	{
 		if(!strlen(szExplode[i]))
 			continue;
@@ -215,7 +219,7 @@ CreateDirectoryStructure(const String:szSavePath[])
 		if(DirExists(szTempPath))
 			continue;
 		
-		CreateDirectory(szTempPath, 509);
+		CreateDirectory(szTempPath, FPERM_U_READ | FPERM_U_WRITE | FPERM_U_EXEC | FPERM_G_READ | FPERM_G_EXEC | FPERM_O_READ | FPERM_O_EXEC);
 	}
 }
 
