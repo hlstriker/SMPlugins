@@ -5,7 +5,7 @@
 #pragma dynamic 18000000
 
 new const String:PLUGIN_NAME[] = "API: File Downloader";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -31,6 +31,7 @@ public Plugin:myinfo =
 #define PACK_LOCATION_PACK_STRINGS		2
 #define PACK_LOCATION_SUCCESS_FORWARD	3
 #define PACK_LOCATION_FAILED_FORWARD	4
+#define PACK_LOCATION_PASSED_DATA		5
 
 new const String:KEY_REQUEST[]		= "req";
 new const String:KEY_REQUEST_LEN[]	= "reqlen";
@@ -62,7 +63,7 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 
 public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 {
-	if(iNumParams < 4 || iNumParams > 6)
+	if(iNumParams < 4 || iNumParams > 7)
 	{
 		LogError("Invalid number of parameters.");
 		return;
@@ -92,7 +93,7 @@ public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 	new Function:callback = GetNativeCell(3);
 	if(callback != INVALID_FUNCTION)
 	{
-		hSuccessForward = CreateForward(ET_Ignore, Param_String);
+		hSuccessForward = CreateForward(ET_Ignore, Param_String, Param_Any);
 		AddToForward(hSuccessForward, hPlugin, callback);
 	}
 	
@@ -100,7 +101,7 @@ public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 	callback = GetNativeCell(4);
 	if(callback != INVALID_FUNCTION)
 	{
-		hFailedForward = CreateForward(ET_Ignore, Param_String);
+		hFailedForward = CreateForward(ET_Ignore, Param_String, Param_Any);
 		AddToForward(hFailedForward, hPlugin, callback);
 	}
 	
@@ -116,6 +117,11 @@ public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 	WritePackCell(hPack, _:hSuccessForward);
 	WritePackCell(hPack, _:hFailedForward);
 	
+	if(iNumParams >= 5)
+		WritePackCell(hPack, GetNativeCell(5));
+	else
+		WritePackCell(hPack, 0);
+	
 	// Check the file handle.
 	if(hFile == INVALID_HANDLE)
 	{
@@ -128,13 +134,13 @@ public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 	ParseURL(szURL, szHostName, sizeof(szHostName), szLocation, sizeof(szLocation), szFileName, sizeof(szFileName));
 	
 	new bool:bSetRequest;
-	if(iNumParams == 6)
+	if(iNumParams >= 7)
 	{
-		new iPostFileDataLen = GetNativeCell(6);
+		new iPostFileDataLen = GetNativeCell(7);
 		if(iPostFileDataLen > 0)
 		{
 			decl iPostFileData[iPostFileDataLen];
-			GetNativeArray(5, iPostFileData, iPostFileDataLen);
+			GetNativeArray(6, iPostFileData, iPostFileDataLen);
 			
 			new iRequestLen = iPostFileDataLen + MAX_URL_LENGTH + (sizeof(POST_BOUNDARY) * 3);
 			decl String:szRequest[iRequestLen];
@@ -311,6 +317,9 @@ DownloadEnded(DownloadEndCode:code, Handle:hSocket=INVALID_HANDLE, Handle:hPack)
 	else
 		szSavePath[0] = '\x0';
 	
+	SetPackGhettoPosition(hPack, PACK_LOCATION_PASSED_DATA);
+	new any:data = ReadPackCell(hPack);
+	
 	switch(code)
 	{
 		case DL_END_SUCCESS:
@@ -321,6 +330,7 @@ DownloadEnded(DownloadEndCode:code, Handle:hSocket=INVALID_HANDLE, Handle:hPack)
 			{
 				Call_StartForward(hHandle);
 				Call_PushString(szSavePath);
+				Call_PushCell(data);
 				if(Call_Finish() != SP_ERROR_NONE)
 					LogError("Error calling success forward for [%s].", szSavePath);
 			}
@@ -336,6 +346,7 @@ DownloadEnded(DownloadEndCode:code, Handle:hSocket=INVALID_HANDLE, Handle:hPack)
 			{
 				Call_StartForward(hHandle);
 				Call_PushString(szSavePath);
+				Call_PushCell(data);
 				if(Call_Finish() != SP_ERROR_NONE)
 					LogError("Error calling failed forward for [%s].", szSavePath);
 			}
