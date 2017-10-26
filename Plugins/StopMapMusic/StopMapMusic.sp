@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Stop Map Music";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -21,7 +21,11 @@ public Plugin:myinfo =
 	url = "www.swoobles.com"
 }
 
-#define ZERO_VOLUME 2
+// NOTE: If the volume is set to 0 (and 1?) it won't allow you to turn the volume back up for currently playing sounds.
+// Setting the volume to 2 is best if you want to solve that problem.
+//#define ZERO_VOLUME 2
+#define ZERO_VOLUME 0
+
 #define SPAWNFLAG_PLAY_EVERYWHERE	1
 new Handle:g_aSoundsPlayedThisRound;
 
@@ -230,7 +234,6 @@ public MenuHandle_MusicVolume(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 	CPrintToChat(iParam1, "{green}[{lightred}SM{green}] {olive}Set map music volume to {lightred}%i%c{olive}.", iVolume, '%');
 	DisplayMenu_MusicVolume(iParam1);
 	
-	// Don't actually set the volume to 0 or it won't even start the sound.
 	if(!iVolume)
 		iVolume = ZERO_VOLUME;
 	
