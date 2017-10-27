@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS plugin_weapon_skins
+(
+	user_id		INT UNSIGNED		NOT NULL,
+	item_def	MEDIUMINT UNSIGNED	NOT NULL,
+	paint		MEDIUMINT UNSIGNED	NOT NULL,
+	PRIMARY KEY ( user_id, item_def )
+) ENGINE = INNODB;
