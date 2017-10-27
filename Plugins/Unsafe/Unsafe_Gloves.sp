@@ -44,6 +44,7 @@ public OnPluginStart()
 {
 	CreateConVar("gloves_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	
+	RegConsoleCmd("sm_glove", OnGlovesSelect, "Opens the glove selection menu.");
 	RegConsoleCmd("sm_gloves", OnGlovesSelect, "Opens the glove selection menu.");
 	
 	BuildArray_Types();
