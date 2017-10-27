@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Skill Server Weapons";
-new const String:PLUGIN_VERSION[] = "1.5";
+new const String:PLUGIN_VERSION[] = "1.6";
 
 public Plugin:myinfo =
 {
@@ -82,6 +82,7 @@ new bool:g_bLibLoaded_ModelSkinManager;
 new bool:g_bLibLoaded_MapCookies;
 new bool:g_bLibLoaded_MovementStyles;
 new bool:g_bLibLoaded_UnsafeKnives;
+new bool:g_bLibLoaded_UnsafeWeaponSkins;
 
 
 public OnPluginStart()
@@ -104,7 +105,7 @@ public OnPluginStart()
 	RegConsoleCmd("sm_weapons", OnWeaponSelect, "Opens the weapon selection menu.");
 	RegConsoleCmd("sm_knife", OnWeaponSelect, "Opens the weapon selection menu.");
 	RegConsoleCmd("sm_knives", OnWeaponSelect, "Opens the weapon selection menu.");
-	RegConsoleCmd("sm_ws", OnWeaponSelect, "Opens the weapon selection menu.");
+	RegConsoleCmd("sm_ws", OnWeaponSelect_WeaponSkins, "Opens the weapon selection menu.");
 }
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
@@ -119,6 +120,7 @@ public OnAllPluginsLoaded()
 	g_bLibLoaded_MapCookies = LibraryExists("map_cookies");
 	g_bLibLoaded_MovementStyles = LibraryExists("movement_styles");
 	g_bLibLoaded_UnsafeKnives = LibraryExists("unsafe_knives");
+	g_bLibLoaded_UnsafeWeaponSkins = LibraryExists("unsafe_weapon_skins");
 }
 
 public OnLibraryAdded(const String:szName[])
@@ -138,6 +140,10 @@ public OnLibraryAdded(const String:szName[])
 	else if(StrEqual(szName, "unsafe_knives"))
 	{
 		g_bLibLoaded_UnsafeKnives = true;
+	}
+	else if(StrEqual(szName, "unsafe_weapon_skins"))
+	{
+		g_bLibLoaded_UnsafeWeaponSkins = true;
 	}
 }
 
@@ -159,10 +165,26 @@ public OnLibraryRemoved(const String:szName[])
 	{
 		g_bLibLoaded_UnsafeKnives = false;
 	}
+	else if(StrEqual(szName, "unsafe_weapon_skins"))
+	{
+		g_bLibLoaded_UnsafeWeaponSkins = false;
+	}
 }
 
 public Action:OnWeaponSelect(iClient, iArgNum)
 {
+	if(!iClient)
+		return Plugin_Handled;
+	
+	DisplayMenu_CategorySelect(iClient);
+	return Plugin_Handled;
+}
+
+public Action:OnWeaponSelect_WeaponSkins(iClient, iArgNum)
+{
+	if(g_bLibLoaded_UnsafeWeaponSkins)
+		return Plugin_Handled;
+	
 	if(!iClient)
 		return Plugin_Handled;
 	
@@ -202,8 +224,8 @@ DisplayMenu_CategorySelect(iClient)
 		#if defined _map_cookies_included
 		if(CheckCommandAccess(iClient, "sm_zonemanager", ADMFLAG_ROOT))
 		{
-			decl String:szDisplay[32];
-			FormatEx(szDisplay, sizeof(szDisplay), "%sDisable weapons mid-map", (MapCookies_HasCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU) && MapCookies_GetCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU)) ? "[\xE2\x9C\x93] " : "");
+			decl String:szDisplay[48];
+			FormatEx(szDisplay, sizeof(szDisplay), "%sADMIN: Disable weapons mid-map", (MapCookies_HasCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU) && MapCookies_GetCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU)) ? "[\xE2\x9C\x93] " : "");
 			
 			AddMenuItem(hMenu, "", "", ITEMDRAW_SPACER);
 			
