@@ -774,13 +774,13 @@ StartNextDownloadInQueue()
 	FileDownloader_DownloadFile(szURL, szFilePath, OnDownloadSuccess, OnDownloadFailed);
 }
 
-public OnDownloadSuccess(const String:szFilePath[])
+public OnDownloadSuccess(const String:szFilePath[], any:data)
 {
 	LogMessage("Successfully downloaded: %s", szFilePath);
 	RemoveFromDownloadQueue(szFilePath);
 }
 
-public OnDownloadFailed(const String:szFilePath[])
+public OnDownloadFailed(const String:szFilePath[], any:data)
 {
 	LogError("Failed to downloaded: %s", szFilePath);
 	RemoveFromDownloadQueue(szFilePath);

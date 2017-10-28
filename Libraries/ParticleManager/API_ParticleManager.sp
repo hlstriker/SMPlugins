@@ -173,25 +173,25 @@ bool:IsParticleFileDownloading()
 	#endif
 }
 
-public OnDownloadSuccess(const String:szFilePath[])
+public OnDownloadSuccess(const String:szFilePath[], any:data)
 {
 	LogMessage("Successfully downloaded: %s", szFilePath);
 	g_bIsDownloadingParticleFile = false;
 }
 
-public OnDownloadFailed(const String:szFilePath[])
+public OnDownloadFailed(const String:szFilePath[], any:data)
 {
 	LogError("Failed to downloaded: %s", szFilePath);
 	g_bIsDownloadingParticleFile = false;
 }
 
-public OnDownloadSuccess_Bz2(const String:szFilePath[])
+public OnDownloadSuccess_Bz2(const String:szFilePath[], any:data)
 {
 	LogMessage("Successfully downloaded: %s", szFilePath);
 	g_bIsDownloadingParticleFile_Bz2 = false;
 }
 
-public OnDownloadFailed_Bz2(const String:szFilePath[])
+public OnDownloadFailed_Bz2(const String:szFilePath[], any:data)
 {
 	LogError("Failed to downloaded: %s", szFilePath);
 	g_bIsDownloadingParticleFile_Bz2 = false;
