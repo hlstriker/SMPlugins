@@ -13,7 +13,7 @@
 #pragma dynamic 9000000
 
 new const String:PLUGIN_NAME[] = "Weapon Skins";
-new const String:PLUGIN_VERSION[] = "0.1";
+new const String:PLUGIN_VERSION[] = "0.3";
 
 public Plugin:myinfo =
 {
@@ -109,11 +109,18 @@ new Handle:cvar_encoding_url;
 new String:g_szDatabaseConfigName[64];
 new Handle:cvar_database_servers_configname;
 
+new Handle:g_hTimer_InitPlugin;
+
 
 public OnPluginStart()
 {
 	CreateConVar("weapon_skins_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	
+	/*
+	* 	ws_encoding_url notes:
+	* 	- The total length of the URL must be 112 characters or less.
+	* 	- Cannot be a URL with a redirect or a page behind a service like Cloudflare.
+	*/
 	cvar_encoding_url = CreateConVar("ws_encoding_url", "", "A URL that points to the web script that changes the language files encoding.");
 	
 	g_aPaintKits = CreateArray(PaintKit);
@@ -153,6 +160,14 @@ public OnConfigsExecuted()
 	if(g_bHasInitializedPlugin)
 		return;
 	
+	if(g_hTimer_InitPlugin != INVALID_HANDLE)
+		KillTimer(g_hTimer_InitPlugin);
+	
+	g_hTimer_InitPlugin = CreateTimer(5.0, Timer_InitPlugin);
+}
+
+public Action:Timer_InitPlugin(Handle:hTimer)
+{
 	g_bHasInitializedPlugin = true;
 	
 	g_iDefaultLanguageNum = GetServerLanguage();
@@ -424,14 +439,15 @@ public OnParseLanguageFile(any:data)
 		PrintToServer("You may need to increase \"SlowScriptTimeout\" in SourceMod's core.cfg");
 		
 		if(LoadData_LanguageFileParse(iLangNumber, eParse[LANG_FILE]))
-			SaveLanguageFileCache(iLangNumber);
+		{
+			if(SaveLanguageFileCache(iLangNumber))
+				SetLanguageVersion(eParse[LANG_PARSE_CODE]);
+		}
 		
 		PrintToServer("\"%s\" finished.\n", eParse[LANG_FILE]);
 		
 		CPrintToChatAll("{lightred}The server might lag while it updates some files.");
 	}
-	
-	SetLanguageVersion(eParse[LANG_PARSE_CODE]);
 	
 	if(GetArraySize(g_aLanguageParseQueue))
 		RequestFrame(OnParseLanguageFile);
