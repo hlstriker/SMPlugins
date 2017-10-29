@@ -1,3 +1,9 @@
+/*
+* 	Things to note:
+* 	- The http requests don't support redirects or services such as Cloudflare.
+* 	- If you are having problems with a request you may need to lower the MAX_BYTES_PER_PACKET value.
+*/
+
 #include <sourcemod>
 #include <socket>
 
@@ -5,7 +11,7 @@
 #pragma dynamic 18000000
 
 new const String:PLUGIN_NAME[] = "API: File Downloader";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -16,7 +22,12 @@ public Plugin:myinfo =
 	url = "www.swoobles.com"
 }
 
-#define MAX_URL_LENGTH	512
+#define MAX_URL_LENGTH		512
+
+// On Linux setting this value any higher than 13299 would cause data loss?
+// On Windows any value seemed fine.
+// I thought maybe the SocketSendBuffer option wasn't working so increased the default net.ipv4.tcp_wmem value, still no good.
+#define MAX_BYTES_PER_PACKET	13298
 
 /*
 #define PACK_LOCATION_PARSED_HEADER		0
@@ -32,12 +43,13 @@ public Plugin:myinfo =
 #define PACK_LOCATION_SUCCESS_FORWARD	3
 #define PACK_LOCATION_FAILED_FORWARD	4
 #define PACK_LOCATION_PASSED_DATA		5
+#define PACK_LOCATION_BYTES_SENT		6
 
 new const String:KEY_REQUEST[]		= "req";
 new const String:KEY_REQUEST_LEN[]	= "reqlen";
 new const String:KEY_SAVE_PATH[]	= "save";
 
-new const String:POST_BOUNDARY[]	= "--SwooblesFormBoundaryr55pgTcYXsURugXEXwsY4xMcVXqJ4cLVvWKTL76w";
+new const String:POST_BOUNDARY[]	= "--SwooblesFormBoundaryr55pgTcYXsURugXEa";
 
 enum DownloadEndCode
 {
@@ -122,6 +134,8 @@ public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 	else
 		WritePackCell(hPack, 0);
 	
+	WritePackCell(hPack, 0);
+	
 	// Check the file handle.
 	if(hFile == INVALID_HANDLE)
 	{
@@ -130,7 +144,7 @@ public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 		return;
 	}
 	
-	decl String:szHostName[64], String:szLocation[128], String:szFileName[64];
+	decl String:szHostName[64], String:szLocation[256], String:szFileName[256];
 	ParseURL(szURL, szHostName, sizeof(szHostName), szLocation, sizeof(szLocation), szFileName, sizeof(szFileName));
 	
 	new bool:bSetRequest;
@@ -142,7 +156,7 @@ public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 			decl iPostFileData[iPostFileDataLen];
 			GetNativeArray(6, iPostFileData, iPostFileDataLen);
 			
-			new iRequestLen = iPostFileDataLen + MAX_URL_LENGTH + (sizeof(POST_BOUNDARY) * 3);
+			new iRequestLen = iPostFileDataLen + (MAX_URL_LENGTH * 2) + (sizeof(POST_BOUNDARY) * 3);
 			decl String:szRequest[iRequestLen];
 			
 			new iPayLoadStartSize = 148 + sizeof(POST_BOUNDARY);
@@ -157,18 +171,20 @@ public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 			decl String:szPayloadEnd[iPayloadEndSize];
 			new iPayloadEndLen = FormatEx(szPayloadEnd, iPayloadEndSize, "\
 				\r\n\
-				--%s--", POST_BOUNDARY);
+				--%s--\r\n", POST_BOUNDARY);
 			
 			new iLen = FormatEx(szRequest, iRequestLen, "\
-				POST %s/%s HTTP/1.0\r\n\
+				POST %s/%s HTTP/1.1\r\n\
 				Host: %s\r\n\
 				Connection: close\r\n\
 				Pragma: no-cache\r\n\
 				Cache-Control: no-cache\r\n\
-				Content-Length: %i\r\n\
+				Accept: text/html\r\n\
+				User-Agent: SwooblesDownloaderAPI\r\n\
 				Content-Type: multipart/form-data; boundary=%s\r\n\
+				Content-Length: %i\r\n\
 				\r\n",
-				szLocation, szFileName, szHostName, iPayloadStartLen + iPostFileDataLen + iPayloadEndLen, POST_BOUNDARY);
+				szLocation, szFileName, szHostName, POST_BOUNDARY, iPayloadStartLen + iPostFileDataLen + iPayloadEndLen);
 			
 			iLen += FormatEx(szRequest[iLen], iRequestLen-iLen, szPayloadStart);
 			
@@ -189,14 +205,13 @@ public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 	if(!bSetRequest)
 	{
 		decl String:szRequest[MAX_URL_LENGTH];
-		new iLen = FormatEx(szRequest, sizeof(szRequest), "GET %s/%s HTTP/1.0\r\nHost: %s\r\nConnection: close\r\nPragma: no-cache\r\nCache-Control: no-cache\r\n\r\n", szLocation, szFileName, szHostName);
+		new iLen = FormatEx(szRequest, sizeof(szRequest), "GET %s/%s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\nPragma: no-cache\r\nCache-Control: no-cache\r\n\r\n", szLocation, szFileName, szHostName);
 		SetTrieArray(hPackStrings, KEY_REQUEST, szRequest, iLen);
 		SetTrieValue(hPackStrings, KEY_REQUEST_LEN, MAX_URL_LENGTH);
 	}
 	
 	new Handle:hSocket = SocketCreate(SOCKET_TCP, OnSocketError);
 	SocketSetArg(hSocket, hPack);
-	SocketSetOption(hSocket, ConcatenateCallbacks, 4096);
 	SocketConnect(hSocket, OnSocketConnected, OnSocketReceive, OnSocketDisconnected, szHostName, 80);
 }
 
@@ -231,16 +246,40 @@ CreateDirectoryStructure(const String:szSavePath[])
 
 public OnSocketConnected(Handle:hSocket, any:hPack)
 {
+	TrySendBytes(hSocket, hPack);
+}
+
+public OnSendQueueEmpty(Handle:hSocket, any:hPack)
+{
+	TrySendBytes(hSocket, hPack);
+}
+
+TrySendBytes(Handle:hSocket, any:hPack)
+{
 	SetPackGhettoPosition(hPack, PACK_LOCATION_PACK_STRINGS);
 	new Handle:hPackStrings = Handle:ReadPackCell(hPack);
+	
+	SetPackGhettoPosition(hPack, PACK_LOCATION_BYTES_SENT);
+	new iBytesSent = ReadPackCell(hPack);
 	
 	decl iRequestLen;
 	GetTrieValue(hPackStrings, KEY_REQUEST_LEN, iRequestLen);
 	
+	if(iBytesSent >= iRequestLen)
+		return;
+	
 	decl String:szRequest[iRequestLen];
 	GetTrieArray(hPackStrings, KEY_REQUEST, szRequest, iRequestLen);
 	
-	SocketSend(hSocket, szRequest, iRequestLen);
+	new iBytesToSend = MAX_BYTES_PER_PACKET;
+	if((iRequestLen - iBytesSent) < iBytesToSend)
+		iBytesToSend = (iRequestLen - iBytesSent);
+	
+	SocketSend(hSocket, szRequest[iBytesSent], iBytesToSend);
+	SocketSetSendqueueEmptyCallback(hSocket, OnSendQueueEmpty);
+	
+	SetPackGhettoPosition(hPack, PACK_LOCATION_BYTES_SENT);
+	WritePackCell(hPack, iBytesSent + iBytesToSend);
 }
 
 SetPackGhettoPosition(Handle:hPack, iPosition)
