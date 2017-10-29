@@ -59,3 +59,14 @@ native bool:ClientCookies_HasCookie(client, ClientCookieType:cookie_type);
 native bool:ClientCookies_HaveCookiesLoaded(client);
 
 forward ClientCookies_OnCookiesLoaded(client);
+
+
+#if !defined REQUIRE_PLUGIN
+public __pl_client_cookies_SetNTVOptional()
+{
+	MarkNativeAsOptional("ClientCookies_SetCookie");
+	MarkNativeAsOptional("ClientCookies_GetCookie");
+	MarkNativeAsOptional("ClientCookies_HasCookie");
+	MarkNativeAsOptional("ClientCookies_HaveCookiesLoaded");
+}
+#endif
