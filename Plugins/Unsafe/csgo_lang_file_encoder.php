@@ -1,5 +1,7 @@
 <?php
 	
+	header('Connection: close');
+	
 	define('KEY_TO_CHECK', 'set_to_your_special_secret_super_key');
 	
 	if(empty($_GET['key']) || $_GET['key'] !== KEY_TO_CHECK)
