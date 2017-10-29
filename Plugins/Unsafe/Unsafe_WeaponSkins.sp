@@ -9,11 +9,15 @@
 #include "../../Libraries/DatabaseUsers/database_users"
 #include <hls_color_chat>
 
+#undef REQUIRE_PLUGIN
+#include "../../Libraries/ClientCookies/client_cookies"
+#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 #pragma dynamic 9000000
 
 new const String:PLUGIN_NAME[] = "Weapon Skins";
-new const String:PLUGIN_VERSION[] = "0.3";
+new const String:PLUGIN_VERSION[] = "0.4";
 
 public Plugin:myinfo =
 {
@@ -81,7 +85,13 @@ enum
 	MENUSELECT_SKIN_CURRENT_WEAPON = 1,
 	MENUSELECT_SKIN_ANY_WEAPON,
 	MENUSELECT_VIEW_WEAPON_SETS,
-	MENUSELECT_VIEW_WEAPON_CONTAINERS
+	MENUSELECT_VIEW_WEAPON_CONTAINERS,
+	
+	// WeaponOptions
+	MENUSELECT_WOPTIONS_THIS_WEAPON,
+	MENUSELECT_WOPTIONS_OTHER_WEAPONS,
+	MENUSELECT_WOPTIONS_CUSTOM_FLOAT,
+	MENUSELECT_WOPTIONS_NAME_TAG
 };
 
 new Handle:g_aDelocalizedStringsUsed;
@@ -97,6 +107,7 @@ new g_iMenuPosition_WeaponSelect[MAXPLAYERS+1];
 new g_iMenuPosition_WeaponSelect_Index[MAXPLAYERS+1];
 new String:g_szMenuPosition_PaintSelectWeaponEnt[MAXPLAYERS+1][VDF_TOKEN_LEN];
 new g_iMenu_CategorySelectType[MAXPLAYERS+1];
+new g_iMenu_PaintListType[MAXPLAYERS+1];
 
 new Handle:g_aLanguageKeyValHandles;
 new Handle:g_hTrie_LangNumToLangKeyValsHandlesIndex;
@@ -106,10 +117,12 @@ new g_iEnglishLanguageNum;
 new bool:g_bHasInitializedPlugin;
 new Handle:cvar_encoding_url;
 
+new Handle:g_hTimer_InitPlugin;
+
 new String:g_szDatabaseConfigName[64];
 new Handle:cvar_database_servers_configname;
 
-new Handle:g_hTimer_InitPlugin;
+new bool:g_bLibLoaded_ClientCookies;
 
 
 public OnPluginStart()
@@ -155,6 +168,24 @@ public OnPluginStart()
 	RegConsoleCmd("sm_showskin", OnSkinSelect, "TODO");
 }
 
+public OnAllPluginsLoaded()
+{
+	g_bLibLoaded_ClientCookies = LibraryExists("client_cookies");
+	cvar_database_servers_configname = FindConVar("sm_database_servers_configname");
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "client_cookies"))
+		g_bLibLoaded_ClientCookies = true;
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "client_cookies"))
+		g_bLibLoaded_ClientCookies = false;
+}
+
 public OnConfigsExecuted()
 {
 	if(g_bHasInitializedPlugin)
@@ -175,11 +206,6 @@ public Action:Timer_InitPlugin(Handle:hTimer)
 	
 	LoadData_ItemsGame();
 	LoadData_LanguageFiles();
-}
-
-public OnAllPluginsLoaded()
-{
-	cvar_database_servers_configname = FindConVar("sm_database_servers_configname");
 }
 
 public DB_OnStartConnectionSetup()
@@ -720,7 +746,7 @@ public MenuHandle_CategorySelect(Handle:hMenu, MenuAction:action, iParam1, iPara
 				return;
 			}
 			
-			DisplayMenu_PaintSelectWeaponEntSpecific(iParam1, szBuffer);
+			DisplayMenu_WeaponOptions(iParam1, szBuffer);
 		}
 		case MENUSELECT_SKIN_ANY_WEAPON:
 		{
@@ -877,13 +903,93 @@ public MenuHandle_WeaponSelect(Handle:hMenu, MenuAction:action, iParam1, iParam2
 	GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
 	
 	g_iMenuPosition_WeaponSelect[iParam1] = GetMenuSelectionPosition();
-	DisplayMenu_PaintSelectWeaponEntSpecific(iParam1, szInfo);
+	DisplayMenu_WeaponOptions(iParam1, szInfo);
 }
 
-DisplayMenu_PaintSelectWeaponEntSpecific(iClient, const String:szWeaponEnt[], iStartItem=0)
+DisplayMenu_WeaponOptions(iClient, const String:szWeaponEnt[])
 {
-	strcopy(g_szMenuPosition_PaintSelectWeaponEnt[iClient], VDF_TOKEN_LEN, szWeaponEnt);
+	decl String:szBuffer[VDF_TOKEN_LEN];
+	GetLocalizedWeaponName(iClient, szWeaponEnt, szBuffer, sizeof(szBuffer));
 	
+	new Handle:hMenu = CreateMenu(MenuHandle_WeaponOptions);
+	SetMenuTitle(hMenu, szBuffer);
+	
+	decl String:szInfo[64];
+	FormatEx(szInfo, sizeof(szInfo), "%i~%s", MENUSELECT_WOPTIONS_THIS_WEAPON, szWeaponEnt);
+	AddMenuItem(hMenu, szInfo, "Skins meant for this weapon.");
+	
+	FormatEx(szInfo, sizeof(szInfo), "%i~%s", MENUSELECT_WOPTIONS_OTHER_WEAPONS, szWeaponEnt);
+	AddMenuItem(hMenu, szInfo, "Skins from other weapons on this weapon.");
+	
+	AddMenuItem(hMenu, "", "", ITEMDRAW_SPACER);
+	
+	FormatEx(szInfo, sizeof(szInfo), "%i~%s", MENUSELECT_WOPTIONS_CUSTOM_FLOAT, szWeaponEnt);
+	AddMenuItem(hMenu, szInfo, "Set a custom float.");
+	
+	FormatEx(szInfo, sizeof(szInfo), "%i~%s", MENUSELECT_WOPTIONS_NAME_TAG, szWeaponEnt);
+	AddMenuItem(hMenu, szInfo, "Set a name tag.");
+	
+	SetMenuExitBackButton(hMenu, true);
+	if(!DisplayMenu(hMenu, iClient, 0))
+		CPrintToChat(iClient, "{red}There are no list types.");
+}
+
+public MenuHandle_WeaponOptions(Handle:hMenu, MenuAction:action, iParam1, iParam2)
+{
+	if(action == MenuAction_End)
+	{
+		CloseHandle(hMenu);
+		return;
+	}
+	
+	if(action == MenuAction_Cancel)
+	{
+		if(iParam2 == MenuCancel_ExitBack)
+		{
+			if(g_iMenu_CategorySelectType[iParam1] == MENUSELECT_SKIN_CURRENT_WEAPON)
+				DisplayMenu_CategorySelect(iParam1);
+			else
+				DisplayMenu_WeaponSelect(iParam1, g_iMenuPosition_WeaponSelect_Index[iParam1], g_iMenuPosition_WeaponSelect[iParam1]);
+		}
+		
+		return;
+	}
+	
+	if(action != MenuAction_Select)
+		return;
+	
+	decl String:szInfo[2][64];
+	GetMenuItem(hMenu, iParam2, szInfo[0], sizeof(szInfo[]));
+	ExplodeString(szInfo[0], "~", szInfo, sizeof(szInfo), sizeof(szInfo[]));
+	
+	new iListType = StringToInt(szInfo[0]);
+	g_iMenu_PaintListType[iParam1] = iListType;
+	
+	switch(iListType)
+	{
+		case MENUSELECT_WOPTIONS_THIS_WEAPON:
+		{
+			DisplayMenu_PaintSelectWeaponEntSpecific(iParam1, szInfo[1]);
+		}
+		case MENUSELECT_WOPTIONS_OTHER_WEAPONS:
+		{
+			DisplayMenu_PaintSelectShowAll(iParam1, szInfo[1]);
+		}
+		case MENUSELECT_WOPTIONS_CUSTOM_FLOAT:
+		{
+			CPrintToChat(iParam1, "{green}Coming soon!");
+			DisplayMenu_WeaponOptions(iParam1, szInfo[1]);
+		}
+		case MENUSELECT_WOPTIONS_NAME_TAG:
+		{
+			CPrintToChat(iParam1, "{green}Coming soon!");
+			DisplayMenu_WeaponOptions(iParam1, szInfo[1]);
+		}
+	}
+}
+
+GetPaintsForWeaponEntsIndex(const String:szWeaponEnt[])
+{
 	decl String:szWeaponEntFormatted[48];
 	strcopy(szWeaponEntFormatted, sizeof(szWeaponEntFormatted), szWeaponEnt);
 	
@@ -896,13 +1002,53 @@ DisplayMenu_PaintSelectWeaponEntSpecific(iClient, const String:szWeaponEnt[], iS
 	
 	decl iIndex;
 	if(!GetTrieValue(g_hTrie_PaintsForWeaponEntsMap, szWeaponEntFormatted, iIndex))
+		return -1;
+	
+	return iIndex;
+}
+
+DisplayMenu_PaintSelectShowAll(iClient, const String:szWeaponEnt[], iStartItem=0)
+{
+	strcopy(g_szMenuPosition_PaintSelectWeaponEnt[iClient], VDF_TOKEN_LEN, szWeaponEnt);
+	
+	decl String:szBuffer[VDF_TOKEN_LEN];
+	GetLocalizedWeaponName(iClient, szWeaponEnt, szBuffer, sizeof(szBuffer));
+	
+	new Handle:hMenu = CreateMenu(MenuHandle_PaintSelect);
+	SetMenuTitle(hMenu, "Skins from other weapons on this weapon\n%s", szBuffer);
+	
+	static String:szInfo[VDF_TOKEN_LEN], ePaint[PaintKit];
+	
+	GetClientsLocalizedString(iClient, DELOCALIZED_RANDOM, szBuffer, sizeof(szBuffer));
+	FormatEx(szInfo, sizeof(szInfo), "-1~%s", szWeaponEnt);
+	AddMenuItem(hMenu, szInfo, szBuffer);
+	
+	for(new i=0; i<GetArraySize(g_aPaintKits); i++)
+	{
+		GetArrayArray(g_aPaintKits, i, ePaint);
+		
+		if(!GetClientsLocalizedString(iClient, ePaint[PAINT_TAG], szBuffer, sizeof(szBuffer)))
+			strcopy(szBuffer, sizeof(szBuffer), ePaint[PAINT_TAG]);
+		
+		FormatEx(szInfo, sizeof(szInfo), "%i~%s", i, szWeaponEnt);
+		AddMenuItem(hMenu, szInfo, szBuffer);
+	}
+	
+	SetMenuExitBackButton(hMenu, true);
+	if(!DisplayMenuAtItem(hMenu, iClient, iStartItem, 0))
+		CPrintToChat(iClient, "{red}There are no skins.");
+}
+
+DisplayMenu_PaintSelectWeaponEntSpecific(iClient, const String:szWeaponEnt[], iStartItem=0)
+{
+	strcopy(g_szMenuPosition_PaintSelectWeaponEnt[iClient], VDF_TOKEN_LEN, szWeaponEnt);
+	
+	new iIndex = GetPaintsForWeaponEntsIndex(szWeaponEnt);
+	if(iIndex == -1)
 	{
 		CPrintToChat(iClient, "{red}There are no skins for this weapon.");
+		DisplayMenu_WeaponOptions(iClient, szWeaponEnt);
 		
-		if(g_iMenu_CategorySelectType[iClient] == MENUSELECT_SKIN_CURRENT_WEAPON)
-			DisplayMenu_CategorySelect(iClient);
-		else
-			DisplayMenu_WeaponSelect(iClient, g_iMenuPosition_WeaponSelect_Index[iClient], g_iMenuPosition_WeaponSelect[iClient]);
 		return;
 	}
 	
@@ -911,8 +1057,8 @@ DisplayMenu_PaintSelectWeaponEntSpecific(iClient, const String:szWeaponEnt[], iS
 	decl String:szBuffer[VDF_TOKEN_LEN];
 	GetLocalizedWeaponName(iClient, szWeaponEnt, szBuffer, sizeof(szBuffer));
 	
-	new Handle:hMenu = CreateMenu(MenuHandle_PaintSelectWeaponEntSpecific);
-	SetMenuTitle(hMenu, "Select a skin\n%s", szBuffer);
+	new Handle:hMenu = CreateMenu(MenuHandle_PaintSelect);
+	SetMenuTitle(hMenu, "Skins meant for this weapon\n%s", szBuffer);
 	
 	static String:szInfo[VDF_TOKEN_LEN], ePaint[PaintKit];
 	
@@ -937,7 +1083,7 @@ DisplayMenu_PaintSelectWeaponEntSpecific(iClient, const String:szWeaponEnt[], iS
 		CPrintToChat(iClient, "{red}There are no skins for this weapon.");
 }
 
-public MenuHandle_PaintSelectWeaponEntSpecific(Handle:hMenu, MenuAction:action, iParam1, iParam2)
+public MenuHandle_PaintSelect(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 {
 	if(action == MenuAction_End)
 	{
@@ -948,12 +1094,7 @@ public MenuHandle_PaintSelectWeaponEntSpecific(Handle:hMenu, MenuAction:action, 
 	if(action == MenuAction_Cancel)
 	{
 		if(iParam2 == MenuCancel_ExitBack)
-		{
-			if(g_iMenu_CategorySelectType[iParam1] == MENUSELECT_SKIN_CURRENT_WEAPON)
-				DisplayMenu_CategorySelect(iParam1);
-			else
-				DisplayMenu_WeaponSelect(iParam1, g_iMenuPosition_WeaponSelect_Index[iParam1], g_iMenuPosition_WeaponSelect[iParam1]);
-		}
+			DisplayMenu_WeaponOptions(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1]);
 		
 		return;
 	}
@@ -965,7 +1106,12 @@ public MenuHandle_PaintSelectWeaponEntSpecific(Handle:hMenu, MenuAction:action, 
 	if(GetEngineTime() < fNextUse[iParam1])
 	{
 		CPrintToChat(iParam1, "{red}Please do not spam this menu.");
-		DisplayMenu_PaintSelectWeaponEntSpecific(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
+		
+		if(g_iMenu_PaintListType[iParam1] == MENUSELECT_WOPTIONS_THIS_WEAPON)
+			DisplayMenu_PaintSelectWeaponEntSpecific(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
+		else
+			DisplayMenu_PaintSelectShowAll(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
+		
 		return;
 	}
 	
@@ -984,7 +1130,12 @@ public MenuHandle_PaintSelectWeaponEntSpecific(Handle:hMenu, MenuAction:action, 
 		GetLocalizedWeaponName(iParam1, szBuffer[1], szBuffer[1], sizeof(szBuffer[]));
 		
 		CPrintToChat(iParam1, "{olive}Using {lightred}%s {olive}for your {yellow}%s{olive}.", szBuffer[0], szBuffer[1]);
-		DisplayMenu_PaintSelectWeaponEntSpecific(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
+		
+		if(g_iMenu_PaintListType[iParam1] == MENUSELECT_WOPTIONS_THIS_WEAPON)
+			DisplayMenu_PaintSelectWeaponEntSpecific(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
+		else
+			DisplayMenu_PaintSelectShowAll(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
+		
 		return;
 	}
 	
@@ -998,7 +1149,11 @@ public MenuHandle_PaintSelectWeaponEntSpecific(Handle:hMenu, MenuAction:action, 
 	GetLocalizedWeaponName(iParam1, szBuffer[1], szBuffer[1], sizeof(szBuffer[]));
 	
 	CPrintToChat(iParam1, "{olive}Using {lightred}%s {olive}for your {yellow}%s{olive}.", szBuffer[0], szBuffer[1]);
-	DisplayMenu_PaintSelectWeaponEntSpecific(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
+	
+	if(g_iMenu_PaintListType[iParam1] == MENUSELECT_WOPTIONS_THIS_WEAPON)
+		DisplayMenu_PaintSelectWeaponEntSpecific(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
+	else
+		DisplayMenu_PaintSelectShowAll(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
 }
 
 SetClientsPaintKitForWeapon(iClient, iPaintKitIndex, const String:szWeaponEnt[])
@@ -1227,14 +1382,26 @@ public OnWeaponEquipPost(iClient, iWeapon)
 	SetEntProp(iWeapon, Prop_Send, "m_iItemIDHigh", 0);
 	SetEntProp(iWeapon, Prop_Send, "m_nFallbackSeed", ePaint[PAINT_SEED]);
 	SetEntProp(iWeapon, Prop_Send, "m_iAccountID", iAccountID);
-	SetEntProp(iWeapon, Prop_Send, "m_nFallbackStatTrak", GetStatTrakCount());
+	SetEntProp(iWeapon, Prop_Send, "m_nFallbackStatTrak", GetStatTrakCount(iClient));
 	SetEntProp(iWeapon, Prop_Send, "m_nFallbackPaintKit", ePaint[PAINT_ID]);
 	SetEntPropFloat(iWeapon, Prop_Send, "m_flFallbackWear", 0.000001);
 	SetEntProp(iWeapon, Prop_Send, "m_iEntityQuality", 3); // TODO: Remove stattrak from default knives (and gold), grenades, and c4. The stattrak model gets in your view.
+	
+	// TODO: Add name tags.
+	//decl String:szNameTag[21];
+	//strcopy(szNameTag, sizeof(szNameTag), "");
+	//SetEntDataString(iWeapon, FindSendPropInfo("CBaseAttributableItem", "m_szCustomName"), szNameTag, sizeof(szNameTag), true);
 }
 
-GetStatTrakCount()
+GetStatTrakCount(iClient)
 {
+	if(g_bLibLoaded_ClientCookies)
+	{
+		#if defined _client_cookies_included
+		return ClientCookies_GetCookie(iClient, CC_TYPE_SWOOBLES_POINTS);
+		#endif
+	}
+	
 	switch(GetRandomInt(1, 8))
 	{
 		case 1: return 1337;
