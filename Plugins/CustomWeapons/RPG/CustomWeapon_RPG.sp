@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Custom Weapon: RPG";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -336,6 +336,9 @@ TryClientUnhooks(iClient)
 public OnWeaponDropPost(iClient, iWeapon)
 {
 	if(!IsValidEntity(iWeapon))
+		return;
+	
+	if(GetWeaponType(iWeapon) != WEAPONTYPE_RPG)
 		return;
 	
 	RequestFrame(RequestFrame_UpdateDroppedModel, EntIndexToEntRef(iWeapon));
