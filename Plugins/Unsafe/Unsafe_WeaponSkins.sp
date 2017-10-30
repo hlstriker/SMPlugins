@@ -17,7 +17,7 @@
 #pragma dynamic 9000000
 
 new const String:PLUGIN_NAME[] = "Weapon Skins";
-new const String:PLUGIN_VERSION[] = "0.4";
+new const String:PLUGIN_VERSION[] = "0.5";
 
 public Plugin:myinfo =
 {
@@ -30,6 +30,7 @@ public Plugin:myinfo =
 
 #define VDF_TOKEN_LEN			1024
 #define LANG_CODE_LEN			16
+#define POSTFIX_LEN				32
 #define ITEMS_GAME_FILEPATH		"scripts/items/items_game.txt"
 #define STEAM_INF_FILEPATH		"steam.inf"
 #define LANG_CONFIG_DIRPATH		"configs/ws_languages"
@@ -57,6 +58,8 @@ new Handle:g_hTrie_PaintsForWeaponEntsMap;
 new Handle:g_aPaintRarities;
 new Handle:g_hTrie_PaintNameToRarity;
 
+new Handle:g_aUnusedPaintKitIndexes;
+
 new Handle:g_aPaintKits;
 new Handle:g_hTrie_PaintIDToPaintKitIndex;
 new Handle:g_hTrie_PaintNameToPaintKitIndex;
@@ -65,6 +68,7 @@ enum _:PaintKit
 	PAINT_ID,
 	String:PAINT_NAME[VDF_TOKEN_LEN],
 	String:PAINT_TAG[VDF_TOKEN_LEN],
+	String:PAINT_POSTFIX[POSTFIX_LEN],
 	PAINT_SEED,
 	bool:PAINT_FOUND_WEAPON
 };
@@ -90,6 +94,7 @@ enum
 	// WeaponOptions
 	MENUSELECT_WOPTIONS_THIS_WEAPON,
 	MENUSELECT_WOPTIONS_OTHER_WEAPONS,
+	MENUSELECT_WOPTIONS_UNUSED,
 	MENUSELECT_WOPTIONS_CUSTOM_FLOAT,
 	MENUSELECT_WOPTIONS_NAME_TAG
 };
@@ -145,6 +150,7 @@ public OnPluginStart()
 	g_aDelocalizedStringsUsed = CreateArray(VDF_TOKEN_LEN);
 	g_aLanguageParseQueue = CreateArray(LanguageParseQueue);
 	g_aLanguageKeyValHandles = CreateArray();
+	g_aUnusedPaintKitIndexes = CreateArray();
 	
 	g_hTrie_PaintNameToRarity = CreateTrie();
 	g_hTrie_PaintNameToPaintKitIndex = CreateTrie();
@@ -921,6 +927,12 @@ DisplayMenu_WeaponOptions(iClient, const String:szWeaponEnt[])
 	FormatEx(szInfo, sizeof(szInfo), "%i~%s", MENUSELECT_WOPTIONS_OTHER_WEAPONS, szWeaponEnt);
 	AddMenuItem(hMenu, szInfo, "Skins from other weapons on this weapon.");
 	
+	if(GetArraySize(g_aUnusedPaintKitIndexes))
+	{
+		FormatEx(szInfo, sizeof(szInfo), "%i~%s", MENUSELECT_WOPTIONS_UNUSED, szWeaponEnt);
+		AddMenuItem(hMenu, szInfo, "Skins that are unknown.");
+	}
+	
 	AddMenuItem(hMenu, "", "", ITEMDRAW_SPACER);
 	
 	FormatEx(szInfo, sizeof(szInfo), "%i~%s", MENUSELECT_WOPTIONS_CUSTOM_FLOAT, szWeaponEnt);
@@ -975,6 +987,10 @@ public MenuHandle_WeaponOptions(Handle:hMenu, MenuAction:action, iParam1, iParam
 		{
 			DisplayMenu_PaintSelectShowAll(iParam1, szInfo[1]);
 		}
+		case MENUSELECT_WOPTIONS_UNUSED:
+		{
+			DisplayMenu_PaintSelectShowUnused(iParam1, szInfo[1]);
+		}
 		case MENUSELECT_WOPTIONS_CUSTOM_FLOAT:
 		{
 			CPrintToChat(iParam1, "{green}Coming soon!");
@@ -988,23 +1004,36 @@ public MenuHandle_WeaponOptions(Handle:hMenu, MenuAction:action, iParam1, iParam
 	}
 }
 
-GetPaintsForWeaponEntsIndex(const String:szWeaponEnt[])
+DisplayMenu_PaintSelectShowUnused(iClient, const String:szWeaponEnt[], iStartItem=0)
 {
-	decl String:szWeaponEntFormatted[48];
-	strcopy(szWeaponEntFormatted, sizeof(szWeaponEntFormatted), szWeaponEnt);
+	strcopy(g_szMenuPosition_PaintSelectWeaponEnt[iClient], VDF_TOKEN_LEN, szWeaponEnt);
 	
-	// Make sure all knives use "knife".
-	new iChar = szWeaponEntFormatted[5];
-	szWeaponEntFormatted[5] = '\x0';
+	decl String:szBuffer[VDF_TOKEN_LEN];
+	GetLocalizedWeaponName(iClient, szWeaponEnt, szBuffer, sizeof(szBuffer));
 	
-	if(!StrEqual(szWeaponEntFormatted, "knife"))
-		szWeaponEntFormatted[5] = iChar;
+	new Handle:hMenu = CreateMenu(MenuHandle_PaintSelect);
+	SetMenuTitle(hMenu, "Skins that are unknown\n%s", szBuffer);
 	
+	static String:szInfo[VDF_TOKEN_LEN], ePaint[PaintKit];
 	decl iIndex;
-	if(!GetTrieValue(g_hTrie_PaintsForWeaponEntsMap, szWeaponEntFormatted, iIndex))
-		return -1;
+	for(new i=0; i<GetArraySize(g_aUnusedPaintKitIndexes); i++)
+	{
+		iIndex = GetArrayCell(g_aUnusedPaintKitIndexes, i);
+		GetArrayArray(g_aPaintKits, iIndex, ePaint);
+		
+		if(!GetClientsLocalizedString(iClient, ePaint[PAINT_TAG], szBuffer, sizeof(szBuffer)))
+			strcopy(szBuffer, sizeof(szBuffer), ePaint[PAINT_TAG]);
+		
+		StrCat(szBuffer, sizeof(szBuffer), ePaint[PAINT_POSTFIX]);
+		Format(szBuffer, sizeof(szBuffer), "%s - %i", szBuffer, ePaint[PAINT_ID]);
+		
+		FormatEx(szInfo, sizeof(szInfo), "%i~%s", iIndex, szWeaponEnt);
+		AddMenuItem(hMenu, szInfo, szBuffer);
+	}
 	
-	return iIndex;
+	SetMenuExitBackButton(hMenu, true);
+	if(!DisplayMenuAtItem(hMenu, iClient, iStartItem, 0))
+		CPrintToChat(iClient, "{red}There are no unknown skins.");
 }
 
 DisplayMenu_PaintSelectShowAll(iClient, const String:szWeaponEnt[], iStartItem=0)
@@ -1030,6 +1059,8 @@ DisplayMenu_PaintSelectShowAll(iClient, const String:szWeaponEnt[], iStartItem=0
 		if(!GetClientsLocalizedString(iClient, ePaint[PAINT_TAG], szBuffer, sizeof(szBuffer)))
 			strcopy(szBuffer, sizeof(szBuffer), ePaint[PAINT_TAG]);
 		
+		StrCat(szBuffer, sizeof(szBuffer), ePaint[PAINT_POSTFIX]);
+		
 		FormatEx(szInfo, sizeof(szInfo), "%i~%s", i, szWeaponEnt);
 		AddMenuItem(hMenu, szInfo, szBuffer);
 	}
@@ -1043,8 +1074,8 @@ DisplayMenu_PaintSelectWeaponEntSpecific(iClient, const String:szWeaponEnt[], iS
 {
 	strcopy(g_szMenuPosition_PaintSelectWeaponEnt[iClient], VDF_TOKEN_LEN, szWeaponEnt);
 	
-	new iIndex = GetPaintsForWeaponEntsIndex(szWeaponEnt);
-	if(iIndex == -1)
+	decl iIndex;
+	if(!GetTrieValue(g_hTrie_PaintsForWeaponEntsMap, szWeaponEnt, iIndex))
 	{
 		CPrintToChat(iClient, "{red}There are no skins for this weapon.");
 		DisplayMenu_WeaponOptions(iClient, szWeaponEnt);
@@ -1073,6 +1104,8 @@ DisplayMenu_PaintSelectWeaponEntSpecific(iClient, const String:szWeaponEnt[], iS
 		
 		if(!GetClientsLocalizedString(iClient, ePaint[PAINT_TAG], szBuffer, sizeof(szBuffer)))
 			strcopy(szBuffer, sizeof(szBuffer), ePaint[PAINT_TAG]);
+		
+		StrCat(szBuffer, sizeof(szBuffer), ePaint[PAINT_POSTFIX]);
 		
 		FormatEx(szInfo, sizeof(szInfo), "%i~%s", iIndex, szWeaponEnt);
 		AddMenuItem(hMenu, szInfo, szBuffer);
@@ -1107,10 +1140,18 @@ public MenuHandle_PaintSelect(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 	{
 		CPrintToChat(iParam1, "{red}Please do not spam this menu.");
 		
-		if(g_iMenu_PaintListType[iParam1] == MENUSELECT_WOPTIONS_THIS_WEAPON)
+		if(g_iMenu_PaintListType[iParam1] == MENUSELECT_WOPTIONS_UNUSED)
+		{
+			DisplayMenu_PaintSelectShowUnused(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
+		}
+		else if(g_iMenu_PaintListType[iParam1] == MENUSELECT_WOPTIONS_THIS_WEAPON)
+		{
 			DisplayMenu_PaintSelectWeaponEntSpecific(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
+		}
 		else
+		{
 			DisplayMenu_PaintSelectShowAll(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
+		}
 		
 		return;
 	}
@@ -1131,10 +1172,18 @@ public MenuHandle_PaintSelect(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 		
 		CPrintToChat(iParam1, "{olive}Using {lightred}%s {olive}for your {yellow}%s{olive}.", szBuffer[0], szBuffer[1]);
 		
-		if(g_iMenu_PaintListType[iParam1] == MENUSELECT_WOPTIONS_THIS_WEAPON)
+		if(g_iMenu_PaintListType[iParam1] == MENUSELECT_WOPTIONS_UNUSED)
+		{
+			DisplayMenu_PaintSelectShowUnused(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
+		}
+		else if(g_iMenu_PaintListType[iParam1] == MENUSELECT_WOPTIONS_THIS_WEAPON)
+		{
 			DisplayMenu_PaintSelectWeaponEntSpecific(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
+		}
 		else
+		{
 			DisplayMenu_PaintSelectShowAll(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
+		}
 		
 		return;
 	}
@@ -1150,10 +1199,18 @@ public MenuHandle_PaintSelect(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 	
 	CPrintToChat(iParam1, "{olive}Using {lightred}%s {olive}for your {yellow}%s{olive}.", szBuffer[0], szBuffer[1]);
 	
-	if(g_iMenu_PaintListType[iParam1] == MENUSELECT_WOPTIONS_THIS_WEAPON)
+	if(g_iMenu_PaintListType[iParam1] == MENUSELECT_WOPTIONS_UNUSED)
+	{
+		DisplayMenu_PaintSelectShowUnused(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
+	}
+	else if(g_iMenu_PaintListType[iParam1] == MENUSELECT_WOPTIONS_THIS_WEAPON)
+	{
 		DisplayMenu_PaintSelectWeaponEntSpecific(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
+	}
 	else
+	{
 		DisplayMenu_PaintSelectShowAll(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
+	}
 }
 
 SetClientsPaintKitForWeapon(iClient, iPaintKitIndex, const String:szWeaponEnt[])
@@ -1473,7 +1530,9 @@ bool:LoadData_ItemsGame()
 	}
 	CloseHandle(hWeaponsNeedDelocalizedName);
 	
-	ItemsGame_AssociateUnusedPaintsWithKnives();
+	ItemsGame_AddUnknownEntPaintsManually();
+	ItemsGame_AddPaintKitPostFixesManually();
+	ItemsGame_FindUnusedPaints();
 	
 	// Cleanup
 	decl Handle:hWeapons;
@@ -1491,7 +1550,7 @@ bool:LoadData_ItemsGame()
 	return true;
 }
 
-bool:ItemsGame_AssociateUnusedPaintsWithKnives()
+ItemsGame_FindUnusedPaints()
 {
 	decl ePaintKit[PaintKit];
 	new iArraySize = GetArraySize(g_aPaintKits);
@@ -1502,8 +1561,267 @@ bool:ItemsGame_AssociateUnusedPaintsWithKnives()
 		if(ePaintKit[PAINT_FOUND_WEAPON])
 			continue;
 		
-		AddPaintForWeaponClassname(ePaintKit[PAINT_NAME], "knife");
+		if(FindValueInArray(g_aUnusedPaintKitIndexes, i) == -1)
+			PushArrayCell(g_aUnusedPaintKitIndexes, i);
 	}
+}
+
+bool:ItemsGame_AddUnknownEntPaintsManually()
+{
+	// Huntsman
+	AddKnifeDuplicatesToKnifeEnt("knife_tactical");
+	AddPaintForWeaponClassname("knife_tactical", _, 411);	// Damascus Steel
+	AddPaintForWeaponClassname("knife_tactical", _, 418);	// Doppler Phase 1
+	AddPaintForWeaponClassname("knife_tactical", _, 419);	// Doppler Phase 2
+	AddPaintForWeaponClassname("knife_tactical", _, 420);	// Doppler Phase 3
+	AddPaintForWeaponClassname("knife_tactical", _, 421);	// Doppler Phase 4
+	AddPaintForWeaponClassname("knife_tactical", _, 415);	// Doppler Ruby
+	AddPaintForWeaponClassname("knife_tactical", _, 416);	// Doppler Sapphire
+	AddPaintForWeaponClassname("knife_tactical", _, 417);	// Doppler Black Pearl
+	AddPaintForWeaponClassname("knife_tactical", _, 620);	// Ultraviolet
+	
+	// Shadow daggers
+	AddKnifeDuplicatesToKnifeEnt("knife_push");
+	AddPaintForWeaponClassname("knife_push", _, 411);	// Damascus Steel
+	AddPaintForWeaponClassname("knife_push", _, 418);	// Doppler Phase 1
+	AddPaintForWeaponClassname("knife_push", _, 618);	// Doppler Phase 2
+	AddPaintForWeaponClassname("knife_push", _, 420);	// Doppler Phase 3
+	AddPaintForWeaponClassname("knife_push", _, 421);	// Doppler Phase 4
+	AddPaintForWeaponClassname("knife_push", _, 415);	// Doppler Ruby
+	AddPaintForWeaponClassname("knife_push", _, 619);	// Doppler Sapphire
+	AddPaintForWeaponClassname("knife_push", _, 617);	// Doppler Black Pearl
+	AddPaintForWeaponClassname("knife_push", _, 98);	// Ultraviolet
+	
+	// Butterfly
+	AddKnifeDuplicatesToKnifeEnt("knife_butterfly");
+	AddPaintForWeaponClassname("knife_butterfly", _, 411);	// Damascus Steel
+	AddPaintForWeaponClassname("knife_butterfly", _, 418);	// Doppler Phase 1
+	AddPaintForWeaponClassname("knife_butterfly", _, 618);	// Doppler Phase 2
+	AddPaintForWeaponClassname("knife_butterfly", _, 420);	// Doppler Phase 3
+	AddPaintForWeaponClassname("knife_butterfly", _, 421);	// Doppler Phase 4
+	AddPaintForWeaponClassname("knife_butterfly", _, 415);	// Doppler Ruby
+	AddPaintForWeaponClassname("knife_butterfly", _, 619);	// Doppler Sapphire
+	AddPaintForWeaponClassname("knife_butterfly", _, 617);	// Doppler Black Pearl
+	AddPaintForWeaponClassname("knife_butterfly", _, 98);	// Ultraviolet
+	
+	// Falchion
+	AddKnifeDuplicatesToKnifeEnt("knife_falchion");
+	AddPaintForWeaponClassname("knife_falchion", _, 411);	// Damascus Steel
+	AddPaintForWeaponClassname("knife_falchion", _, 418);	// Doppler Phase 1
+	AddPaintForWeaponClassname("knife_falchion", _, 419);	// Doppler Phase 2
+	AddPaintForWeaponClassname("knife_falchion", _, 420);	// Doppler Phase 3
+	AddPaintForWeaponClassname("knife_falchion", _, 421);	// Doppler Phase 4
+	AddPaintForWeaponClassname("knife_falchion", _, 415);	// Doppler Ruby
+	AddPaintForWeaponClassname("knife_falchion", _, 416);	// Doppler Sapphire
+	AddPaintForWeaponClassname("knife_falchion", _, 417);	// Doppler Black Pearl
+	AddPaintForWeaponClassname("knife_falchion", _, 621);	// Ultraviolet
+	
+	// Bowie
+	AddKnifeDuplicatesToKnifeEnt("knife_survival_bowie");
+	AddPaintForWeaponClassname("knife_survival_bowie", _, 411);	// Damascus Steel
+	AddPaintForWeaponClassname("knife_survival_bowie", _, 418);	// Doppler Phase 1
+	AddPaintForWeaponClassname("knife_survival_bowie", _, 419);	// Doppler Phase 2
+	AddPaintForWeaponClassname("knife_survival_bowie", _, 420);	// Doppler Phase 3
+	AddPaintForWeaponClassname("knife_survival_bowie", _, 421);	// Doppler Phase 4
+	AddPaintForWeaponClassname("knife_survival_bowie", _, 415);	// Doppler Ruby
+	AddPaintForWeaponClassname("knife_survival_bowie", _, 416);	// Doppler Sapphire
+	AddPaintForWeaponClassname("knife_survival_bowie", _, 417);	// Doppler Black Pearl
+	AddPaintForWeaponClassname("knife_survival_bowie", _, 98);	// Ultraviolet
+	
+	// Karambit
+	AddKnifeDuplicatesToKnifeEnt("knife_karambit");
+	AddPaintForWeaponClassname("knife_karambit", _, 410);	// Damascus Steel
+	AddPaintForWeaponClassname("knife_karambit", _, 418);	// Doppler Phase 1
+	AddPaintForWeaponClassname("knife_karambit", _, 419);	// Doppler Phase 2
+	AddPaintForWeaponClassname("knife_karambit", _, 420);	// Doppler Phase 3
+	AddPaintForWeaponClassname("knife_karambit", _, 421);	// Doppler Phase 4
+	AddPaintForWeaponClassname("knife_karambit", _, 415);	// Doppler Ruby
+	AddPaintForWeaponClassname("knife_karambit", _, 416);	// Doppler Sapphire
+	AddPaintForWeaponClassname("knife_karambit", _, 417);	// Doppler Black Pearl
+	AddPaintForWeaponClassname("knife_karambit", _, 98);	// Ultraviolet
+	AddPaintForWeaponClassname("knife_karambit", _, 561);	// Lore
+	AddPaintForWeaponClassname("knife_karambit", _, 566);	// Black Laminate
+	AddPaintForWeaponClassname("knife_karambit", _, 569);	// Gamma Doppler Phase 1
+	AddPaintForWeaponClassname("knife_karambit", _, 570);	// Gamma Doppler Phase 2
+	AddPaintForWeaponClassname("knife_karambit", _, 571);	// Gamma Doppler Phase 3
+	AddPaintForWeaponClassname("knife_karambit", _, 572);	// Gamma Doppler Phase 4
+	AddPaintForWeaponClassname("knife_karambit", _, 568);	// Gamma Doppler Emerald
+	AddPaintForWeaponClassname("knife_karambit", _, 576);	// Autotronic
+	AddPaintForWeaponClassname("knife_karambit", _, 578);	// Bright Water
+	AddPaintForWeaponClassname("knife_karambit", _, 582);	// Freehand
+	
+	// Gut
+	AddKnifeDuplicatesToKnifeEnt("knife_gut");
+	AddPaintForWeaponClassname("knife_gut", _, 410);	// Damascus Steel
+	AddPaintForWeaponClassname("knife_gut", _, 418);	// Doppler Phase 1
+	AddPaintForWeaponClassname("knife_gut", _, 419);	// Doppler Phase 2
+	AddPaintForWeaponClassname("knife_gut", _, 420);	// Doppler Phase 3
+	AddPaintForWeaponClassname("knife_gut", _, 421);	// Doppler Phase 4
+	AddPaintForWeaponClassname("knife_gut", _, 415);	// Doppler Ruby
+	AddPaintForWeaponClassname("knife_gut", _, 416);	// Doppler Sapphire
+	AddPaintForWeaponClassname("knife_gut", _, 417);	// Doppler Black Pearl
+	AddPaintForWeaponClassname("knife_gut", _, 98);		// Ultraviolet
+	AddPaintForWeaponClassname("knife_gut", _, 560);	// Lore
+	AddPaintForWeaponClassname("knife_gut", _, 565);	// Black Laminate
+	AddPaintForWeaponClassname("knife_gut", _, 569);	// Gamma Doppler Phase 1
+	AddPaintForWeaponClassname("knife_gut", _, 570);	// Gamma Doppler Phase 2
+	AddPaintForWeaponClassname("knife_gut", _, 571);	// Gamma Doppler Phase 3
+	AddPaintForWeaponClassname("knife_gut", _, 572);	// Gamma Doppler Phase 4
+	AddPaintForWeaponClassname("knife_gut", _, 568);	// Gamma Doppler Emerald
+	AddPaintForWeaponClassname("knife_gut", _, 575);	// Autotronic
+	AddPaintForWeaponClassname("knife_gut", _, 578);	// Bright Water
+	AddPaintForWeaponClassname("knife_gut", _, 580);	// Freehand
+	
+	// Flip
+	AddKnifeDuplicatesToKnifeEnt("knife_flip");
+	AddPaintForWeaponClassname("knife_flip", _, 410);	// Damascus Steel
+	AddPaintForWeaponClassname("knife_flip", _, 418);	// Doppler Phase 1
+	AddPaintForWeaponClassname("knife_flip", _, 419);	// Doppler Phase 2
+	AddPaintForWeaponClassname("knife_flip", _, 420);	// Doppler Phase 3
+	AddPaintForWeaponClassname("knife_flip", _, 421);	// Doppler Phase 4
+	AddPaintForWeaponClassname("knife_flip", _, 415);	// Doppler Ruby
+	AddPaintForWeaponClassname("knife_flip", _, 416);	// Doppler Sapphire
+	AddPaintForWeaponClassname("knife_flip", _, 417);	// Doppler Black Pearl
+	AddPaintForWeaponClassname("knife_flip", _, 98);	// Ultraviolet
+	AddPaintForWeaponClassname("knife_flip", _, 559);	// Lore
+	AddPaintForWeaponClassname("knife_flip", _, 564);	// Black Laminate
+	AddPaintForWeaponClassname("knife_flip", _, 569);	// Gamma Doppler Phase 1
+	AddPaintForWeaponClassname("knife_flip", _, 570);	// Gamma Doppler Phase 2
+	AddPaintForWeaponClassname("knife_flip", _, 571);	// Gamma Doppler Phase 3
+	AddPaintForWeaponClassname("knife_flip", _, 572);	// Gamma Doppler Phase 4
+	AddPaintForWeaponClassname("knife_flip", _, 568);	// Gamma Doppler Emerald
+	AddPaintForWeaponClassname("knife_flip", _, 574);	// Autotronic
+	AddPaintForWeaponClassname("knife_flip", _, 578);	// Bright Water
+	AddPaintForWeaponClassname("knife_flip", _, 580);	// Freehand
+	
+	// Bayonet
+	AddKnifeDuplicatesToKnifeEnt("bayonet");
+	AddPaintForWeaponClassname("bayonet", _, 410);	// Damascus Steel
+	AddPaintForWeaponClassname("bayonet", _, 418);	// Doppler Phase 1
+	AddPaintForWeaponClassname("bayonet", _, 419);	// Doppler Phase 2
+	AddPaintForWeaponClassname("bayonet", _, 420);	// Doppler Phase 3
+	AddPaintForWeaponClassname("bayonet", _, 421);	// Doppler Phase 4
+	AddPaintForWeaponClassname("bayonet", _, 415);	// Doppler Ruby
+	AddPaintForWeaponClassname("bayonet", _, 416);	// Doppler Sapphire
+	AddPaintForWeaponClassname("bayonet", _, 417);	// Doppler Black Pearl
+	AddPaintForWeaponClassname("bayonet", _, 98);	// Ultraviolet
+	AddPaintForWeaponClassname("bayonet", _, 558);	// Lore
+	AddPaintForWeaponClassname("bayonet", _, 563);	// Black Laminate
+	AddPaintForWeaponClassname("bayonet", _, 569);	// Gamma Doppler Phase 1
+	AddPaintForWeaponClassname("bayonet", _, 570);	// Gamma Doppler Phase 2
+	AddPaintForWeaponClassname("bayonet", _, 571);	// Gamma Doppler Phase 3
+	AddPaintForWeaponClassname("bayonet", _, 572);	// Gamma Doppler Phase 4
+	AddPaintForWeaponClassname("bayonet", _, 568);	// Gamma Doppler Emerald
+	AddPaintForWeaponClassname("bayonet", _, 573);	// Autotronic
+	AddPaintForWeaponClassname("bayonet", _, 578);	// Bright Water
+	AddPaintForWeaponClassname("bayonet", _, 580);	// Freehand
+	
+	// M9 Bayonet
+	AddKnifeDuplicatesToKnifeEnt("knife_m9_bayonet");
+	AddPaintForWeaponClassname("knife_m9_bayonet", _, 411);	// Damascus Steel
+	AddPaintForWeaponClassname("knife_m9_bayonet", _, 418);	// Doppler Phase 1
+	AddPaintForWeaponClassname("knife_m9_bayonet", _, 419);	// Doppler Phase 2
+	AddPaintForWeaponClassname("knife_m9_bayonet", _, 420);	// Doppler Phase 3
+	AddPaintForWeaponClassname("knife_m9_bayonet", _, 421);	// Doppler Phase 4
+	AddPaintForWeaponClassname("knife_m9_bayonet", _, 415);	// Doppler Ruby
+	AddPaintForWeaponClassname("knife_m9_bayonet", _, 416);	// Doppler Sapphire
+	AddPaintForWeaponClassname("knife_m9_bayonet", _, 417);	// Doppler Black Pearl
+	AddPaintForWeaponClassname("knife_m9_bayonet", _, 98);	// Ultraviolet
+	AddPaintForWeaponClassname("knife_m9_bayonet", _, 562);	// Lore
+	AddPaintForWeaponClassname("knife_m9_bayonet", _, 567);	// Black Laminate
+	AddPaintForWeaponClassname("knife_m9_bayonet", _, 569);	// Gamma Doppler Phase 1
+	AddPaintForWeaponClassname("knife_m9_bayonet", _, 570);	// Gamma Doppler Phase 2
+	AddPaintForWeaponClassname("knife_m9_bayonet", _, 571);	// Gamma Doppler Phase 3
+	AddPaintForWeaponClassname("knife_m9_bayonet", _, 572);	// Gamma Doppler Phase 4
+	AddPaintForWeaponClassname("knife_m9_bayonet", _, 568);	// Gamma Doppler Emerald
+	AddPaintForWeaponClassname("knife_m9_bayonet", _, 577);	// Autotronic
+	AddPaintForWeaponClassname("knife_m9_bayonet", _, 579);	// Bright Water
+	AddPaintForWeaponClassname("knife_m9_bayonet", _, 581);	// Freehand
+}
+
+AddKnifeDuplicatesToKnifeEnt(const String:szWeaponEnt[])
+{
+	AddPaintForWeaponClassname(szWeaponEnt, _, 12);		// Crimson Web
+	AddPaintForWeaponClassname(szWeaponEnt, _, 38);		// Fade
+	AddPaintForWeaponClassname(szWeaponEnt, _, 72);		// Safari Mesh
+	AddPaintForWeaponClassname(szWeaponEnt, _, 42);		// Blue Steel
+	AddPaintForWeaponClassname(szWeaponEnt, _, 44);		// Case Hardened
+	AddPaintForWeaponClassname(szWeaponEnt, _, 40);		// Night
+	AddPaintForWeaponClassname(szWeaponEnt, _, 77);		// Boreal Forest
+	AddPaintForWeaponClassname(szWeaponEnt, _, 43);		// Stained
+	AddPaintForWeaponClassname(szWeaponEnt, _, 175);	// Scorched
+	AddPaintForWeaponClassname(szWeaponEnt, _, 5);		// Forest DDPAT
+	AddPaintForWeaponClassname(szWeaponEnt, _, 413);	// Marble Fade
+	AddPaintForWeaponClassname(szWeaponEnt, _, 409);	// Tiger Tooth
+	AddPaintForWeaponClassname(szWeaponEnt, _, 414);	// Rust Coat
+	AddPaintForWeaponClassname(szWeaponEnt, _, 59);		// Slaughter
+	AddPaintForWeaponClassname(szWeaponEnt, _, 143);	// Urban Masked
+}
+
+ItemsGame_AddPaintKitPostFixesManually()
+{
+	ItemsGame_AddPaintPostfix(418, " Phase 1");		// Doppler
+	ItemsGame_AddPaintPostfix(419, " Phase 2"); 	// Doppler
+	ItemsGame_AddPaintPostfix(420, " Phase 3"); 	// Doppler
+	ItemsGame_AddPaintPostfix(421, " Phase 4");		// Doppler
+	ItemsGame_AddPaintPostfix(415, " Ruby"); 		// Doppler
+	ItemsGame_AddPaintPostfix(416, " Sapphire"); 	// Doppler
+	ItemsGame_AddPaintPostfix(619, " Sapphire"); 	// Doppler
+	ItemsGame_AddPaintPostfix(417, " Black Pearl");	// Doppler
+	ItemsGame_AddPaintPostfix(617, " Black Pearl");	// Doppler
+	
+	ItemsGame_AddPaintPostfix(569, " Phase 1"); 	// Gamma Doppler
+	ItemsGame_AddPaintPostfix(570, " Phase 2"); 	// Gamma Doppler
+	ItemsGame_AddPaintPostfix(571, " Phase 3"); 	// Gamma Doppler
+	ItemsGame_AddPaintPostfix(572, " Phase 4"); 	// Gamma Doppler
+	ItemsGame_AddPaintPostfix(568, " Emerald"); 	// Gamma Doppler
+	
+	ItemsGame_AddPaintPostfix(411, " Rotated"); 	// Damascus Steel
+	ItemsGame_AddPaintPostfix(579, " Rotated"); 	// Bright Water
+	
+	ItemsGame_AddPaintPostfix(620, " Huntsman");	// Ultraviolet
+	ItemsGame_AddPaintPostfix(621, " Falchion");	// Ultraviolet
+	
+	ItemsGame_AddPaintPostfix(576, " Karambit");	// Autotronic
+	ItemsGame_AddPaintPostfix(575, " Gut");			// Autotronic
+	ItemsGame_AddPaintPostfix(574, " Flip");		// Autotronic
+	ItemsGame_AddPaintPostfix(573, " Bayonet");		// Autotronic
+	ItemsGame_AddPaintPostfix(577, " M9 Bayonet");	// Autotronic
+	
+	ItemsGame_AddPaintPostfix(581, " Rotated");		// Freehand
+	ItemsGame_AddPaintPostfix(582, " Fine");		// Freehand
+	
+	ItemsGame_AddPaintPostfix(561, " Karambit");	// Lore
+	ItemsGame_AddPaintPostfix(560, " Gut");			// Lore
+	ItemsGame_AddPaintPostfix(559, " Flip");		// Lore
+	ItemsGame_AddPaintPostfix(558, " Bayonet");		// Lore
+	ItemsGame_AddPaintPostfix(562, " M9 Bayonet");	// Lore
+	
+	ItemsGame_AddPaintPostfix(566, " Karambit");	// Black Laminate
+	ItemsGame_AddPaintPostfix(565, " Gut");			// Black Laminate
+	ItemsGame_AddPaintPostfix(564, " Flip");		// Black Laminate
+	ItemsGame_AddPaintPostfix(563, " Bayonet");		// Black Laminate
+	ItemsGame_AddPaintPostfix(567, " M9 Bayonet");	// Black Laminate
+}
+
+bool:ItemsGame_AddPaintPostfix(iPaintID, const String:szPostfix[])
+{
+	decl String:szPaintID[12];
+	IntToString(iPaintID, szPaintID, sizeof(szPaintID));
+	
+	decl iPaintKitIndex;
+	if(!GetTrieValue(g_hTrie_PaintIDToPaintKitIndex, szPaintID, iPaintKitIndex))
+	{
+		LogMessage("ItemsGame_AddPaintPostfix: Paint ID \"%i\" doesn't exist.", iPaintID);
+		return false;
+	}
+	
+	decl ePaintKit[PaintKit];
+	GetArrayArray(g_aPaintKits, iPaintKitIndex, ePaintKit);
+	strcopy(ePaintKit[PAINT_POSTFIX], POSTFIX_LEN, szPostfix);
+	SetArrayArray(g_aPaintKits, iPaintKitIndex, ePaintKit);
+	
+	return true;
 }
 
 bool:ItemsGame_ReadCategories(const Handle:hKeyVals, ItemsGameCategory:iCategory, const Handle:hExtra=INVALID_HANDLE)
@@ -1790,6 +2108,7 @@ ItemsGame_ReadPaintKits(const Handle:hKeyVals)
 		ePaintKit[PAINT_ID] = iID;
 		KvGetString(hKeyVals, "name", ePaintKit[PAINT_NAME], VDF_TOKEN_LEN);
 		KvGetString(hKeyVals, "description_tag", szBuffer, sizeof(szBuffer));
+		strcopy(ePaintKit[PAINT_POSTFIX], PAINT_POSTFIX, "");
 		ePaintKit[PAINT_SEED] = KvGetNum(hKeyVals, "seed");
 		ePaintKit[PAINT_FOUND_WEAPON] = false;
 		
@@ -1943,7 +2262,7 @@ bool:ItemsGame_ReadSetData(const Handle:hKeyVals, const String:szSetName[], bool
 		// %i - Set name - Paint kit name - Entity class name
 		//PrintToServer("%i - %s: %s - %s", bIsClientLootList, szSetName, szBuffer, szClassName);
 		
-		AddPaintForWeaponClassname(szBuffer, szClassName[7]);
+		AddPaintForWeaponClassname(szClassName[7], szBuffer);
 	}
 	while(KvGotoNextKey(hKeyVals, false));
 	
@@ -1958,14 +2277,31 @@ AddAsUsedDelocalizedString(const String:szDelocalizedString[])
 		PushArrayString(g_aDelocalizedStringsUsed, szDelocalizedString);
 }
 
-bool:AddPaintForWeaponClassname(const String:szPaintKitName[], const String:szWeaponEntName[])
+bool:AddPaintForWeaponClassname(const String:szWeaponEntName[], const String:szPaintKitName[]="", iPaintID=-1)
 {
 	decl iPaintKitIndex;
-	if(!GetTrieValue(g_hTrie_PaintNameToPaintKitIndex, szPaintKitName, iPaintKitIndex))
+	
+	if(iPaintID != -1)
 	{
-		LogMessage("Trying to add paintkit name \"%s\" but it doesn't exist within paint_kits.", szPaintKitName);
-		return false;
+		decl String:szPaintID[12];
+		IntToString(iPaintID, szPaintID, sizeof(szPaintID));
+		if(!GetTrieValue(g_hTrie_PaintIDToPaintKitIndex, szPaintID, iPaintKitIndex))
+		{
+			LogMessage("AddPaintForWeaponClassname: Paint ID \"%i\" doesn't exist.", iPaintID);
+			return false;
+		}
 	}
+	else
+	{
+		if(!GetTrieValue(g_hTrie_PaintNameToPaintKitIndex, szPaintKitName, iPaintKitIndex))
+		{
+			LogMessage("AddPaintForWeaponClassname: Paint Name \"%s\" doesn't exist.", szPaintKitName);
+			return false;
+		}
+	}
+	
+	decl ePaintKit[PaintKit];
+	GetArrayArray(g_aPaintKits, iPaintKitIndex, ePaintKit);
 	
 	decl iWeaponEntsIndex, Handle:hPaints;
 	if(!GetTrieValue(g_hTrie_PaintsForWeaponEntsMap, szWeaponEntName, iWeaponEntsIndex))
@@ -1977,7 +2313,7 @@ bool:AddPaintForWeaponClassname(const String:szPaintKitName[], const String:szWe
 		{
 			CloseHandle(hPaints);
 			RemoveFromArray(g_aPaintsForWeaponEnts, iWeaponEntsIndex);
-			LogMessage("Trying to add paintkit name \"%s\" but it failed for some reason.", szPaintKitName);
+			LogMessage("AddPaintForWeaponClassname: Failed adding paint \"%s\" to weapon \"%s\".", ePaintKit[PAINT_NAME], szWeaponEntName);
 			return false;
 		}
 	}
@@ -1989,8 +2325,6 @@ bool:AddPaintForWeaponClassname(const String:szPaintKitName[], const String:szWe
 	if(FindValueInArray(hPaints, iPaintKitIndex) == -1)
 		PushArrayCell(hPaints, iPaintKitIndex);
 	
-	decl ePaintKit[PaintKit];
-	GetArrayArray(g_aPaintKits, iPaintKitIndex, ePaintKit);
 	ePaintKit[PAINT_FOUND_WEAPON] = true;
 	SetArrayArray(g_aPaintKits, iPaintKitIndex, ePaintKit);
 	
