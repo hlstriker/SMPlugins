@@ -17,7 +17,7 @@
 #pragma dynamic 9000000
 
 new const String:PLUGIN_NAME[] = "Weapon Skins";
-new const String:PLUGIN_VERSION[] = "0.5";
+new const String:PLUGIN_VERSION[] = "0.6";
 
 public Plugin:myinfo =
 {
@@ -36,6 +36,7 @@ public Plugin:myinfo =
 #define LANG_CONFIG_DIRPATH		"configs/ws_languages"
 #define LANG_VERSION_FILENAME	"versions.txt"
 #define DELOCALIZED_RANDOM		"RD_RND"
+#define DELOCALIZED_DEFAULT		"GameUI_CrosshairStyleDefault"
 
 new Handle:g_hTrie_ClientItemDefToPaintKitIndex[MAXPLAYERS+1];
 
@@ -165,6 +166,7 @@ public OnPluginStart()
 	g_hTrie_ItemDefIndexToWeaponEnt = CreateTrie();
 	
 	AddAsUsedDelocalizedString(DELOCALIZED_RANDOM);
+	AddAsUsedDelocalizedString(DELOCALIZED_DEFAULT);
 	
 	RegConsoleCmd("sm_paints", OnSkinSelect, "Opens the weapon skin selection menu.");
 	RegConsoleCmd("sm_wskins", OnSkinSelect, "Opens the weapon skin selection menu.");
@@ -1052,6 +1054,10 @@ DisplayMenu_PaintSelectShowAll(iClient, const String:szWeaponEnt[], iStartItem=0
 	FormatEx(szInfo, sizeof(szInfo), "-1~%s", szWeaponEnt);
 	AddMenuItem(hMenu, szInfo, szBuffer);
 	
+	GetClientsLocalizedString(iClient, DELOCALIZED_DEFAULT, szBuffer, sizeof(szBuffer));
+	FormatEx(szInfo, sizeof(szInfo), "-2~%s", szWeaponEnt);
+	AddMenuItem(hMenu, szInfo, szBuffer);
+	
 	for(new i=0; i<GetArraySize(g_aPaintKits); i++)
 	{
 		GetArrayArray(g_aPaintKits, i, ePaint);
@@ -1095,6 +1101,10 @@ DisplayMenu_PaintSelectWeaponEntSpecific(iClient, const String:szWeaponEnt[], iS
 	
 	GetClientsLocalizedString(iClient, DELOCALIZED_RANDOM, szBuffer, sizeof(szBuffer));
 	FormatEx(szInfo, sizeof(szInfo), "-1~%s", szWeaponEnt);
+	AddMenuItem(hMenu, szInfo, szBuffer);
+	
+	GetClientsLocalizedString(iClient, DELOCALIZED_DEFAULT, szBuffer, sizeof(szBuffer));
+	FormatEx(szInfo, sizeof(szInfo), "-2~%s", szWeaponEnt);
 	AddMenuItem(hMenu, szInfo, szBuffer);
 	
 	for(new i=0; i<GetArraySize(hPaints); i++)
@@ -1162,41 +1172,26 @@ public MenuHandle_PaintSelect(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 	GetMenuItem(hMenu, iParam2, szBuffer[0], sizeof(szBuffer[]));
 	
 	ExplodeString(szBuffer[0], "~", szBuffer, sizeof(szBuffer), sizeof(szBuffer[]));
+	new iPaintKitIndex = StringToInt(szBuffer[0]);
 	
-	if(StrEqual(szBuffer[0], "-1"))
+	if(iPaintKitIndex == -1)
 	{
-		SetClientsPaintKitForWeapon(iParam1, -1, szBuffer[1]);
-		
 		GetClientsLocalizedString(iParam1, DELOCALIZED_RANDOM, szBuffer[0], sizeof(szBuffer[]));
-		GetLocalizedWeaponName(iParam1, szBuffer[1], szBuffer[1], sizeof(szBuffer[]));
-		
-		CPrintToChat(iParam1, "{olive}Using {lightred}%s {olive}for your {yellow}%s{olive}.", szBuffer[0], szBuffer[1]);
-		
-		if(g_iMenu_PaintListType[iParam1] == MENUSELECT_WOPTIONS_UNUSED)
-		{
-			DisplayMenu_PaintSelectShowUnused(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
-		}
-		else if(g_iMenu_PaintListType[iParam1] == MENUSELECT_WOPTIONS_THIS_WEAPON)
-		{
-			DisplayMenu_PaintSelectWeaponEntSpecific(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
-		}
-		else
-		{
-			DisplayMenu_PaintSelectShowAll(iParam1, g_szMenuPosition_PaintSelectWeaponEnt[iParam1], GetMenuSelectionPosition());
-		}
-		
-		return;
+	}
+	else if(iPaintKitIndex == -2)
+	{
+		GetClientsLocalizedString(iParam1, DELOCALIZED_DEFAULT, szBuffer[0], sizeof(szBuffer[]));
+	}
+	else
+	{
+		static ePaint[PaintKit];
+		GetArrayArray(g_aPaintKits, iPaintKitIndex, ePaint);
+		GetClientsLocalizedString(iParam1, ePaint[PAINT_TAG], szBuffer[0], sizeof(szBuffer[]));
 	}
 	
-	new iPaintKitIndex = StringToInt(szBuffer[0]);
 	SetClientsPaintKitForWeapon(iParam1, iPaintKitIndex, szBuffer[1]);
 	
-	static ePaint[PaintKit];
-	GetArrayArray(g_aPaintKits, iPaintKitIndex, ePaint);
-	
-	GetClientsLocalizedString(iParam1, ePaint[PAINT_TAG], szBuffer[0], sizeof(szBuffer[]));
 	GetLocalizedWeaponName(iParam1, szBuffer[1], szBuffer[1], sizeof(szBuffer[]));
-	
 	CPrintToChat(iParam1, "{olive}Using {lightred}%s {olive}for your {yellow}%s{olive}.", szBuffer[0], szBuffer[1]);
 	
 	if(g_iMenu_PaintListType[iParam1] == MENUSELECT_WOPTIONS_UNUSED)
@@ -1246,7 +1241,11 @@ InsertClientsPaintInDatabase(iClient, iItemDefIndex, iPaintKitIndex)
 	}
 	
 	decl ePaintKit[PaintKit];
-	GetArrayArray(g_aPaintKits, iPaintKitIndex, ePaintKit);
+	
+	if(iPaintKitIndex == -2)
+		ePaintKit[PAINT_ID] = 0;
+	else
+		GetArrayArray(g_aPaintKits, iPaintKitIndex, ePaintKit);
 	
 	DB_TQuery(g_szDatabaseConfigName, _, DBPrio_Low, _, "INSERT INTO plugin_weapon_skins (user_id, item_def, paint) VALUES (%i, %i, %i) ON DUPLICATE KEY UPDATE paint = %i", iUserID, iItemDefIndex, ePaintKit[PAINT_ID], ePaintKit[PAINT_ID]);
 }
@@ -1318,7 +1317,13 @@ bool:TryRecreateWeapon(iClient, iItemDefIndex)
 		szInfo[12] = '\x0';
 		
 		if(!StrEqual(szInfo, "weapon_knife"))
+		{
 			szInfo[12] = iChar;
+			
+			// Need to turn "weapon_bayonet" into "weapon_knife".
+			if(StrEqual(szInfo, "weapon_bayonet"))
+				strcopy(szInfo, sizeof(szInfo), "weapon_knife");
+		}
 		
 		FakeClientCommand(iClient, "use %s", szInfo);
 		SetEntPropFloat(iActiveWeapon, Prop_Send, "m_flNextPrimaryAttack", fActiveNextPrimaryAttack);
@@ -1402,9 +1407,19 @@ public Query_GetSkins(Handle:hDatabase, Handle:hQuery, any:iClientSerial)
 	decl iIndex, String:szKey[12];
 	while(SQL_FetchRow(hQuery))
 	{
-		IntToString(SQL_FetchInt(hQuery, 1), szKey, sizeof(szKey));
-		if(!GetTrieValue(g_hTrie_PaintIDToPaintKitIndex, szKey, iIndex))
-			continue;
+		iIndex = SQL_FetchInt(hQuery, 1);
+		
+		if(iIndex == 0)
+		{
+			// The vanilla paint uses index -2 in the g_hTrie_ClientItemDefToPaintKitIndex trie.
+			iIndex = -2;
+		}
+		else
+		{
+			IntToString(iIndex, szKey, sizeof(szKey));
+			if(!GetTrieValue(g_hTrie_PaintIDToPaintKitIndex, szKey, iIndex))
+				continue;
+		}
 		
 		IntToString(SQL_FetchInt(hQuery, 0), szKey, sizeof(szKey));
 		SetTrieValue(g_hTrie_ClientItemDefToPaintKitIndex[iClient], szKey, iIndex, true);
@@ -1430,17 +1445,29 @@ public OnWeaponEquipPost(iClient, iWeapon)
 	if(!GetTrieValue(g_hTrie_ClientItemDefToPaintKitIndex[iClient], szItemDefIndex, iIndex))
 		iIndex = GetRandomInt(0, iArraySize-1);
 	
-	static ePaint[PaintKit];
-	GetArrayArray(g_aPaintKits, iIndex, ePaint);
+	decl iSeed, iPaintID;
+	if(iIndex >= 0)
+	{
+		static ePaint[PaintKit];
+		GetArrayArray(g_aPaintKits, iIndex, ePaint);
+		
+		iSeed = ePaint[PAINT_SEED];
+		iPaintID = ePaint[PAINT_ID];
+	}
+	else
+	{
+		iSeed = 0;
+		iPaintID = 0;
+	}
 	
 	new iAccountID = GetSteamAccountID(iClient, false);
 	SetEntProp(iWeapon, Prop_Send, "m_bInitialized", 1);
 	SetEntProp(iWeapon, Prop_Send, "m_iItemIDLow", -1);
 	SetEntProp(iWeapon, Prop_Send, "m_iItemIDHigh", 0);
-	SetEntProp(iWeapon, Prop_Send, "m_nFallbackSeed", ePaint[PAINT_SEED]);
+	SetEntProp(iWeapon, Prop_Send, "m_nFallbackSeed", iSeed);
 	SetEntProp(iWeapon, Prop_Send, "m_iAccountID", iAccountID);
 	SetEntProp(iWeapon, Prop_Send, "m_nFallbackStatTrak", GetStatTrakCount(iClient));
-	SetEntProp(iWeapon, Prop_Send, "m_nFallbackPaintKit", ePaint[PAINT_ID]);
+	SetEntProp(iWeapon, Prop_Send, "m_nFallbackPaintKit", iPaintID);
 	SetEntPropFloat(iWeapon, Prop_Send, "m_flFallbackWear", 0.000001);
 	SetEntProp(iWeapon, Prop_Send, "m_iEntityQuality", 3); // TODO: Remove stattrak from default knives (and gold), grenades, and c4. The stattrak model gets in your view.
 	
