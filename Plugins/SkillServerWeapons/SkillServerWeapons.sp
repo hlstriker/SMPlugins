@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Skill Server Weapons";
-new const String:PLUGIN_VERSION[] = "1.6";
+new const String:PLUGIN_VERSION[] = "1.7";
 
 public Plugin:myinfo =
 {
@@ -225,7 +225,7 @@ DisplayMenu_CategorySelect(iClient)
 		if(CheckCommandAccess(iClient, "sm_zonemanager", ADMFLAG_ROOT))
 		{
 			decl String:szDisplay[48];
-			FormatEx(szDisplay, sizeof(szDisplay), "%sADMIN: Disable weapons mid-map", (MapCookies_HasCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU) && MapCookies_GetCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU)) ? "[\xE2\x9C\x93] " : "");
+			FormatEx(szDisplay, sizeof(szDisplay), "%sADMIN: Disable map weapons", (MapCookies_HasCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU) && MapCookies_GetCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU)) ? "[\xE2\x9C\x93] " : "");
 			
 			AddMenuItem(hMenu, "", "", ITEMDRAW_SPACER);
 			
@@ -258,8 +258,13 @@ public MenuHandle_CategorySelect(Handle:hMenu, MenuAction:action, iParam1, iPara
 	new iCategory = StringToInt(szInfo);
 	if(iCategory == CATEGORY_ADMIN_TOGGLE_WEAPONS)
 	{
-		new bDisabled = !(MapCookies_HasCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU) && MapCookies_GetCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU));
-		MapCookies_SetCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU, bDisabled);
+		if(g_bLibLoaded_MapCookies)
+		{
+			#if defined _map_cookies_included
+			new bDisabled = !(MapCookies_HasCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU) && MapCookies_GetCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU));
+			MapCookies_SetCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU, bDisabled);
+			#endif
+		}
 		
 		DisplayMenu_CategorySelect(iParam1);
 		return;
@@ -382,7 +387,7 @@ public MenuHandle_WeaponSelect(Handle:hMenu, MenuAction:action, iParam1, iParam2
 		return;
 	}
 	
-	if(!CanGiveMidRoundWeapon(iParam1))
+	if(!CanGiveMapWeapons(iParam1))
 	{
 		DisplayMenu_CategorySelect(iParam1);
 		return;
@@ -392,14 +397,16 @@ public MenuHandle_WeaponSelect(Handle:hMenu, MenuAction:action, iParam1, iParam2
 	DisplayMenu_CategorySelect(iParam1);
 }
 
-bool:CanGiveMidRoundWeapon(iClient)
+bool:CanGiveMapWeapons(iClient, bool:bShowMessage=true)
 {
 	if(g_bLibLoaded_MapCookies)
 	{
 		#if defined _map_cookies_included
 		if(MapCookies_HasCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU) && MapCookies_GetCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU))
 		{
-			PrintSelectedWeaponOnRespawn(iClient);
+			if(bShowMessage)
+				CPrintToChat(iClient, "{red}Weapons are disabled for this map.");
+			
 			return false;
 		}
 		#endif
@@ -432,7 +439,7 @@ public OnUnsafeKnivesMenuSelect(iClient)
 	if(!g_bLibLoaded_UnsafeKnives)
 		return;
 	
-	if(!CanGiveMidRoundWeapon(iClient))
+	if(!CanGiveMapWeapons(iClient))
 		return;
 	
 	decl String:szKnifeClassName[32];
@@ -633,7 +640,9 @@ public OnSpawnPost(iClient)
 	SetEntProp(iClient, Prop_Send, "m_bHasDefuser", 0);
 	
 	StripClientWeapons(iClient);
-	GivePlayerSpawnWeapons(iClient);
+	
+	if(CanGiveMapWeapons(iClient, false))
+		GivePlayerSpawnWeapons(iClient);
 }
 
 public Action:OnWeaponCanUse(iClient, iWeapon)
@@ -656,7 +665,12 @@ public OnWeaponEquipPost(iClient, iWeapon)
 		new iDroppedWeapon = EntRefToEntIndex(g_iDroppedWeaponRef[iOwner][iWeaponCategory]);
 		
 		if(iDroppedWeapon > 0)
+		{
+			if(iDroppedWeapon != iWeapon)
+				KillWeapon(iDroppedWeapon);
+			
 			g_iDroppedWeaponRef[iOwner][iWeaponCategory] = INVALID_ENT_REFERENCE;
+		}
 	}
 	
 	SetWeaponOwnerSerial(iWeapon, GetClientSerial(iClient));
