@@ -2,12 +2,13 @@
 #include <sdkhooks>
 #include <sdktools_functions>
 #include <sdktools_entinput>
+#include <sdktools_variant_t>
 #include <cstrike>
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Skins for map weapons";
-new const String:PLUGIN_VERSION[] = "3.0";
+new const String:PLUGIN_VERSION[] = "3.1";
 
 public Plugin:myinfo =
 {
@@ -84,14 +85,30 @@ public OnWeaponEquip_Post(iClient, iWeapon)
 	}
 	*/
 	
+	new Handle:hChildren = CreateArray();
+	for(new iChild = GetEntPropEnt(iWeapon, Prop_Data, "m_hMoveChild"); iChild != -1; iChild = GetEntPropEnt(iChild, Prop_Data, "m_hMovePeer"))
+		PushArrayCell(hChildren, iChild);
+	
 	new iActiveWeapon = GetEntPropEnt(iClient, Prop_Send, "m_hActiveWeapon");
 	if(iActiveWeapon == iWeapon)
 		SetEntPropEnt(iClient, Prop_Send, "m_hActiveWeapon", -1);
 	
 	RemovePlayerItem(iClient, iWeapon);
 	
-	if(GiveWeapon(iClient, szClassName))
+	new iNewWeapon = GiveWeapon(iClient, szClassName);
+	if(iNewWeapon != -1)
 	{
+		decl iChild;
+		for(new i=0; i<GetArraySize(hChildren); i++)
+		{
+			iChild = GetArrayCell(hChildren, i);
+			
+			SetVariantString("!activator");
+			AcceptEntityInput(iChild, "SetParent", iNewWeapon);
+			
+			SetEntProp(iNewWeapon, Prop_Send, "m_iParentAttachment", GetEntProp(iWeapon, Prop_Send, "m_iParentAttachment"));
+		}
+		
 		AcceptEntityInput(iWeapon, "Kill");
 	}
 	else
@@ -101,13 +118,15 @@ public OnWeaponEquip_Post(iClient, iWeapon)
 		if(iActiveWeapon == iWeapon)
 			SetEntPropEnt(iClient, Prop_Send, "m_hActiveWeapon", iWeapon);
 	}
+	
+	CloseHandle(hChildren);
 }
 
-bool:GiveWeapon(iClient, const String:szWeaponName[])
+GiveWeapon(iClient, const String:szWeaponName[])
 {
 	new iIndex = FindStringInArray(g_aWeapons, szWeaponName);
 	if(iIndex == -1)
-		return false;
+		return -1;
 	
 	static eWeaponData[WeaponData];
 	GetArrayArray(g_aWeapons, iIndex, eWeaponData);
@@ -119,10 +138,7 @@ bool:GiveWeapon(iClient, const String:szWeaponName[])
 	new iWeapon = GivePlayerItemCustom(iClient, eWeaponData[WEAPON_ENT_NAME]);
 	SetEntProp(iClient, Prop_Send, "m_iTeamNum", iClientTeam);
 	
-	if(iWeapon == -1)
-		return false;
-	
-	return true;
+	return iWeapon;
 }
 
 GivePlayerItemCustom(iClient, const String:szClassName[])

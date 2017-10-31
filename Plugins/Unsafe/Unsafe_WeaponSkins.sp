@@ -3,6 +3,7 @@
 #include <sdkhooks>
 #include <regex>
 #include <sdktools_entinput>
+#include <sdktools_variant_t>
 #include "../../Libraries/FileDownloader/file_downloader"
 #include "../../Libraries/DatabaseCore/database_core"
 #include "../../Libraries/DatabaseServers/database_servers"
@@ -17,7 +18,7 @@
 #pragma dynamic 9000000
 
 new const String:PLUGIN_NAME[] = "Weapon Skins";
-new const String:PLUGIN_VERSION[] = "0.6";
+new const String:PLUGIN_VERSION[] = "0.7";
 
 public Plugin:myinfo =
 {
@@ -1295,12 +1296,34 @@ bool:TryRecreateWeapon(iClient, iItemDefIndex)
 	new iBurstMode = GetEntProp(iWeaponToStrip, Prop_Send, "m_bBurstMode");
 	new iSilencer = GetEntProp(iWeaponToStrip, Prop_Send, "m_bSilencerOn");
 	
-	StripWeaponFromOwner(iWeaponToStrip);
+	new Handle:hChildren = CreateArray();
+	for(new iChild = GetEntPropEnt(iWeaponToStrip, Prop_Data, "m_hMoveChild"); iChild != -1; iChild = GetEntPropEnt(iChild, Prop_Data, "m_hMovePeer"))
+		PushArrayCell(hChildren, iChild);
+	
+	StripWeaponFromOwner(iWeaponToStrip, false);
 	SetEntPropEnt(iClient, Prop_Send, "m_hMyWeapons", -1, iWeaponSlotIndex);
 	
 	iWeapon = GivePlayerItemCustom(iClient, szWeaponEnt);
 	if(iWeapon < 1)
+	{
+		AcceptEntityInput(iWeaponToStrip, "KillHierarchy");
+		CloseHandle(hChildren);
 		return false;
+	}
+	
+	decl iChild;
+	for(new i=0; i<GetArraySize(hChildren); i++)
+	{
+		iChild = GetArrayCell(hChildren, i);
+		
+		SetVariantString("!activator");
+		AcceptEntityInput(iChild, "SetParent", iWeapon);
+		
+		SetEntProp(iWeapon, Prop_Send, "m_iParentAttachment", GetEntProp(iWeaponToStrip, Prop_Send, "m_iParentAttachment"));
+	}
+	
+	AcceptEntityInput(iWeaponToStrip, "KillHierarchy");
+	CloseHandle(hChildren);
 	
 	SetEntProp(iWeapon, Prop_Send, "m_iClip1", iClipSize);
 	SetEntProp(iWeapon, Prop_Send, "m_iPrimaryReserveAmmoCount", iReserveSize);
@@ -1347,13 +1370,14 @@ GivePlayerItemCustom(iClient, const String:szClassName[])
 	return iEnt;
 }
 
-StripWeaponFromOwner(iWeapon)
+StripWeaponFromOwner(iWeapon, bool:bKill)
 {
 	new iOwner = GetEntPropEnt(iWeapon, Prop_Send, "m_hOwnerEntity");
 	if(iOwner != -1)
 	{
 		// First drop the weapon.
-		SDKHooks_DropWeapon(iOwner, iWeapon);
+		// NOTE: Dropping will mess the reparenting up without saving origin/angles, so just skip this for now.
+		//SDKHooks_DropWeapon(iOwner, iWeapon);
 		
 		// If the weapon still has an owner after being dropped call RemovePlayerItem.
 		// Note we check m_hOwner instead of m_hOwnerEntity here.
@@ -1370,7 +1394,8 @@ StripWeaponFromOwner(iWeapon)
 		AcceptEntityInput(iWorldModel, "KillHierarchy");
 	}
 	
-	AcceptEntityInput(iWeapon, "KillHierarchy");
+	if(bKill)
+		AcceptEntityInput(iWeapon, "KillHierarchy");
 }
 
 public OnClientPutInServer(iClient)
