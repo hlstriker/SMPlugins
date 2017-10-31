@@ -18,7 +18,7 @@
 #pragma dynamic 9000000
 
 new const String:PLUGIN_NAME[] = "Weapon Skins";
-new const String:PLUGIN_VERSION[] = "0.7";
+new const String:PLUGIN_VERSION[] = "0.8";
 
 public Plugin:myinfo =
 {
@@ -38,6 +38,9 @@ public Plugin:myinfo =
 #define LANG_VERSION_FILENAME	"versions.txt"
 #define DELOCALIZED_RANDOM		"RD_RND"
 #define DELOCALIZED_DEFAULT		"GameUI_CrosshairStyleDefault"
+
+#define OBS_MODE_IN_EYE		4
+#define OBS_MODE_CHASE		5
 
 new Handle:g_hTrie_ClientItemDefToPaintKitIndex[MAXPLAYERS+1];
 
@@ -173,8 +176,8 @@ public OnPluginStart()
 	RegConsoleCmd("sm_wskins", OnSkinSelect, "Opens the weapon skin selection menu.");
 	RegConsoleCmd("sm_ws", OnSkinSelect, "Opens the weapon skin selection menu.");
 	
-	RegConsoleCmd("sm_ss", OnSkinSelect, "TODO");
-	RegConsoleCmd("sm_showskin", OnSkinSelect, "TODO");
+	RegConsoleCmd("sm_ss", OnShowSkin, "Shows the skins your weapons are using.");
+	RegConsoleCmd("sm_showskin", OnShowSkin, "Shows the skins your weapons are using.");
 }
 
 public OnAllPluginsLoaded()
@@ -676,6 +679,74 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 {
 	RegPluginLibrary("unsafe_weapon_skins");
 	return APLRes_Success;
+}
+
+public Action:OnShowSkin(iClient, iArgNum)
+{
+	if(!iClient)
+		return Plugin_Handled;
+	
+	if(IsPlayerAlive(iClient))
+	{
+		ShowSkins(iClient, iClient);
+		return Plugin_Handled;
+	}
+	
+	new iObserverMode = GetEntProp(iClient, Prop_Send, "m_iObserverMode");
+	new iSpectating = GetEntPropEnt(iClient, Prop_Send, "m_hObserverTarget");
+	
+	if((iObserverMode != OBS_MODE_IN_EYE && iObserverMode != OBS_MODE_CHASE) || iSpectating < 1)
+	{
+		CPrintToChat(iClient, "{red}Spectate someone to view their skins.");
+		return Plugin_Handled;
+	}
+	
+	ShowSkins(iClient, iSpectating);
+	
+	return Plugin_Handled;
+}
+
+ShowSkins(iClient, iTarget)
+{
+	new iArraySize = GetEntPropArraySize(iTarget, Prop_Send, "m_hMyWeapons");
+	if(!iArraySize)
+	{
+		CPrintToChat(iClient, "{red}No weapons to show.");
+		return;
+	}
+	
+	CPrintToChat(iClient, "{lightred}---");
+	
+	decl iWeapon, iPaint, iIndex;
+	static String:szPaint[VDF_TOKEN_LEN], String:szWeapon[VDF_TOKEN_LEN], ePaintKit[PaintKit];
+	for(new i=0; i<iArraySize; i++)
+	{
+		iWeapon = GetEntPropEnt(iTarget, Prop_Send, "m_hMyWeapons", i);
+		if(iWeapon < 1)
+			continue;
+		
+		IntToString(GetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex"), szWeapon, sizeof(szWeapon));
+		if(!GetTrieString(g_hTrie_ItemDefIndexToWeaponEnt, szWeapon, szWeapon, sizeof(szWeapon)))
+			continue;
+		
+		iPaint = GetEntProp(iWeapon, Prop_Send, "m_nFallbackPaintKit");
+		if(!iPaint)
+		{
+			GetClientsLocalizedString(iClient, DELOCALIZED_DEFAULT, szPaint, sizeof(szPaint));
+		}
+		else
+		{
+			IntToString(iPaint, szPaint, sizeof(szPaint));
+			if(!GetTrieValue(g_hTrie_PaintIDToPaintKitIndex, szPaint, iIndex))
+				continue;
+			
+			GetArrayArray(g_aPaintKits, iIndex, ePaintKit);
+			GetClientsLocalizedString(iClient, ePaintKit[PAINT_TAG], szPaint, sizeof(szPaint));
+		}
+		
+		GetLocalizedWeaponName(iClient, szWeapon, szWeapon, sizeof(szWeapon));
+		CPrintToChat(iClient, "{olive}Using {lightred}%s {olive}for {yellow}%s{olive}.", szPaint, szWeapon);
+	}
 }
 
 public Action:OnSkinSelect(iClient, iArgNum)
