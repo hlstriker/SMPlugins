@@ -8,7 +8,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Skins for map weapons";
-new const String:PLUGIN_VERSION[] = "3.1";
+new const String:PLUGIN_VERSION[] = "3.2";
 
 public Plugin:myinfo =
 {
@@ -25,6 +25,11 @@ public Plugin:myinfo =
 #define WEAPON_TEAM_NONE	0	// Use WEAPON_TEAM_NONE for weapons that break due to inventory loadout.
 #define WEAPON_TEAM_T		CS_TEAM_T
 #define WEAPON_TEAM_CT		CS_TEAM_CT
+
+#define ITEMDEF_M4A1_SILENCER	60
+#define ITEMDEF_USP_SILENCER	61
+#define ITEMDEF_CZ75A			63
+#define ITEMDEF_REVOLVER		64
 
 new Handle:g_aWeapons;
 enum _:WeaponData
@@ -75,15 +80,14 @@ public OnWeaponEquip_Post(iClient, iWeapon)
 	
 	SetEntProp(iWeapon, Prop_Data, "m_iHammerID", 0);
 	
-	// TODO: Delete this if picking up silenced weapons works now.
-	/*
 	new iItemDefinitionIndex = GetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex");
 	switch(iItemDefinitionIndex)
 	{
-		case ITEM_DEF_INDEX_M4A1: strcopy(szClassName, sizeof(szClassName), "weapon_m4a1_silencer");
-		case ITEM_DEF_INDEX_USP: strcopy(szClassName, sizeof(szClassName), "weapon_usp_silencer");
+		case ITEMDEF_M4A1_SILENCER: strcopy(szClassName, sizeof(szClassName), "weapon_m4a1_silencer");
+		case ITEMDEF_USP_SILENCER: strcopy(szClassName, sizeof(szClassName), "weapon_usp_silencer");
+		case ITEMDEF_CZ75A: strcopy(szClassName, sizeof(szClassName), "weapon_cz75a");
+		case ITEMDEF_REVOLVER: strcopy(szClassName, sizeof(szClassName), "weapon_revolver");
 	}
-	*/
 	
 	new Handle:hChildren = CreateArray();
 	for(new iChild = GetEntPropEnt(iWeapon, Prop_Data, "m_hMoveChild"); iChild != -1; iChild = GetEntPropEnt(iChild, Prop_Data, "m_hMovePeer"))
