@@ -6,10 +6,14 @@
 #include "../MapVoting/map_voting"
 #include <hls_color_chat>
 
+#undef REQUIRE_PLUGIN
+#include "../../Libraries/ModelSkinManager/model_skin_manager"
+#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Course Auto Respawn";
-new const String:PLUGIN_VERSION[] = "1.6";
+new const String:PLUGIN_VERSION[] = "1.7";
 
 public Plugin:myinfo =
 {
@@ -38,6 +42,8 @@ new bool:g_EventHooked_PlayerTeam;
 new Handle:g_hTimer_Respawn[MAXPLAYERS+1];
 new Handle:g_hTimer_SetBotMoveType;
 
+new bool:g_bLibLoaded_ModelSkinManager;
+
 
 public OnPluginStart()
 {
@@ -46,6 +52,27 @@ public OnPluginStart()
 	cvar_course_respawn_enabled = CreateConVar("sv_course_respawn_enabled", "1", "1: Enabled -- 0: Disabled", _, true, 0.0, true, 1.0);
 	
 	cvar_ignore_round_win_conditions = FindConVar("mp_ignore_round_win_conditions");
+}
+
+public OnAllPluginsLoaded()
+{
+	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+	{
+		g_bLibLoaded_ModelSkinManager = true;
+	}
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "model_skin_manager"))
+	{
+		g_bLibLoaded_ModelSkinManager = false;
+	}
 }
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
@@ -149,12 +176,28 @@ ApplyBotSettings()
 		return;
 	
 	SetEntityMoveType(iBot, MOVETYPE_WALK);
-	SetEntityModel(iBot, MODEL_RESPAWN_BOT);
+	
+	if(!g_bLibLoaded_ModelSkinManager)
+		SetEntityModel(iBot, MODEL_RESPAWN_BOT);
 	
 	g_bShouldAutoRespawn = true;
 	SetConVarBool(cvar_ignore_round_win_conditions, true);
 	
 	StartTimer_SetBotMoveType();
+}
+
+public MSManager_OnSpawnPost(iClient)
+{
+	new iBot = GetClientFromSerial(g_iBotSerial);
+	if(iBot < 1)
+		return;
+	
+	if(iClient != iBot)
+		return;
+	
+	#if defined _model_skin_manager_included
+	MSManager_SetPlayerModel(iClient, MODEL_RESPAWN_BOT);
+	#endif
 }
 
 StopTimer_SetBotMoveType()
