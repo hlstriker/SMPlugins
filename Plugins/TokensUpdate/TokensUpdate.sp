@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Token Update";
-new const String:PLUGIN_VERSION[] = "2.0";
+new const String:PLUGIN_VERSION[] = "2.1";
 
 public Plugin:myinfo =
 {
@@ -411,13 +411,13 @@ bool:LoadConfig()
 		{
 			g_bHibernate = bool:StringToInt(szKeyValue[1]);
 		}
+		else if(StrEqual(szKeyValue[0], "tokens_token", false))
+		{
+			strcopy(g_szToken, sizeof(g_szToken), szKeyValue[1]);
+		}
 		else if(StrEqual(szKeyValue[0], "csgotokens_apikey", false))
 		{
 			strcopy(g_szApiKey_CsgoTokens, sizeof(g_szApiKey_CsgoTokens), szKeyValue[1]);
-		}
-		else if(StrEqual(szKeyValue[0], "tokenstash_token", false))
-		{
-			strcopy(g_szToken, sizeof(g_szToken), szKeyValue[1]);
 		}
 		else if(StrEqual(szKeyValue[0], "tokenstash_steamid", false))
 		{
@@ -449,10 +449,10 @@ SaveConfig()
 	WriteFileLine(fp, "tokens_tokensite\t\"%i\"", g_iValidatedTokenSite);
 	WriteFileLine(fp, "tokens_autoupdate\t\"%i\"", g_bAutoUpdate);
 	WriteFileLine(fp, "tokens_hibernate\t\"%i\"", g_bHibernate);
+	WriteFileLine(fp, "tokens_token\t\"%s\"", g_szToken);
 	
 	WriteFileLine(fp, "csgotokens_apikey\t\"%s\"", g_szApiKey_CsgoTokens);
 	
-	WriteFileLine(fp, "tokenstash_token\t\"%s\"", g_szToken);
 	WriteFileLine(fp, "tokenstash_steamid\t\"%s\"", g_szSteamID);
 	WriteFileLine(fp, "tokenstash_apikey\t\"%s\"", g_szApiKey_TokenStash);
 	WriteFileLine(fp, "tokenstash_serverkey\t\"%s\"", g_szServerKey);
