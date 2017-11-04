@@ -5,9 +5,6 @@
 new const String:PLUGIN_NAME[] = "Noclip";
 new const String:PLUGIN_VERSION[] = "1.0";
 
-new const SOLID_NONE = 0;
-new const SOLID_BBOX = 2;
-
 public Plugin:myinfo =
 {
 	name = PLUGIN_NAME,
@@ -17,18 +14,20 @@ public Plugin:myinfo =
 	url = ""
 }
 
+#define SOLID_NONE	0
+#define SOLID_BBOX	2
+
+
 public OnPluginStart()
 {
-	RegConsolenCmd("sm_nc", Command_Noclip, "sm_nc/sm_p - Toggles noclip");
-	RegConsoleCmd("sm_p", Command_Noclip, "sm_nc/sm_p - Toggles noclip");
+	RegConsoleCmd("sm_nc", Command_Noclip, "Toggles noclip");
+	RegConsoleCmd("sm_p", Command_Noclip, "Toggles noclip");
 }
 
 public Action:Command_Noclip(iClient, iArgs)
 {
 	if(!IsPlayerAlive(iClient))
-	{
 		return Plugin_Handled;
-	}
 	
 	if(GetEntityMoveType(iClient) == MOVETYPE_NOCLIP)
 	{
@@ -40,5 +39,6 @@ public Action:Command_Noclip(iClient, iArgs)
 		SetEntProp(iClient, Prop_Send, "m_nSolidType", SOLID_NONE);
 		SetEntityMoveType(iClient, MOVETYPE_NOCLIP);
 	}
+	
 	return Plugin_Handled;
 }
