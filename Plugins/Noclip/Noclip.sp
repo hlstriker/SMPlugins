@@ -25,18 +25,20 @@ public OnPluginStart()
 
 public Action:Command_Noclip(iClient, iArgs)
 {
-	if(IsPlayerAlive(iClient))
+	if(!IsPlayerAlive(iClient))
 	{
-		if(GetEntityMoveType(iClient) == MOVETYPE_NOCLIP)
-		{
-			SetEntProp(iClient, Prop_Send, "m_nSolidType", SOLID_BBOX);
-			SetEntityMoveType(iClient, MOVETYPE_WALK);
-		}
-		else
-		{
-			SetEntProp(iClient, Prop_Send, "m_nSolidType", SOLID_NONE);
-			SetEntityMoveType(iClient, MOVETYPE_NOCLIP);
-		}
+		return Plugin_Handled;
+	}
+	
+	if(GetEntityMoveType(iClient) == MOVETYPE_NOCLIP)
+	{
+		SetEntProp(iClient, Prop_Send, "m_nSolidType", SOLID_BBOX);
+		SetEntityMoveType(iClient, MOVETYPE_WALK);
+	}
+	else
+	{
+		SetEntProp(iClient, Prop_Send, "m_nSolidType", SOLID_NONE);
+		SetEntityMoveType(iClient, MOVETYPE_NOCLIP);
 	}
 	return Plugin_Handled;
 }
