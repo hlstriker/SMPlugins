@@ -1,7 +1,10 @@
+#include <sourcemod>
 #include <sdktools>
 
+#pragma semicolon 1
+
 new const String:PLUGIN_NAME[] = "Measure Gap";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -12,23 +15,27 @@ public Plugin:myinfo =
 	url = ""
 }
 
+// Everything that blocks player movement
+#define	MASK_PLAYERSOLID		(CONTENTS_SOLID|CONTENTS_MOVEABLE|CONTENTS_PLAYERCLIP|CONTENTS_WINDOW|CONTENTS_MONSTER|CONTENTS_GRATE)
 
+enum
+{
+	LOCATION_1 = 0,
+	LOCATION_2,
+	NUM_LOCATIONS
+};
 
+// Player measure locations
+new Float:g_fMeasureLocation[MAXPLAYERS + 1][NUM_LOCATIONS][3];
 
-
-#define	MASK_PLAYERSOLID		(CONTENTS_SOLID|CONTENTS_MOVEABLE|CONTENTS_PLAYERCLIP|CONTENTS_WINDOW|CONTENTS_MONSTER|CONTENTS_GRATE) 	/**< everything that blocks player movement */
-
-new Float:g_fMeasureLocation[MAXPLAYERS + 1][2][3];
-//Player measure locations
-
+// Player measure distances
 new Float:g_fMeasureDelta[MAXPLAYERS + 1][3];
-//Player measure distances
 
+// Player snap to grid option
 new bool:g_bSnapToGrid[MAXPLAYERS + 1];
-//Player snap to grid option
 
+// Player snap increment index
 new g_iSnapIncrementIndex[MAXPLAYERS + 1];
-//Player snap increment index
 
 new g_Sprite;
 
@@ -38,6 +45,16 @@ new g_iSecondPointerColor[] = {0, 255, 127, 255};
 
 new Float:g_fSnapIncrements[] = {4.0, 8.0, 16.0, 32.0, 64.0};
 
+enum
+{
+	MENUSELECT_LOCATION_1 = 1,
+	MENUSELECT_LOCATION_2,
+	MENUSELECT_MEASURE,
+	MENUSELECT_SNAP_TO_GRID,
+	MENUSELECT_SNAP_INCREMENT
+};
+
+
 public OnPluginStart()
 {
 	RegConsoleCmd("sm_measure", OnMeasure, "Opens the Measure Gap menu");
@@ -46,111 +63,127 @@ public OnPluginStart()
 
 public OnMapStart()
 {
-	g_Sprite = PrecacheModel("materials/sprites/laser.vmt");
+	g_Sprite = PrecacheModel("materials/sprites/laserbeam.vmt");
 }
- 
-public MenuHandler1(Handle:menu, MenuAction:action, param1, param2)
+
+public Action:OnMeasure(iClient, iArgs)
 {
-	new iClient = param1;
-	/* If an option was selected, tell the client about the item. */
-	if (action == MenuAction_Select)
+	DisplayMenu_Gap(iClient);
+	return Plugin_Handled;
+}
+
+DisplayMenu_Gap(iClient)
+{
+	new Handle:hMenu = CreateMenu(MenuHandle_Gap);
+	SetMenuTitle(hMenu, "Measure Gap");
+	
+	decl String:szInfo[4], String:szBuffer[30];
+	IntToString(MENUSELECT_LOCATION_1, szInfo, sizeof(szInfo));
+	AddMenuItem(hMenu, szInfo, "Location 1");
+	
+	IntToString(MENUSELECT_LOCATION_2, szInfo, sizeof(szInfo));
+	AddMenuItem(hMenu, szInfo, "Location 2");
+	
+	IntToString(MENUSELECT_MEASURE, szInfo, sizeof(szInfo));
+	AddMenuItem(hMenu, szInfo, "Measure");
+	
+	FormatEx(szBuffer, sizeof(szBuffer), "Snap to grid: %s", g_bSnapToGrid[iClient] ? "Yes" : "No");
+	IntToString(MENUSELECT_SNAP_TO_GRID, szInfo, sizeof(szInfo));
+	AddMenuItem(hMenu, szInfo, szBuffer);
+	
+	FormatEx(szBuffer, sizeof(szBuffer), "Snap increment: %.0f", g_fSnapIncrements[g_iSnapIncrementIndex[iClient]]);
+	IntToString(MENUSELECT_SNAP_INCREMENT, szInfo, sizeof(szInfo));
+	AddMenuItem(hMenu, szInfo, szBuffer);
+	
+	FormatEx(szBuffer, sizeof(szBuffer), "Horizontal: %f", g_fMeasureDelta[iClient][0]);
+	AddMenuItem(hMenu, "", szBuffer, ITEMDRAW_DISABLED);
+	
+	FormatEx(szBuffer, sizeof(szBuffer), "Vertical: %f", g_fMeasureDelta[iClient][1]);
+	AddMenuItem(hMenu, "", szBuffer, ITEMDRAW_DISABLED);
+	
+	FormatEx(szBuffer, sizeof(szBuffer), "Total: %f", g_fMeasureDelta[iClient][2]);
+	AddMenuItem(hMenu, "", szBuffer, ITEMDRAW_DISABLED);
+	
+	SetMenuPagination(hMenu, MENU_NO_PAGINATION);
+	SetMenuExitButton(hMenu, true);
+	DisplayMenu(hMenu, iClient, 0);
+}
+
+public MenuHandle_Gap(Handle:hMenu, MenuAction:action, iParam1, iParam2)
+{
+	if(action == MenuAction_End)
 	{
-		switch(param2)
+		CloseHandle(hMenu);
+		return;
+	}
+	
+	if(action != MenuAction_Select)
+		return;
+	
+	new iClient = iParam1;
+	
+	decl String:szInfo[4];
+	GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
+	
+	switch(StringToInt(szInfo))
+	{
+		case MENUSELECT_LOCATION_1:		GetLocation(iClient, LOCATION_1, g_iFirstPointerColor);
+		case MENUSELECT_LOCATION_2:		GetLocation(iClient, LOCATION_2, g_iSecondPointerColor);
+		case MENUSELECT_MEASURE:		PlayerMeasure(iClient);
+		case MENUSELECT_SNAP_TO_GRID:	g_bSnapToGrid[iClient] = !g_bSnapToGrid[iClient];
+		
+		case MENUSELECT_SNAP_INCREMENT:
 		{
-			case 0:
-			{
-				new Float:fEyePos[3], Float:fEyeAngles[3], Float:fEndPos[3];
-				GetClientEyePosition(iClient, fEyePos);
-				GetClientEyeAngles(iClient, fEyeAngles);
-				TR_TraceRayFilter(fEyePos, fEyeAngles, MASK_PLAYERSOLID, RayType_Infinite, TraceFilter_DontHitPlayers);
-				TR_GetEndPosition(fEndPos);
-				
-				new Float:fPointerStartPos[3];
-				new Float:fPointerOffset[] = {0.0, 0.0, -10.0};
-				AddVectors(fEyePos, fPointerOffset, fPointerStartPos);
-				TE_SetupBeamPoints(fPointerStartPos, fEndPos, g_Sprite, 0, 0, 0, 0.5, 1.0, 1.0, 10, 0.0, g_iFirstPointerColor, 0);
-				TE_SendToClient(iClient);
-				
-				g_fMeasureLocation[iClient][0] = fEndPos;
-				
-				DisplayGapMenu(iClient);
-			}
-			case 1:
-			{
-				new Float:fEyePos[3], Float:fEyeAngles[3], Float:fEndPos[3];
-				GetClientEyePosition(iClient, fEyePos);
-				GetClientEyeAngles(iClient, fEyeAngles);
-				TR_TraceRayFilter(fEyePos, fEyeAngles, MASK_PLAYERSOLID, RayType_Infinite, TraceFilter_DontHitPlayers);
-				TR_GetEndPosition(fEndPos);
-				
-				new Float:fPointerStartPos[3];
-				new Float:fPointerOffset[] = {0.0, 0.0, -10.0};
-				AddVectors(fEyePos, fPointerOffset, fPointerStartPos);
-				TE_SetupBeamPoints(fPointerStartPos, fEndPos, g_Sprite, 0, 0, 0, 0.5, 1.0, 1.0, 10, 0.0, g_iSecondPointerColor, 0);
-				TE_SendToClient(iClient);
-				
-				g_fMeasureLocation[iClient][1] = fEndPos;
-				
-				DisplayGapMenu(iClient);
-			}
-			case 2:
-			{
-				PlayerMeasure(iClient);
-				DisplayGapMenu(iClient);
-			}
-			case 3:
-			{
-				g_bSnapToGrid[iClient] = !g_bSnapToGrid[iClient];
-				DisplayGapMenu(iClient);
-			}
-			case 4:
-			{
-				new iNewIndex = g_iSnapIncrementIndex[iClient] + 1;
-				if (iNewIndex >= sizeof(g_fSnapIncrements))
-				{
-					iNewIndex = 0;
-				}
-				
-				g_iSnapIncrementIndex[iClient] = iNewIndex;
-				
-				DisplayGapMenu(iClient);
-			}
+			new iNewIndex = g_iSnapIncrementIndex[iClient] + 1;
+			if(iNewIndex >= sizeof(g_fSnapIncrements))
+				iNewIndex = 0;
+			
+			g_iSnapIncrementIndex[iClient] = iNewIndex;
 		}
 	}
-	/* If the menu was cancelled, print a message to the server about it. */
-	else if (action == MenuAction_Cancel)
-	{
-		PrintToServer("Client %d's menu was cancelled.  Reason: %d", param1, param2);
-	}
-	/* If the menu has ended, destroy it */
-	else if (action == MenuAction_End)
-	{
-		CloseHandle(menu);
-	}
+	
+	DisplayMenu_Gap(iClient);
+}
+
+GetLocation(iClient, iLocationNum, const iColor[4])
+{
+	decl Float:fEyePos[3], Float:fEyeAngles[3], Float:fEndPos[3];
+	GetClientEyePosition(iClient, fEyePos);
+	GetClientEyeAngles(iClient, fEyeAngles);
+	TR_TraceRayFilter(fEyePos, fEyeAngles, MASK_PLAYERSOLID, RayType_Infinite, TraceFilter_DontHitPlayers);
+	TR_GetEndPosition(fEndPos);
+	
+	decl Float:fPointerStartPos[3];
+	new Float:fPointerOffset[] = {0.0, 0.0, -10.0};
+	AddVectors(fEyePos, fPointerOffset, fPointerStartPos);
+	TE_SetupBeamPoints(fPointerStartPos, fEndPos, g_Sprite, 0, 0, 0, 0.5, 1.0, 1.0, 10, 0.0, iColor, 0);
+	TE_SendToClient(iClient);
+	
+	g_fMeasureLocation[iClient][iLocationNum] = fEndPos;
 }
 
 PlayerMeasure(iClient)
 {
-	new Float:fFirstLocation[3], Float:fSecondLocation[3], Float:fDeltaLocation[3];
+	decl Float:fFirstLocation[3], Float:fSecondLocation[3], Float:fDeltaLocation[3];
 	
-	fFirstLocation = g_fMeasureLocation[iClient][0];
-	fSecondLocation = g_fMeasureLocation[iClient][1];
+	fFirstLocation = g_fMeasureLocation[iClient][LOCATION_1];
+	fSecondLocation = g_fMeasureLocation[iClient][LOCATION_2];
 	
-	if (g_bSnapToGrid[iClient])
+	if(g_bSnapToGrid[iClient])
 	{
 		new Float:fSnapIncrement = g_fSnapIncrements[g_iSnapIncrementIndex[iClient]];
-		fFirstLocation[0] = RoundFloat(fFirstLocation[0] / fSnapIncrement)*fSnapIncrement;
-		fFirstLocation[1] = RoundFloat(fFirstLocation[1] / fSnapIncrement)*fSnapIncrement;
-		fFirstLocation[2] = RoundFloat(fFirstLocation[2] / fSnapIncrement)*fSnapIncrement;
+		fFirstLocation[0] = RoundFloat(fFirstLocation[0] / fSnapIncrement) * fSnapIncrement;
+		fFirstLocation[1] = RoundFloat(fFirstLocation[1] / fSnapIncrement) * fSnapIncrement;
+		fFirstLocation[2] = RoundFloat(fFirstLocation[2] / fSnapIncrement) * fSnapIncrement;
 		
-		fSecondLocation[0] = RoundFloat(fSecondLocation[0] / fSnapIncrement)*fSnapIncrement;
-		fSecondLocation[1] = RoundFloat(fSecondLocation[1] / fSnapIncrement)*fSnapIncrement;
-		fSecondLocation[2] = RoundFloat(fSecondLocation[2] / fSnapIncrement)*fSnapIncrement;
+		fSecondLocation[0] = RoundFloat(fSecondLocation[0] / fSnapIncrement) * fSnapIncrement;
+		fSecondLocation[1] = RoundFloat(fSecondLocation[1] / fSnapIncrement) * fSnapIncrement;
+		fSecondLocation[2] = RoundFloat(fSecondLocation[2] / fSnapIncrement) * fSnapIncrement;
 	}
 	
 	SubtractVectors(fSecondLocation, fFirstLocation, fDeltaLocation);
 	
-	new Float:fHorizontalDelta[3]
+	decl Float:fHorizontalDelta[3];
 	fHorizontalDelta[0] = fDeltaLocation[0];
 	fHorizontalDelta[1] = fDeltaLocation[1];
 	fHorizontalDelta[2] = 0.0;
@@ -161,44 +194,6 @@ PlayerMeasure(iClient)
 	
 	TE_SetupBeamPoints(fFirstLocation, fSecondLocation, g_Sprite, 0, 0, 0, 10.0, 5.0, 5.0, 10, 0.0, g_iMeasureColor, 0);
 	TE_SendToClient(iClient);
-}
-
-DisplayGapMenu(iClient)
-{
-	new Handle:menu = CreateMenu(MenuHandler1);
-	SetMenuTitle(menu, "Measure Gap");
-	AddMenuItem(menu, "loc1", "Location 1");
-	AddMenuItem(menu, "loc2", "Location 2");
-	AddMenuItem(menu, "measure", "Measure");
-	
-	new String:snapStr[20] = "Snap to Grid: ";
-	StrCat(snapStr, sizeof(snapStr), g_bSnapToGrid[iClient] ? "Yes" : "No");
-	AddMenuItem(menu, "snap", snapStr);
-	
-	new String:snapIncStr[30] = "";
-	Format(snapIncStr, sizeof(snapIncStr), "Snap Increment: %.0f", g_fSnapIncrements[g_iSnapIncrementIndex[iClient]]);
-	AddMenuItem(menu, "snap_inc", snapIncStr);
-	
-	new String:hStr[30] = "";
-	Format(hStr, sizeof(hStr), "Horizontal: %f", g_fMeasureDelta[iClient][0]);
-	new String:vStr[30] = "";
-	Format(vStr, sizeof(vStr), "Vertical: %f", g_fMeasureDelta[iClient][1]);
-	new String:tStr[30] = "";
-	Format(tStr, sizeof(tStr), "Total: %f", g_fMeasureDelta[iClient][2]);
-	
-	AddMenuItem(menu, "h", hStr, ITEMDRAW_DISABLED);
-	AddMenuItem(menu, "v", vStr, ITEMDRAW_DISABLED);
-	AddMenuItem(menu, "total", tStr, ITEMDRAW_DISABLED);
-	AddMenuItem(menu, "exit", "Exit");
-	
-	SetMenuPagination(menu, MENU_NO_PAGINATION);
-	DisplayMenu(menu, iClient, 0);
-}
- 
-public Action:OnMeasure(client, args)
-{
-	DisplayGapMenu(client);
-	return Plugin_Handled;
 }
 
 public bool:TraceFilter_DontHitPlayers(iEnt, iMask, any:iData)
