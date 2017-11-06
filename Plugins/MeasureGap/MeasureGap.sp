@@ -1,7 +1,7 @@
 #include <sdktools>
 
 new const String:PLUGIN_NAME[] = "Measure Gap";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -32,7 +32,9 @@ new g_iSnapIncrementIndex[MAXPLAYERS + 1];
 
 new g_Sprite;
 
-new g_iColor[] = {0, 255, 255, 255};
+new g_iMeasureColor[] = {0, 255, 255, 255};
+new g_iFirstPointerColor[] = {182, 255, 0, 255};
+new g_iSecondPointerColor[] = {0, 255, 127, 255};
 
 new Float:g_fSnapIncrements[] = {4.0, 8.0, 16.0, 32.0, 64.0};
 
@@ -52,7 +54,7 @@ public MenuHandler1(Handle:menu, MenuAction:action, param1, param2)
 	new iClient = param1;
 	/* If an option was selected, tell the client about the item. */
 	if (action == MenuAction_Select)
-	{	
+	{
 		switch(param2)
 		{
 			case 0:
@@ -63,17 +65,29 @@ public MenuHandler1(Handle:menu, MenuAction:action, param1, param2)
 				TR_TraceRayFilter(fEyePos, fEyeAngles, MASK_PLAYERSOLID, RayType_Infinite, TraceFilter_DontHitPlayers);
 				TR_GetEndPosition(fEndPos);
 				
+				new Float:fPointerStartPos[3];
+				new Float:fPointerOffset[] = {0.0, 0.0, -10.0};
+				AddVectors(fEyePos, fPointerOffset, fPointerStartPos);
+				TE_SetupBeamPoints(fPointerStartPos, fEndPos, g_Sprite, 0, 0, 0, 0.5, 1.0, 1.0, 10, 0.0, g_iFirstPointerColor, 0);
+				TE_SendToClient(iClient);
+				
 				g_fMeasureLocation[iClient][0] = fEndPos;
 				
 				DisplayGapMenu(iClient);
 			}
 			case 1:
 			{
-				decl Float:fEyePos[3], Float:fEyeAngles[3], Float:fEndPos[3];
+				new Float:fEyePos[3], Float:fEyeAngles[3], Float:fEndPos[3];
 				GetClientEyePosition(iClient, fEyePos);
 				GetClientEyeAngles(iClient, fEyeAngles);
 				TR_TraceRayFilter(fEyePos, fEyeAngles, MASK_PLAYERSOLID, RayType_Infinite, TraceFilter_DontHitPlayers);
 				TR_GetEndPosition(fEndPos);
+				
+				new Float:fPointerStartPos[3];
+				new Float:fPointerOffset[] = {0.0, 0.0, -10.0};
+				AddVectors(fEyePos, fPointerOffset, fPointerStartPos);
+				TE_SetupBeamPoints(fPointerStartPos, fEndPos, g_Sprite, 0, 0, 0, 0.5, 1.0, 1.0, 10, 0.0, g_iSecondPointerColor, 0);
+				TE_SendToClient(iClient);
 				
 				g_fMeasureLocation[iClient][1] = fEndPos;
 				
@@ -145,7 +159,7 @@ PlayerMeasure(iClient)
 	g_fMeasureDelta[iClient][1] = fDeltaLocation[2];
 	g_fMeasureDelta[iClient][2] = GetVectorLength(fDeltaLocation, false);
 	
-	TE_SetupBeamPoints(fFirstLocation, fSecondLocation, g_Sprite, 0, 0, 0, 10.0, 5.0, 5.0, 10, 0.0, g_iColor, 0);
+	TE_SetupBeamPoints(fFirstLocation, fSecondLocation, g_Sprite, 0, 0, 0, 10.0, 5.0, 5.0, 10, 0.0, g_iMeasureColor, 0);
 	TE_SendToClient(iClient);
 }
 
