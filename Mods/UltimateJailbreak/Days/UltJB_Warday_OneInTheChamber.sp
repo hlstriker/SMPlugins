@@ -8,7 +8,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: One In The Chamber";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -44,7 +44,7 @@ public OnDayEnd(iClient)
 	
 	for(new iPlayer=1; iPlayer<=MaxClients; iPlayer++)
 	{
-		if(!IsClientInGame(iPlayer) || !IsPlayerAlive(iPlayer))
+		if(!IsClientInGame(iPlayer))
 			continue;
 			
 		SDKUnhook(iPlayer, SDKHook_OnTakeDamage, OnTakeDamage);
@@ -57,7 +57,7 @@ public OnFreezeEnd()
 	
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
-		if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
+		if(!IsClientInGame(iClient))
 			continue;
 			
 		SDKHook(iClient, SDKHook_OnTakeDamage, OnTakeDamage);
@@ -68,7 +68,7 @@ GivePlayersR8()
 {
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
-		if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
+		if(!IsClientInGame(iClient))
 			continue;
 			
 		UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_KNIFE);
