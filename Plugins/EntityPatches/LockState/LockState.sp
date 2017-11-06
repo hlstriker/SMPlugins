@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Lock state";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -18,7 +18,8 @@ public Plugin:myinfo =
 
 #define DAMAGE_NO	0
 
-#define SF_DOOR_SILENT	4096
+#define SF_DOOR_SILENT		4096
+#define SF_NO_USER_CONTROL	2
 
 
 public OnPluginStart()
@@ -28,7 +29,7 @@ public OnPluginStart()
 
 public EntityHooker_OnRegisterReady()
 {
-	EntityHooker_Register(EH_TYPE_LOCK_STATE, "Lock state", "func_breakable", "func_door");
+	EntityHooker_Register(EH_TYPE_LOCK_STATE, "Lock state", "func_breakable", "func_door", "func_tracktrain", "func_tanktrain");
 	
 	EntityHooker_RegisterProperty(EH_TYPE_LOCK_STATE, Prop_Send, PropField_String, "m_iName");
 	EntityHooker_RegisterProperty(EH_TYPE_LOCK_STATE, Prop_Data, PropField_String, "m_target");
@@ -39,7 +40,7 @@ public EntityHooker_OnEntityHooked(iHookType, iEnt)
 	if(iHookType != EH_TYPE_LOCK_STATE)
 		return;
 	
-	decl String:szClassName[15];
+	decl String:szClassName[32];
 	if(!GetEntityClassname(iEnt, szClassName, sizeof(szClassName)))
 		return;
 	
@@ -54,6 +55,10 @@ public EntityHooker_OnEntityHooked(iHookType, iEnt)
 	{
 		LockState_FuncBreakable(iEnt);
 	}
+	else if(StrEqual(szClassName, "func_tracktrain") || StrEqual(szClassName, "func_tanktrain"))
+	{
+		LockState_FuncTrain(iEnt);
+	}
 }
 
 LockState_FuncDoor(iEnt)
@@ -65,4 +70,9 @@ LockState_FuncDoor(iEnt)
 LockState_FuncBreakable(iEnt)
 {
 	SetEntProp(iEnt, Prop_Data, "m_takedamage", DAMAGE_NO);
+}
+
+LockState_FuncTrain(iEnt)
+{
+	SetEntProp(iEnt, Prop_Data, "m_spawnflags", GetEntProp(iEnt, Prop_Data, "m_spawnflags") | SF_NO_USER_CONTROL); // Disable user control.
 }
