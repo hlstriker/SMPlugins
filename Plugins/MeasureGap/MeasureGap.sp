@@ -4,7 +4,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Measure Gap";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
@@ -28,6 +28,9 @@ enum
 // Player measure locations
 new Float:g_fMeasureLocation[MAXPLAYERS + 1][NUM_LOCATIONS][3];
 
+// Player measure normals
+new Float:g_fMeasureNormal[MAXPLAYERS + 1][NUM_LOCATIONS][3];
+
 // Player measure distances
 new Float:g_fMeasureDelta[MAXPLAYERS + 1][3];
 
@@ -39,11 +42,11 @@ new g_iSnapIncrementIndex[MAXPLAYERS + 1];
 
 new g_Sprite;
 
-new g_iMeasureColor[] = {0, 255, 255, 255};
-new g_iFirstPointerColor[] = {182, 255, 0, 255};
-new g_iSecondPointerColor[] = {0, 255, 127, 255};
+new g_iMeasureColor[] = {0, 255, 255, 255};         // Color of the actual measurement beam   {R, G, B, A} 0-255
+new g_iFirstPointerColor[] = {182, 255, 0, 255};    // Color of the first pointer beam
+new g_iSecondPointerColor[] = {0, 255, 127, 255};   // Color of the second pointer beam
 
-new Float:g_fSnapIncrements[] = {4.0, 8.0, 16.0, 32.0, 64.0};
+new Float:g_fSnapIncrements[] = {4.0, 8.0, 16.0, 32.0, 64.0};  // The array of snap to grid options
 
 enum
 {
@@ -147,19 +150,23 @@ public MenuHandle_Gap(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 
 GetLocation(iClient, iLocationNum, const iColor[4])
 {
-	decl Float:fEyePos[3], Float:fEyeAngles[3], Float:fEndPos[3];
+	decl Float:fEyePos[3], Float:fEyeAngles[3], Float:fEndPos[3], Float:fTraceNormal[3];
 	GetClientEyePosition(iClient, fEyePos);
 	GetClientEyeAngles(iClient, fEyeAngles);
 	TR_TraceRayFilter(fEyePos, fEyeAngles, MASK_PLAYERSOLID, RayType_Infinite, TraceFilter_DontHitPlayers);
 	TR_GetEndPosition(fEndPos);
+	TR_GetPlaneNormal(INVALID_HANDLE, fTraceNormal);
+	
+	g_fMeasureNormal[iClient][iLocationNum] = fTraceNormal;
+	g_fMeasureLocation[iClient][iLocationNum] = fEndPos;
 	
 	decl Float:fPointerStartPos[3];
 	new Float:fPointerOffset[] = {0.0, 0.0, -10.0};
-	AddVectors(fEyePos, fPointerOffset, fPointerStartPos);
-	TE_SetupBeamPoints(fPointerStartPos, fEndPos, g_Sprite, 0, 0, 0, 0.5, 1.0, 1.0, 10, 0.0, iColor, 0);
+	AddVectors(fEyePos, fPointerOffset, fPointerStartPos);  // Offset the pointer beam so that it doesnt come right out of the player's eyes.
+	AddVectors(fEndPos, fTraceNormal, fEndPos);             // Offset the end point to be slightly out from the surface, ensures the beam will draw.
+	TE_SetupBeamPoints(fPointerStartPos, fEndPos, g_Sprite, 0, 0, 0, 0.5, 0.25, 0.25, 10, 0.0, iColor, 0);
 	TE_SendToClient(iClient);
 	
-	g_fMeasureLocation[iClient][iLocationNum] = fEndPos;
 }
 
 PlayerMeasure(iClient)
@@ -192,7 +199,10 @@ PlayerMeasure(iClient)
 	g_fMeasureDelta[iClient][1] = fDeltaLocation[2];
 	g_fMeasureDelta[iClient][2] = GetVectorLength(fDeltaLocation, false);
 	
-	TE_SetupBeamPoints(fFirstLocation, fSecondLocation, g_Sprite, 0, 0, 0, 10.0, 5.0, 5.0, 10, 0.0, g_iMeasureColor, 0);
+	AddVectors(fFirstLocation, g_fMeasureNormal[iClient][0], fFirstLocation);    // Offset the beam end positions to be slightly out from the surface,
+	AddVectors(fSecondLocation, g_fMeasureNormal[iClient][1], fSecondLocation);  // prevents the beam from being drawn directly on the surface and being hidden sometimes.
+	
+	TE_SetupBeamPoints(fFirstLocation, fSecondLocation, g_Sprite, 0, 0, 0, 10.0, 1.0, 1.0, 10, 0.0, g_iMeasureColor, 0);
 	TE_SendToClient(iClient);
 }
 
