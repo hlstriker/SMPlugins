@@ -18,25 +18,25 @@ public Plugin:myinfo =
 
 #define	MASK_PLAYERSOLID		(CONTENTS_SOLID|CONTENTS_MOVEABLE|CONTENTS_PLAYERCLIP|CONTENTS_WINDOW|CONTENTS_MONSTER|CONTENTS_GRATE) 	/**< everything that blocks player movement */
 
-float g_fMeasureLocation[MAXPLAYERS + 1][2][3];
+new Float:g_fMeasureLocation[MAXPLAYERS + 1][2][3];
 //Player measure locations
 
-float g_fMeasureDelta[MAXPLAYERS + 1][3];
+new Float:g_fMeasureDelta[MAXPLAYERS + 1][3];
 //Player measure distances
 
-bool g_bSnapToGrid[MAXPLAYERS + 1];
+new bool:g_bSnapToGrid[MAXPLAYERS + 1];
 //Player snap to grid option
 
-int g_iSnapIncrementIndex[MAXPLAYERS + 1];
+new g_iSnapIncrementIndex[MAXPLAYERS + 1];
 //Player snap increment index
 
 new g_Sprite;
 
-new g_iColor[] = {255, 0, 0, 255};
+new g_iColor[] = {0, 255, 255, 255};
 
-new g_fSnapIncrements[] = {4.0, 8.0, 16.0, 32.0, 64.0};
+new Float:g_fSnapIncrements[] = {4.0, 8.0, 16.0, 32.0, 64.0};
 
-public void OnPluginStart()
+public OnPluginStart()
 {
 	RegConsoleCmd("sm_measure", OnMeasure, "Opens the Measure Gap menu");
 	RegConsoleCmd("sm_gap", OnMeasure, "Opens the Measure Gap menu");
@@ -47,7 +47,7 @@ public OnMapStart()
 	g_Sprite = PrecacheModel("materials/sprites/laser.vmt");
 }
  
-public int MenuHandler1(Menu menu, MenuAction action, int param1, int param2)
+public MenuHandler1(Handle:menu, MenuAction:action, param1, param2)
 {
 	new iClient = param1;
 	/* If an option was selected, tell the client about the item. */
@@ -57,7 +57,7 @@ public int MenuHandler1(Menu menu, MenuAction action, int param1, int param2)
 		{
 			case 0:
 			{
-				decl Float:fEyePos[3], Float:fEyeAngles[3], Float:fEndPos[3];
+				new Float:fEyePos[3], Float:fEyeAngles[3], Float:fEndPos[3];
 				GetClientEyePosition(iClient, fEyePos);
 				GetClientEyeAngles(iClient, fEyeAngles);
 				TR_TraceRayFilter(fEyePos, fEyeAngles, MASK_PLAYERSOLID, RayType_Infinite, TraceFilter_DontHitPlayers);
@@ -111,11 +111,11 @@ public int MenuHandler1(Menu menu, MenuAction action, int param1, int param2)
 	/* If the menu has ended, destroy it */
 	else if (action == MenuAction_End)
 	{
-		delete menu;
+		CloseHandle(menu);
 	}
 }
 
-PlayerMeasure(int iClient)
+PlayerMeasure(iClient)
 {
 	new Float:fFirstLocation[3], Float:fSecondLocation[3], Float:fDeltaLocation[3];
 	
@@ -149,21 +149,21 @@ PlayerMeasure(int iClient)
 	TE_SendToClient(iClient);
 }
 
-DisplayGapMenu(int iClient)
+DisplayGapMenu(iClient)
 {
-	Menu menu = new Menu(MenuHandler1);
-	menu.SetTitle("Measure Gap");
-	menu.AddItem("loc1", "Location 1");
-	menu.AddItem("loc2", "Location 2");
-	menu.AddItem("measure", "Measure");
+	new Handle:menu = CreateMenu(MenuHandler1);
+	SetMenuTitle(menu, "Measure Gap");
+	AddMenuItem(menu, "loc1", "Location 1");
+	AddMenuItem(menu, "loc2", "Location 2");
+	AddMenuItem(menu, "measure", "Measure");
 	
 	new String:snapStr[20] = "Snap to Grid: ";
 	StrCat(snapStr, sizeof(snapStr), g_bSnapToGrid[iClient] ? "Yes" : "No");
-	menu.AddItem("snap", snapStr);
+	AddMenuItem(menu, "snap", snapStr);
 	
 	new String:snapIncStr[30] = "";
 	Format(snapIncStr, sizeof(snapIncStr), "Snap Increment: %.0f", g_fSnapIncrements[g_iSnapIncrementIndex[iClient]]);
-	menu.AddItem("snap_inc", snapIncStr);
+	AddMenuItem(menu, "snap_inc", snapIncStr);
 	
 	new String:hStr[30] = "";
 	Format(hStr, sizeof(hStr), "Horizontal: %f", g_fMeasureDelta[iClient][0]);
@@ -172,16 +172,16 @@ DisplayGapMenu(int iClient)
 	new String:tStr[30] = "";
 	Format(tStr, sizeof(tStr), "Total: %f", g_fMeasureDelta[iClient][2]);
 	
-	menu.AddItem("h", hStr, ITEMDRAW_DISABLED);
-	menu.AddItem("v", vStr, ITEMDRAW_DISABLED);
-	menu.AddItem("total", tStr, ITEMDRAW_DISABLED);
-	menu.AddItem("exit", "Exit");
+	AddMenuItem(menu, "h", hStr, ITEMDRAW_DISABLED);
+	AddMenuItem(menu, "v", vStr, ITEMDRAW_DISABLED);
+	AddMenuItem(menu, "total", tStr, ITEMDRAW_DISABLED);
+	AddMenuItem(menu, "exit", "Exit");
 	
-	menu.Pagination = MENU_NO_PAGINATION;
-	menu.Display(iClient, 0);
+	SetMenuPagination(menu, MENU_NO_PAGINATION);
+	DisplayMenu(menu, iClient, 0);
 }
  
-public Action OnMeasure(int client, int args)
+public Action:OnMeasure(client, args)
 {
 	DisplayGapMenu(client);
 	return Plugin_Handled;
