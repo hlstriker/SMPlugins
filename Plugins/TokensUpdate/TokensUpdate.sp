@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Token Update";
-new const String:PLUGIN_VERSION[] = "2.1";
+new const String:PLUGIN_VERSION[] = "2.2";
 
 public Plugin:myinfo =
 {
@@ -46,14 +46,20 @@ new String:g_szSteamID[128];
 new String:g_szApiKey_TokenStash[128];
 new String:g_szServerKey[128];
 
-
 new Handle:g_hTimer;
 new g_iRestartCountDown;
+new g_iFailedValidationCount;
+
+new Handle:cvar_tokens_restart_delay;
+new Handle:cvar_tokens_restart_failed_validations;
 
 
 public OnPluginStart()
 {
 	ServerCommand("sv_setsteamaccount \"\"");
+	
+	cvar_tokens_restart_delay = CreateConVar("tokens_restart_delay", "240", "The number of seconds to wait before the server restarts after a token needs updated.");
+	cvar_tokens_restart_failed_validations = CreateConVar("tokens_restart_failed_validations", "2", "How many failed validations in a row before the server restarts itself.");
 	
 	if(!LoadConfig())
 		SetFailState("Could not load config.");
@@ -117,7 +123,13 @@ TryValidateNextSite()
 	if(g_iLastCheckedSite == g_iValidatedTokenSite)
 	{
 		LogError("TokensUpdate: Could not validate with any site.");
-		RestartServerCountdown();
+		
+		// Restart the server if it's the initial validation or it failed validating too many times in a row.
+		g_iFailedValidationCount++;
+		
+		if(g_hTimer == INVALID_HANDLE || g_iFailedValidationCount >= GetConVarInt(cvar_tokens_restart_failed_validations))
+			RestartServerCountdown();
+		
 		return;
 	}
 	
@@ -268,6 +280,7 @@ bool:SetServerKey_TokenStash(const String:szKey[])
 
 bool:ValidateToken(const String:szToken[], TokenSite:iFromSite)
 {
+	g_iFailedValidationCount = 0;
 	g_iValidatedTokenSite = iFromSite;
 	
 	if(StrEqual(szToken, g_szToken, false))
@@ -304,7 +317,7 @@ RestartServerCountdown()
 	
 	CloseHandle(g_hTimer);
 	
-	g_iRestartCountDown = 240;
+	g_iRestartCountDown = GetConVarInt(cvar_tokens_restart_delay);
 	g_hTimer = CreateTimer(1.0, Timer_RestartServer, _, TIMER_REPEAT);
 	PrintRestartTimeToChat();
 }
