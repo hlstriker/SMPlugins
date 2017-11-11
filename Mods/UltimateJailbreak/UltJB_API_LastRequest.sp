@@ -25,7 +25,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Last Request API";
-new const String:PLUGIN_VERSION[] = "1.37";
+new const String:PLUGIN_VERSION[] = "1.38";
 
 public Plugin:myinfo =
 {
