@@ -39,7 +39,7 @@ PrintMessageSteamID(iTarget, bool:bNameChange=false)
 	decl String:szAuthID[32];
 	GetClientAuthString(iTarget, szAuthID, sizeof(szAuthID));
 	
-	new String:szMessage[512];
+	decl String:szMessage[128];
 	
 	if(bNameChange)
 		Format(szMessage, sizeof(szMessage), "%N namechanged. (%s)", iTarget, szAuthID);
