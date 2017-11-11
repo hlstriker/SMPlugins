@@ -11,7 +11,7 @@
 #pragma dynamic 18000000
 
 new const String:PLUGIN_NAME[] = "API: File Downloader";
-new const String:PLUGIN_VERSION[] = "1.5";
+new const String:PLUGIN_VERSION[] = "1.6";
 
 public Plugin:myinfo =
 {
@@ -310,9 +310,11 @@ public OnSocketReceive(Handle:hSocket, String:szData[], const iSize, any:hPack)
 		else
 		{
 			// Check HTTP status code
-			decl String:szStatusCode[32];
+			decl String:szStatusCode[4];
 			strcopy(szStatusCode, sizeof(szStatusCode), szData[9]);
-			if(StrContains(szStatusCode, "200 OK", false) == -1)
+			szStatusCode[3] = '\x0';
+			
+			if(!StrEqual(szStatusCode, "200"))
 			{
 				DownloadEnded(DL_END_FILE_NOT_FOUND, hSocket, hPack);
 				return;
