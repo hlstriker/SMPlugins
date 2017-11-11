@@ -55,7 +55,6 @@ public OnPluginStart()
 	HookEvent("player_hurt", EventPlayerHurt_Post, EventHookMode_Post);
 	HookEvent("player_death", EventPlayerDeath_Post, EventHookMode_Post);
 	HookEvent("round_start", EventRoundStart_Post, EventHookMode_PostNoCopy);
-	HookEvent("player_changename", Event_ChangeName_Post, EventHookMode_Post);
 	
 	SetupConVars();
 	
@@ -108,11 +107,6 @@ public OnClientPutInServer(iClient)
 	SDKHook(iClient, SDKHook_SpawnPost, OnSpawnPost);
 	SDKHook(iClient, SDKHook_WeaponDropPost, OnWeaponDropPost);
 	SDKHook(iClient, SDKHook_WeaponEquipPost, OnWeaponPickupPost);
-}
-
-public OnClientDisconnect(iClient)
-{
-	PrintMessageSteamID(iClient);
 }
 
 public Action:OnWeaponDropPost(iClient, iWeapon)
@@ -747,38 +741,4 @@ public Action:Hook_PostThinkHealCheck(iClient)
 	}
 	
 	g_iPlayerHealth[iClient] = iHealth;
-}
-
-PrintMessageSteamID(iTarget, bool:bNameChange=false)
-{
-	decl String:szAuthID[32];
-	GetClientAuthString(iTarget, szAuthID, sizeof(szAuthID));
-	
-	new String:szMessage[512];
-	if(bNameChange)
-		Format(szMessage, sizeof(szMessage), "%N namechanged. (%s)", iTarget, szAuthID);
-	else
-		Format(szMessage, sizeof(szMessage), "%N disconnected. (%s)", iTarget, szAuthID);
-	
-	LogEvent(szMessage, iTarget, 0, LOGTYPE_ANY);
-	
-	for(new iClient=1; iClient<=MaxClients; iClient++)
-	{
-		if(!IsClientInGame(iClient))
-			continue;
-		
-		if(!g_bIsAdmin[iClient])
-			continue;
-		
-		PrintToConsole(iClient, szMessage);
-	}
-}
-
-public Event_ChangeName_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
-{
-	new iClient = GetClientOfUserId(GetEventInt(hEvent, "userid"));
-	if(!iClient)
-		return;
-	
-	PrintMessageSteamID(iClient, true);
 }
