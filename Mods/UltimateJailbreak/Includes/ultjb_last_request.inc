@@ -41,6 +41,7 @@ public SharedPlugin:__pl_ultjb_last_request =
 #define LR_FLAG_TEMP_INVINCIBLE						(1<<13)	// Makes LR participant temporarily invincible at start of LR
 #define LR_FLAG_SHOW_ALL_GUARDS_ON_RADAR			(1<<14)	// Shows all guards on the radar for the duration of the LR.
 #define LR_FLAG_RANDOM_TELEPORT_LOCATION			(1<<15)	// Teleports LR participant to a random location when the LR starts.
+#define LR_FLAG_REBEL								(1<<16) // Makes sure there are more than 1 guards alive to activate the LR. Mostly used for rebel purposes.
 
 #define LR_SLAYTIMER_FLAG_GUARD			(1<<0)
 #define LR_SLAYTIMER_FLAG_PRISONER		(1<<1)

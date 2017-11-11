@@ -2235,18 +2235,19 @@ Handle:DisplayMenu_LastRequest(iClient, iCategoryID)
 			{
 				Format(szDisplay, sizeof(szDisplay), "%s [Last T Only]", eLastRequest[LR_Name]);
 				AddMenuItem(hMenu, szInfo, szDisplay, ITEMDRAW_DISABLED);
+				continue;
 			}
-			else if(GetNumAliveOnTeam(TEAM_GUARDS) < GetConVarInt(cvar_guards_needed_for_rebel))
+		}
+		
+		// Check to make sure there are (by default) 3 guards alive.
+		if(eLastRequest[LR_Flags] & LR_FLAG_REBEL)
+		{
+			if(GetNumAliveOnTeam(TEAM_GUARDS) < GetConVarInt(cvar_guards_needed_for_rebel))
 			{
 				Format(szDisplay, sizeof(szDisplay), "%s [Need More CT]", eLastRequest[LR_Name]);
 				AddMenuItem(hMenu, szInfo, szDisplay, ITEMDRAW_DISABLED);
+				continue;
 			}
-			else
-			{
-				AddMenuItem(hMenu, szInfo, eLastRequest[LR_Name]);
-			}
-			
-			continue;
 		}
 		
 		AddMenuItem(hMenu, szInfo, eLastRequest[LR_Name]);
