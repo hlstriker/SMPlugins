@@ -7,9 +7,9 @@
 #include <sourcemod>
 #include <socket>
 
-//#undef REQUIRE_PLUGIN
+#undef REQUIRE_PLUGIN
 #include "../../Plugins/TokensUpdate/tokens_update"
-//#define REQUIRE_PLUGIN
+#define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 #pragma dynamic 18000000
