@@ -7,11 +7,15 @@
 #include <sourcemod>
 #include <socket>
 
+//#undef REQUIRE_PLUGIN
+#include "../../Plugins/TokensUpdate/tokens_update"
+//#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 #pragma dynamic 18000000
 
 new const String:PLUGIN_NAME[] = "API: File Downloader";
-new const String:PLUGIN_VERSION[] = "1.6";
+new const String:PLUGIN_VERSION[] = "1.7";
 
 public Plugin:myinfo =
 {
@@ -59,18 +63,45 @@ enum DownloadEndCode
 	DL_END_WRITE_ERROR
 };
 
+new g_iNumFilesDownloading;
+
+new bool:g_bLibLoaded_TokensUpdate;
+
 
 public OnPluginStart()
 {
 	CreateConVar("api_file_downloader_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 }
 
+public OnAllPluginsLoaded()
+{
+	g_bLibLoaded_TokensUpdate = LibraryExists("tokens_update");
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "tokens_update"))
+		g_bLibLoaded_TokensUpdate = true;
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "tokens_update"))
+		g_bLibLoaded_TokensUpdate = false;
+}
+
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
 {
 	RegPluginLibrary("file_downloader");
-	
 	CreateNative("FileDownloader_DownloadFile", _FileDownloader_DownloadFile);
+	CreateNative("FileDownloader_GetNumFilesDownloading", _FileDownloader_GetNumFilesDownloading);
+	
 	return APLRes_Success;
+}
+
+public _FileDownloader_GetNumFilesDownloading(Handle:hPlugin, iNumParams)
+{
+	return g_iNumFilesDownloading;
 }
 
 public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
@@ -78,16 +109,29 @@ public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 	if(iNumParams < 4 || iNumParams > 7)
 	{
 		LogError("Invalid number of parameters.");
-		return;
+		return false;
+	}
+	
+	if(g_bLibLoaded_TokensUpdate)
+	{
+		#if defined _tokens_update_included
+		if(TokensUpdate_IsAwaitingRestart())
+		{
+			LogMessage("Could not start download since TokensUpdate is awaiting a restart.");
+			return false;
+		}
+		#endif
 	}
 	
 	decl iLengthURL;
 	if(GetNativeStringLength(1, iLengthURL) != SP_ERROR_NONE)
-		return;
+		return false;
 	
 	decl iLengthSavePath;
 	if(GetNativeStringLength(2, iLengthSavePath) != SP_ERROR_NONE)
-		return;
+		return false;
+	
+	g_iNumFilesDownloading++;
 	
 	iLengthURL++;
 	iLengthSavePath++;
@@ -141,7 +185,7 @@ public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 	{
 		LogError("Error writing to file: %s", szSavePath);
 		DownloadEnded(DL_END_WRITE_ERROR, _, hPack);
-		return;
+		return false;
 	}
 	
 	decl String:szHostName[64], String:szLocation[256], String:szFileName[256];
@@ -213,6 +257,8 @@ public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 	new Handle:hSocket = SocketCreate(SOCKET_TCP, OnSocketError);
 	SocketSetArg(hSocket, hPack);
 	SocketConnect(hSocket, OnSocketConnected, OnSocketReceive, OnSocketDisconnected, szHostName, 80);
+	
+	return true;
 }
 
 CreateDirectoryStructure(const String:szSavePath[])
@@ -396,6 +442,8 @@ DownloadEnded(DownloadEndCode:code, Handle:hSocket=INVALID_HANDLE, Handle:hPack)
 			DeleteFileIfNeeded(szSavePath, true);
 		}
 	}
+	
+	g_iNumFilesDownloading--;
 }
 
 CloseSocketHandles(Handle:hSocket, Handle:hPack)

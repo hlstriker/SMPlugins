@@ -7,10 +7,14 @@
 #include <steamworks>
 #include <hls_color_chat>
 
+#undef REQUIRE_PLUGIN
+#include "../../Libraries/FileDownloader/file_downloader"
+#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Token Update";
-new const String:PLUGIN_VERSION[] = "2.2";
+new const String:PLUGIN_VERSION[] = "2.3";
 
 public Plugin:myinfo =
 {
@@ -53,6 +57,10 @@ new g_iFailedValidationCount;
 new Handle:cvar_tokens_restart_delay;
 new Handle:cvar_tokens_restart_failed_validations;
 
+new bool:g_bLibLoaded_FileDownloader;
+
+new bool:g_bAwaitingRestart;
+
 
 public OnPluginStart()
 {
@@ -60,6 +68,11 @@ public OnPluginStart()
 	
 	cvar_tokens_restart_delay = CreateConVar("tokens_restart_delay", "240", "The number of seconds to wait before the server restarts after a token needs updated.");
 	cvar_tokens_restart_failed_validations = CreateConVar("tokens_restart_failed_validations", "2", "How many failed validations in a row before the server restarts itself.");
+}
+
+public OnAllPluginsLoaded()
+{
+	g_bLibLoaded_FileDownloader = LibraryExists("file_downloader");
 	
 	if(!LoadConfig())
 		SetFailState("Could not load config.");
@@ -82,6 +95,31 @@ public OnPluginStart()
 	
 	ServerCommand("sv_setsteamaccount \"%s\"", g_szToken);
 	g_hTimer = CreateTimer(30.0, Timer_ValidateTokenRequest, _, TIMER_REPEAT);
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "file_downloader"))
+		g_bLibLoaded_FileDownloader = true;
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "file_downloader"))
+		g_bLibLoaded_FileDownloader = false;
+}
+
+public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
+{
+	RegPluginLibrary("tokens_update");
+	CreateNative("TokensUpdate_IsAwaitingRestart", _TokensUpdate_IsAwaitingRestart);
+	
+	return APLRes_Success;
+}
+
+public _TokensUpdate_IsAwaitingRestart(Handle:hPlugin, iNumParams)
+{
+	return g_bAwaitingRestart;
 }
 
 public OnConfigsExecuted()
@@ -328,8 +366,8 @@ public Action:Timer_RestartServer(Handle:hTimer)
 	
 	if(g_iRestartCountDown == 0)
 	{
-		RestartServer();
 		g_hTimer = INVALID_HANDLE;
+		RestartServer();
 		return Plugin_Stop;
 	}
 	
@@ -374,6 +412,40 @@ public OnMapEnd()
 
 RestartServer()
 {
+	g_bAwaitingRestart = true;
+	
+	if(g_bLibLoaded_FileDownloader)
+	{
+		#if defined _file_downloader_included
+		new iNumDownloading = FileDownloader_GetNumFilesDownloading();
+		if(iNumDownloading > 0)
+		{
+			if(g_hTimer != INVALID_HANDLE)
+				CloseHandle(g_hTimer);
+			
+			PrintRestartDownloadingToChat(iNumDownloading);
+			g_hTimer = CreateTimer(1.0, Timer_RestartServerWaitOnDownloads, _, TIMER_REPEAT);
+			return;
+		}
+		else
+		{
+			LogMessage("No files downloading, it's safe to restart.");
+		}
+		#else
+		LogError("Compile the TokensUpdate plugin to include \"file_downloader.inc\"");
+		return;
+		#endif
+	}
+	else
+	{
+		LogMessage("File downloader library doesn't exist, it's safe to restart.");
+	}
+	
+	//RestartServerSafe();
+}
+
+RestartServerSafe()
+{
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
 		if(!IsClientInGame(iClient))
@@ -386,6 +458,31 @@ RestartServer()
 	}
 	
 	ServerCommand("quit");
+}
+
+PrintRestartDownloadingToChat(iNumDownloading)
+{
+	CPrintToChatAll("{red}Server will restart after downloading %i more files it needs.", iNumDownloading);
+	PrintToServer("Server will restart after downloading %i more files it needs.", iNumDownloading);
+}
+
+public Action:Timer_RestartServerWaitOnDownloads(Handle:hTimer)
+{
+	if(g_bLibLoaded_FileDownloader)
+	{
+		#if defined _file_downloader_included
+		new iNumDownloading = FileDownloader_GetNumFilesDownloading();
+		if(iNumDownloading > 0)
+		{
+			PrintRestartDownloadingToChat(iNumDownloading);
+			return Plugin_Continue;
+		}
+		#endif
+	}
+	
+	g_hTimer = INVALID_HANDLE;
+	RestartServerSafe();
+	return Plugin_Stop;
 }
 
 bool:LoadConfig()
