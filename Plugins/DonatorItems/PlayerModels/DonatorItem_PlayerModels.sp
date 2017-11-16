@@ -10,12 +10,13 @@
 
 #undef REQUIRE_PLUGIN
 #include "../../../Libraries/ModelSkinManager/model_skin_manager"
+#include "../../../Plugins/Unsafe/unsafe_gloves"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Donator Item: Player Models";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.6";
 
 public Plugin:myinfo =
 {
@@ -33,6 +34,7 @@ new bool:g_bModelsEnabled;
 
 new Handle:g_hFwd_OnModelSet;
 new g_iItemBits[MAXPLAYERS+1];
+new bool:g_bUsingArmsModel[MAXPLAYERS+1];
 
 new bool:g_bLibLoaded_ModelSkinManager;
 
@@ -49,7 +51,8 @@ new const String:g_szPlayerModelNames[][] =
 	"Punished \"Venom\" Snake",
 	"Reina Kousaka",
 	"Rocket Raccoon",
-	"Samus Aran - Zero Suit"
+	"Samus Aran - Zero Suit",
+	"Goku"
 };
 
 new const String:g_szPlayerModelPaths[][] =
@@ -65,7 +68,25 @@ new const String:g_szPlayerModelPaths[][] =
 	"models/player/custom_player/swoobles/sneaking_suit_2/sneaking_suit.mdl",		// Punished "Venom" Snake
 	"models/player/custom_player/swoobles/reina_kousaka_2/reina_kousaka.mdl",		// Reina Kousaka
 	"models/player/custom_player/swoobles/rocket_raccoon_2/rocket_raccoon.mdl",		// Rocket Raccoon
-	"models/player/custom_player/swoobles/samus_2/samus.mdl"						// Samus Aran - Zero Suit
+	"models/player/custom_player/swoobles/samus_2/samus.mdl",						// Samus Aran - Zero Suit
+	"models/player/custom_player/swoobles/goku/goku.mdl"							// Goku
+};
+
+new const String:g_szArmsModelPaths[][] =
+{
+	"",		// Ada Wong
+	"",		// Deadpool
+	"",		// Duke Nukem
+	"",		// Ezio Auditore da Firenze
+	"",		// Hitler
+	"",		// Hitman Agent 47
+	"",		// Lilith
+	"",		// Nanosuit
+	"",		// Punished "Venom" Snake
+	"",		// Reina Kousaka
+	"",		// Rocket Raccoon
+	"",		// Samus Aran - Zero Suit
+	"models/player/custom_player/swoobles/goku/arms.mdl"	// Goku
 };
 
 new const String:g_szPlayerModelFiles[][] =
@@ -445,7 +466,62 @@ new const String:g_szPlayerModelFiles[][] =
 	"materials/swoobles/player/samus_2/hair_bump.vtf",
 	"materials/swoobles/player/samus_2/hair_diffuse.vtf",
 	"materials/swoobles/player/samus_2/holster.vtf",
-	"materials/swoobles/player/samus_2/holster_bump.vtf"
+	"materials/swoobles/player/samus_2/holster_bump.vtf",
+	
+	// Goku
+	"models/player/custom_player/swoobles/goku/goku.phy",
+	"models/player/custom_player/swoobles/goku/goku.dx90.vtx",
+	"models/player/custom_player/swoobles/goku/goku.vvd",
+	
+	"models/player/custom_player/swoobles/goku/arms.dx90.vtx",
+	"models/player/custom_player/swoobles/goku/arms.vvd",
+	
+	"materials/swoobles/player/goku/belt.vmt",
+	"materials/swoobles/player/goku/body.vmt",
+	"materials/swoobles/player/goku/boot.vmt",
+	"materials/swoobles/player/goku/boot2.vmt",
+	"materials/swoobles/player/goku/boot3.vmt",
+	"materials/swoobles/player/goku/boot4.vmt",
+	"materials/swoobles/player/goku/eyebrow.vmt",
+	"materials/swoobles/player/goku/eyes.vmt",
+	"materials/swoobles/player/goku/face.vmt",
+	"materials/swoobles/player/goku/hair.vmt",
+	"materials/swoobles/player/goku/hand.vmt",
+	"materials/swoobles/player/goku/pant.vmt",
+	"materials/swoobles/player/goku/pant_blue.vmt",
+	"materials/swoobles/player/goku/shirt.vmt",
+	"materials/swoobles/player/goku/top.vmt",
+	"materials/swoobles/player/goku/top_blue.vmt",
+	"materials/swoobles/player/goku/wristband.vmt",
+	"materials/swoobles/player/goku/belt.vtf",
+	"materials/swoobles/player/goku/belt_normal.vtf",
+	"materials/swoobles/player/goku/body.vtf",
+	"materials/swoobles/player/goku/body_normal.vtf",
+	"materials/swoobles/player/goku/boot.vtf",
+	"materials/swoobles/player/goku/boot_normal.vtf",
+	"materials/swoobles/player/goku/boot2.vtf",
+	"materials/swoobles/player/goku/boot3.vtf",
+	"materials/swoobles/player/goku/boot4.vtf",
+	"materials/swoobles/player/goku/eye_lightwarp.vtf",
+	"materials/swoobles/player/goku/eyebrow.vtf",
+	"materials/swoobles/player/goku/face.vtf",
+	"materials/swoobles/player/goku/face_normal.vtf",
+	"materials/swoobles/player/goku/facewarp.vtf",
+	"materials/swoobles/player/goku/hair.vtf",
+	"materials/swoobles/player/goku/hair_normal.vtf",
+	"materials/swoobles/player/goku/hand.vtf",
+	"materials/swoobles/player/goku/hand_normal.vtf",
+	"materials/swoobles/player/goku/iris.vtf",
+	"materials/swoobles/player/goku/pant.vtf",
+	"materials/swoobles/player/goku/pant_blue.vtf",
+	"materials/swoobles/player/goku/pant_normal.vtf",
+	"materials/swoobles/player/goku/shirt.vtf",
+	"materials/swoobles/player/goku/shirt_normal.vtf",
+	"materials/swoobles/player/goku/skin_lightwarp_blue1.vtf",
+	"materials/swoobles/player/goku/top.vtf",
+	"materials/swoobles/player/goku/top_blue.vtf",
+	"materials/swoobles/player/goku/top_normal.vtf",
+	"materials/swoobles/player/goku/wristband.vtf"
 };
 
 
@@ -488,6 +564,14 @@ InitFiles()
 	for(new i=0; i<sizeof(g_szPlayerModelPaths); i++)
 		DownloadFileIfNeeded(g_szPlayerModelPaths[i]);
 	
+	for(new i=0; i<sizeof(g_szArmsModelPaths); i++)
+	{
+		if(StrEqual(g_szArmsModelPaths[i], ""))
+			continue;
+		
+		DownloadFileIfNeeded(g_szArmsModelPaths[i]);
+	}
+	
 	for(new i=0; i<sizeof(g_szPlayerModelFiles); i++)
 	{
 		if(g_szPlayerModelFiles[i][0])
@@ -503,6 +587,15 @@ InitFiles()
 	{
 		AddFileToDownloadsTable(g_szPlayerModelPaths[i]);
 		PrecacheModel(g_szPlayerModelPaths[i], true);
+	}
+	
+	for(new i=0; i<sizeof(g_szArmsModelPaths); i++)
+	{
+		if(StrEqual(g_szArmsModelPaths[i], ""))
+			continue;
+		
+		AddFileToDownloadsTable(g_szArmsModelPaths[i]);
+		PrecacheModel(g_szArmsModelPaths[i], true);
 	}
 	
 	for(new i=0; i<sizeof(g_szPlayerModelFiles); i++)
@@ -577,19 +670,26 @@ public OnClientPutInServer(iClient)
 
 public OnSpawnPost(iClient)
 {
-	if(!g_bModelsEnabled)
+	if(g_bLibLoaded_ModelSkinManager)
 		return;
 	
 	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
 		return;
 	
-	if(g_bLibLoaded_ModelSkinManager)
-	{
-		#if defined _model_skin_manager_included
-		if(MSManager_IsBeingForceRespawned(iClient))
-			return;
-		#endif
-	}
+	SpawnPost(iClient);
+}
+
+public MSManager_OnSpawnPost(iClient)
+{
+	SpawnPost(iClient);
+}
+
+SpawnPost(iClient)
+{
+	g_bUsingArmsModel[iClient] = false;
+	
+	if(!g_bModelsEnabled)
+		return;
 	
 	new iItemIndex = GetRandomActivatedItemIndex(iClient);
 	if(iItemIndex < 0)
@@ -598,12 +698,26 @@ public OnSpawnPost(iClient)
 	SetPlayerModel(iClient, iItemIndex);
 }
 
+public Action:Gloves_OnApply(iClient)
+{
+	if(g_bUsingArmsModel[iClient])
+		return Plugin_Handled;
+	
+	return Plugin_Continue;
+}
+
 SetPlayerModel(iClient, iItemIndex)
 {
 	if(g_bLibLoaded_ModelSkinManager)
 	{
 		#if defined _model_skin_manager_included
 		MSManager_SetPlayerModel(iClient, g_szPlayerModelPaths[iItemIndex]);
+		
+		if(!StrEqual(g_szArmsModelPaths[iItemIndex], ""))
+		{
+			MSManager_SetArmsModel(iClient, g_szArmsModelPaths[iItemIndex]);
+			g_bUsingArmsModel[iClient] = true;
+		}
 		#else
 		SetEntityModel(iClient, g_szPlayerModelPaths[iItemIndex]);
 		#endif
@@ -770,7 +884,7 @@ StartNextDownloadInQueue()
 	g_bIsFileDownloading = true;
 	
 	decl String:szURL[512];
-	FormatEx(szURL, sizeof(szURL), "http://swoobles.com/plugin_files/%s", szFilePath);
+	FormatEx(szURL, sizeof(szURL), "http://motd.swoobles.com/plugin_files/%s", szFilePath);
 	FileDownloader_DownloadFile(szURL, szFilePath, OnDownloadSuccess, OnDownloadFailed);
 }
 
