@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Model Skin Manager";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -51,6 +51,7 @@ new bool:g_bHasCustomArms[MAXPLAYERS+1];
 new bool:g_bRemoveArms[MAXPLAYERS+1];
 
 new Handle:g_hFwd_OnSpawnPost;
+new Handle:g_hFwd_OnSpawnPost_Post;
 new g_iOriginalSpawnTick[MAXPLAYERS+1];
 new bool:g_bIsForceRespawning[MAXPLAYERS+1];
 
@@ -104,6 +105,7 @@ public OnPluginStart()
 	HookEvent("player_death", Event_PlayerDeath_Post, EventHookMode_Post);
 	
 	g_hFwd_OnSpawnPost = CreateGlobalForward("MSManager_OnSpawnPost", ET_Ignore, Param_Cell);
+	g_hFwd_OnSpawnPost_Post = CreateGlobalForward("MSManager_OnSpawnPost_Post", ET_Ignore, Param_Cell);
 }
 
 public OnConfigsExecuted()
@@ -503,6 +505,19 @@ ApplyPlayerModel(iClient)
 	
 	ClearCustomModels(iClient);
 	g_bRemoveArms[iClient] = false;
+	
+	if(g_bHasCustomArms[iClient])
+		RequestFrame(OnApplyCustomArmsNextFrame, GetClientSerial(iClient));
+}
+
+public OnApplyCustomArmsNextFrame(any:iClientSerial)
+{
+	new iClient = GetClientFromSerial(iClientSerial);
+	if(!iClient)
+		return;
+	
+	if(g_bHasCustomArms[iClient])
+		SetEntPropString(iClient, Prop_Send, "m_szArmsModel", g_szCustomArmsModelForReapply[iClient]);
 }
 
 CancelApplyAllModels(iClient)
@@ -698,17 +713,18 @@ public OnSpawnPost(iClient)
 		ClearCustomModels(iClient);
 		g_bRemoveArms[iClient] = false;
 		
-		Forward_OnSpawnPost(iClient);
+		Forward_OnSpawnPost(iClient, true);
+		Forward_OnSpawnPost(iClient, false);
 	}
 	
 	ApplyPlayerModelToHideArms(iClient);
 	ApplyModelsNextFrame(iClient);
 }
 
-Forward_OnSpawnPost(iClient)
+Forward_OnSpawnPost(iClient, bool:bPre)
 {
 	new result;
-	Call_StartForward(g_hFwd_OnSpawnPost);
+	Call_StartForward(bPre ? g_hFwd_OnSpawnPost : g_hFwd_OnSpawnPost_Post);
 	Call_PushCell(iClient);
 	Call_Finish(result);
 }

@@ -6,7 +6,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Gloves";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -39,16 +39,26 @@ new g_iStartIndex_Paint;
 new g_iGloveIndex_Type[MAXPLAYERS+1];
 new g_iGloveIndex_Paint[MAXPLAYERS+1];
 
+new Handle:g_hFwd_OnApply;
+
 
 public OnPluginStart()
 {
 	CreateConVar("gloves_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
+	
+	g_hFwd_OnApply = CreateGlobalForward("Gloves_OnApply", ET_Hook, Param_Cell);
 	
 	RegConsoleCmd("sm_glove", OnGlovesSelect, "Opens the glove selection menu.");
 	RegConsoleCmd("sm_gloves", OnGlovesSelect, "Opens the glove selection menu.");
 	
 	BuildArray_Types();
 	BuildArray_Paints();
+}
+
+public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
+{
+	RegPluginLibrary("unsafe_gloves");
+	return APLRes_Success;
 }
 
 BuildArray_Types()
@@ -183,7 +193,7 @@ public ClientCookies_OnCookiesLoaded(iClient)
 	}
 }
 
-public MSManager_OnSpawnPost(iClient)
+public MSManager_OnSpawnPost_Post(iClient)
 {
 	if(!g_iGloveIndex_Type[iClient])
 		return;
@@ -424,8 +434,29 @@ bool:CheckMenuSpam(iClient)
 	return true;
 }
 
+bool:Forward_OnApply(iClient)
+{
+	decl Action:result;
+	Call_StartForward(g_hFwd_OnApply);
+	Call_PushCell(iClient);
+	Call_Finish(result);
+	
+	if(result >= Plugin_Handled)
+		return false;
+	
+	return true;
+}
+
 bool:ApplyGloves(iClient, bool:bShowMessage=true)
 {
+	if(!Forward_OnApply(iClient))
+	{
+		if(bShowMessage)
+			CPrintToChat(iClient, "{red}Could not apply gloves right now.");
+		
+		return false;
+	}
+	
 	new iTypeIndex = g_iGloveIndex_Type[iClient];
 	new iPaintIndex = g_iGloveIndex_Paint[iClient];
 	

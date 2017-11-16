@@ -29,6 +29,7 @@ public SharedPlugin:__pl_model_skin_manager =
  * @noreturn
  */
 forward MSManager_OnSpawnPost(client);
+forward MSManager_OnSpawnPost_Post(client);
 
 
 
