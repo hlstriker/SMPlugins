@@ -441,7 +441,7 @@ RestartServer()
 		LogMessage("File downloader library doesn't exist, it's safe to restart.");
 	}
 	
-	//RestartServerSafe();
+	RestartServerSafe();
 }
 
 RestartServerSafe()
