@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Model Skin Manager";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -506,11 +506,11 @@ ApplyPlayerModel(iClient)
 	ClearCustomModels(iClient);
 	g_bRemoveArms[iClient] = false;
 	
-	if(g_bHasCustomArms[iClient])
-		RequestFrame(OnApplyCustomArmsNextFrame, GetClientSerial(iClient));
+	if(g_bHasCustomArms[iClient] || g_bHasDefaultArms[iClient])
+		RequestFrame(OnApplyArmsNextFrame, GetClientSerial(iClient));
 }
 
-public OnApplyCustomArmsNextFrame(any:iClientSerial)
+public OnApplyArmsNextFrame(any:iClientSerial)
 {
 	new iClient = GetClientFromSerial(iClientSerial);
 	if(!iClient)
@@ -518,6 +518,8 @@ public OnApplyCustomArmsNextFrame(any:iClientSerial)
 	
 	if(g_bHasCustomArms[iClient])
 		SetEntPropString(iClient, Prop_Send, "m_szArmsModel", g_szCustomArmsModelForReapply[iClient]);
+	else if(g_bHasDefaultArms[iClient])
+		ApplyDefaultArms(iClient);
 }
 
 CancelApplyAllModels(iClient)
