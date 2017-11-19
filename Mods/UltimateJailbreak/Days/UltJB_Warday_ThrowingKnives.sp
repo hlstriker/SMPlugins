@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Throwing Knives";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -114,7 +114,15 @@ public Event_WeaponFire(Handle:hEvent, const String:szName[], bool:bDontBroadcas
 	new iClient = GetClientOfUserId(GetEventInt(hEvent, "userid"));
 	
 	if(ThrowKnife(iClient))
-		SetEntPropFloat(iClient, Prop_Send, "m_flNextAttack", GetGameTime() + 1.0);
+	{
+		switch(GetClientTeam(iClient))
+		{
+			case TEAM_PRISONERS:
+				SetEntPropFloat(iClient, Prop_Send, "m_flNextAttack", GetGameTime() + 1.0);
+			case TEAM_GUARDS:
+				SetEntPropFloat(iClient, Prop_Send, "m_flNextAttack", GetGameTime() + 2.0);
+		}
+	}
 }
 
 bool:ThrowKnife(iClient)
