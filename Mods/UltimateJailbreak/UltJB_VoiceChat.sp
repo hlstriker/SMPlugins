@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Voice Chat";
-new const String:PLUGIN_VERSION[] = "1.12";
+new const String:PLUGIN_VERSION[] = "1.13";
 
 public Plugin:myinfo =
 {
@@ -27,6 +27,7 @@ new Handle:cvar_mute_prisoner_time;
 
 new bool:g_bSkipNextOnClientMute[MAXPLAYERS+1];
 new bool:g_bIsClientMutedBySourceMod[MAXPLAYERS+1];
+new bool:g_bIsAdmin[MAXPLAYERS+1];
 
 #define MUTE_MESSAGE_DELAY	4.0
 
@@ -43,6 +44,7 @@ public OnPluginStart()
 	HookEvent("round_end", Event_RoundEnd_Post, EventHookMode_PostNoCopy);
 	HookEvent("player_death", EventPlayerDeath_Post, EventHookMode_Post);
 	HookEvent("player_team", Event_PlayerTeam_Post, EventHookMode_Post);
+	HookEvent("cs_intermission", Event_Intermission_Post, EventHookMode_PostNoCopy);
 }
 
 public SquelchManager_OnClientStartSpeaking(iClient)
@@ -111,10 +113,10 @@ public Action:Event_RoundEnd_Post(Handle:hEvent, const String:szName[], bool:bDo
 	UnmuteAllPlayers();
 }
 
-public OnMapEnd()
+public Event_Intermission_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
 {
 	CancelUnmuteTimer();
-	MuteAllPlayers();
+	MuteNonAdmins();
 }
 
 public OnMapStart()
@@ -216,11 +218,14 @@ MuteAllPrisoners()
 	}
 }
 
-MuteAllPlayers()
+MuteNonAdmins()
 {
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
 		if(!IsClientInGame(iClient))
+			continue;
+			
+		if(g_bIsAdmin[iClient])
 			continue;
 		
 		MutePlayer(iClient);
@@ -258,4 +263,15 @@ UnmutePlayer(iClient)
 		return;
 	
 	BaseComm_SetClientMute(iClient, false);
+}
+
+public OnClientConnected(iClient)
+{
+	g_bIsAdmin[iClient] = false;
+}
+
+public OnClientPostAdminCheck(iClient)
+{
+	if(CheckCommandAccess(iClient, "sm_say", ADMFLAG_CHAT, false))
+		g_bIsAdmin[iClient] = true;
 }
