@@ -27,7 +27,6 @@ new Handle:cvar_mute_prisoner_time;
 
 new bool:g_bSkipNextOnClientMute[MAXPLAYERS+1];
 new bool:g_bIsClientMutedBySourceMod[MAXPLAYERS+1];
-new bool:g_bIsAdmin[MAXPLAYERS+1];
 
 #define MUTE_MESSAGE_DELAY	4.0
 
@@ -225,7 +224,7 @@ MuteNonAdmins()
 		if(!IsClientInGame(iClient))
 			continue;
 			
-		if(g_bIsAdmin[iClient])
+		if(CheckCommandAccess(iClient, "sm_say", ADMFLAG_CHAT, false))
 			continue;
 		
 		MutePlayer(iClient);
@@ -263,15 +262,4 @@ UnmutePlayer(iClient)
 		return;
 	
 	BaseComm_SetClientMute(iClient, false);
-}
-
-public OnClientConnected(iClient)
-{
-	g_bIsAdmin[iClient] = false;
-}
-
-public OnClientPostAdminCheck(iClient)
-{
-	if(CheckCommandAccess(iClient, "sm_say", ADMFLAG_CHAT, false))
-		g_bIsAdmin[iClient] = true;
 }
