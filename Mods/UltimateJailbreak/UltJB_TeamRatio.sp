@@ -458,8 +458,15 @@ FixTeamRatio()
 		
 		SetClientPendingTeam(iClient, CS_TEAM_T);
 		
-		ShiftArrayUp(g_aGuardQueue, 0);
-		SetArrayCell(g_aGuardQueue, 0, iClient);
+		if(GetArraySize(g_aGuardQueue))
+		{
+			ShiftArrayUp(g_aGuardQueue, 0);
+			SetArrayCell(g_aGuardQueue, 0, iClient);
+		}
+		else
+		{
+			PushArrayCell(g_aGuardQueue, iClient);
+		}
 	}
 }
 
