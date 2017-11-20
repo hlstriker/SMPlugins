@@ -191,6 +191,9 @@ public OnTouchPost(iEnt, iOther)
 	
 	new iKnife = GetPlayerWeaponSlot(iOwner, CS_SLOT_KNIFE);
 	
+	if(iKnife < 0)
+		iKnife = 0;
+	
 	// Hit an enemy.
 	SDKHooks_TakeDamage(iOther, iKnife, iOwner, KNIFE_DAMAGE, DMG_SLASH, iKnife);
 	
