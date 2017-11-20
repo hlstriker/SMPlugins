@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Model Skin Manager";
-new const String:PLUGIN_VERSION[] = "1.5";
+new const String:PLUGIN_VERSION[] = "1.6";
 
 public Plugin:myinfo =
 {
@@ -128,6 +128,7 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 {
 	RegPluginLibrary("model_skin_manager");
 	CreateNative("MSManager_SetPlayerModel", _MSManager_SetPlayerModel);
+	CreateNative("MSManager_GetPlayerModel", _MSManager_GetPlayerModel);
 	CreateNative("MSManager_SetArmsModel", _MSManager_SetArmsModel);
 	CreateNative("MSManager_CreateWearableItem", _MSManager_CreateWearableItem);
 	CreateNative("MSManager_RemovePlayerModel", _MSManager_RemovePlayerModel);
@@ -173,6 +174,23 @@ public _MSManager_SetPlayerModel(Handle:hPlugin, iNumParams)
 	GetNativeString(2, g_szCustomPlayerModel[iClient], sizeof(g_szCustomPlayerModel[]));
 	
 	ApplyModelsNextFrame(iClient);
+}
+
+public _MSManager_GetPlayerModel(Handle:hPlugin, iNumParams)
+{
+	new iClient = GetNativeCell(1);
+	new iLen = GetNativeCell(3);
+	
+	if(g_szCustomPlayerModel[iClient][0])
+	{
+		SetNativeString(2, g_szCustomPlayerModel[iClient], iLen);
+	}
+	else
+	{
+		decl String:szBuffer[iLen];
+		GetClientModel(iClient, szBuffer, iLen);
+		SetNativeString(2, szBuffer, iLen);
+	}
 }
 
 public _MSManager_SetArmsModel(Handle:hPlugin, iNumParams)

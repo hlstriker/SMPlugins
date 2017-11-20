@@ -43,6 +43,16 @@ forward MSManager_OnSpawnPost_Post(client);
 native MSManager_SetPlayerModel(client, const String:model_path[]);
 
 /**
+ * Gets the client's current player model.
+ *
+ * @param client		The client
+ * @param model_path	String buffer to store the model path.
+ * @param maxlength		Maximum size of string buffer.
+ * @noreturn
+ */
+native MSManager_GetPlayerModel(client, String:model_path[], maxlength);
+
+/**
  * Sets custom arms on the client.
  *
  * @param client		The client to give custom arms to.
