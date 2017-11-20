@@ -23,7 +23,7 @@ new Handle:g_hFwd_OnBridgeReady;
 
 public OnPluginStart()
 {
-	CreateConVar("api_database_swoobles_bridge_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
+	CreateConVar("api_database_bridge_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	
 	if((cvar_database_bridge_configname = FindConVar("sm_database_bridge_configname")) == INVALID_HANDLE)
 		cvar_database_bridge_configname = CreateConVar("sm_database_bridge_configname", "bridge", "The config name to use for the swoobles bridge database.");
