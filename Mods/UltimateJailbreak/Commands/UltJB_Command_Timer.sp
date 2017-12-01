@@ -52,18 +52,25 @@ public Action:OnTimer(iClient, iArgCount)
 		GetCmdArg(1, szNumber, sizeof(szNumber));
 		g_iCountdown = StringToInt(szNumber);
 		
-		if(g_iCountdown < 10)
-			g_iCountdown = 10;
+		if(g_iCountdown <= 0)
+		{
+			ReplyToCommand(iClient, "[SM] Please enter a valid number greater than 0.");
+			return Plugin_Handled;
+		}
 		
+		if(g_iCountdown < 10 && g_iCountdown > 0)
+			g_iCountdown = 10;
+			
 		if(g_iCountdown > 180)
 			g_iCountdown = 180;
+			
+		StartTimer_Countdown();
 	}
 	else
 	{
-		ReplyToCommand(iClient, "[SM] Please enter a time");
+		ReplyToCommand(iClient, "[SM] Please enter a time.");
 	}
 	
-	StartTimer_Countdown();
 	return Plugin_Handled;
 }
 
