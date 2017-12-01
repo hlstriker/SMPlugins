@@ -25,7 +25,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Last Request API";
-new const String:PLUGIN_VERSION[] = "1.38";
+new const String:PLUGIN_VERSION[] = "1.39";
 
 public Plugin:myinfo =
 {
@@ -3489,7 +3489,7 @@ InitializeLastRequestTeleportOrigins()
 		break;
 	}
 	
-	new iTeleportsFound;
+	/*new iTeleportsFound;
 	new String:szName[64];
 	
 	iEnt = -1;
@@ -3505,7 +3505,7 @@ InitializeLastRequestTeleportOrigins()
 		iTeleportsFound++;
 		if(iTeleportsFound >= 5)
 			break;
-	}
+	}*/
 	
 	LastRequestTeleportOrigins_ResetHealth();
 	StartTimer_PreGetLastRequestTeleportOrigins();
@@ -3612,7 +3612,7 @@ StopTimer_GetLastRequestTeleportOrigins()
 StartTimer_GetLastRequestTeleportOrigins()
 {
 	StopTimer_GetLastRequestTeleportOrigins();
-	g_hTimer_LastRequestTeleportOrigins = CreateTimer(10.0, Timer_GetLastRequestTeleportOrigins, _, TIMER_REPEAT);
+	g_hTimer_LastRequestTeleportOrigins = CreateTimer(20.0, Timer_GetLastRequestTeleportOrigins, _, TIMER_REPEAT);
 }
 
 StartTimer_PreGetLastRequestTeleportOrigins()
