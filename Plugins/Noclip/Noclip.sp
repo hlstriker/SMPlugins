@@ -1,4 +1,5 @@
 #include <sourcemod>
+#include <sdktools_functions>
 
 #pragma semicolon 1
 
@@ -33,6 +34,7 @@ public Action:Command_Noclip(iClient, iArgs)
 	{
 		SetEntProp(iClient, Prop_Send, "m_nSolidType", SOLID_BBOX);
 		SetEntityMoveType(iClient, MOVETYPE_WALK);
+		TeleportEntity(iClient, NULL_VECTOR, NULL_VECTOR, Float:{0.0, 0.0, 0.0});
 	}
 	else
 	{
