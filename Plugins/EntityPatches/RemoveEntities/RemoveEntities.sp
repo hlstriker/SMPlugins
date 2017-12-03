@@ -33,7 +33,7 @@ public EntityHooker_OnRegisterReady()
 		"env_explosion", "env_fire", "env_laser", "env_spark");
 	
 	EntityHooker_RegisterAdditional(EH_TYPE_REMOVE_ENTITIES,
-		"func_breakable", "func_brush", "func_button", "func_door", "func_door_rotating", "func_movelinear", "func_physbox",
+		"func_breakable", "func_brush", "func_button", "func_door", "func_door_rotating", "func_movelinear", "func_occluder", "func_physbox",
 		"func_physbox_multiplayer", "func_rot_button", "func_rotating", "func_tanktrain", "func_tracktrain", "func_wall_toggle", "func_water_analog");
 	
 	EntityHooker_RegisterAdditional(EH_TYPE_REMOVE_ENTITIES,
