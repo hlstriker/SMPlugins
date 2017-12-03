@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Zone Manager";
-new const String:PLUGIN_VERSION[] = "1.15";
+new const String:PLUGIN_VERSION[] = "1.16";
 
 public Plugin:myinfo =
 {
@@ -54,7 +54,8 @@ enum _:Zone
 	String:Zone_Data_String_5[MAX_ZONE_DATA_STRING_LENGTH]
 };
 
-new g_iZoneTypeIDToIndex[MAX_ZONES+1] = {INVALID_ZONE_ID, ...};
+new Handle:g_hTrie_TypeIDToIndex;
+//new g_iZoneTypeIDToIndex[MAX_ZONES+1] = {INVALID_ZONE_ID, ...};
 new Handle:g_aZoneTypes;
 enum _:ZoneType
 {
@@ -173,6 +174,8 @@ public OnPluginStart()
 	g_aZones = CreateArray(Zone);
 	g_aZoneTypes = CreateArray(ZoneType);
 	
+	g_hTrie_TypeIDToIndex = CreateTrie();
+	
 	cvar_can_import_from_another_map = CreateConVar("zm_can_import_from_another_map", "0", "Set to allow importing zones from another map.", _, true, 0.0, true, 1.0);
 	
 	RegAdminCmd("sm_zonemanager", OnZoneManager, ADMFLAG_BAN, "Opens the zone manager.");
@@ -189,9 +192,6 @@ public OnMapStart()
 	
 	g_iBeamIndex = PrecacheModel(SZ_BEAM_MATERIAL);
 	PrecacheModel(SZ_ZONE_MODEL);
-	
-	for(new i=0; i<sizeof(g_iZoneIDToIndex); i++)
-		g_iZoneIDToIndex[i] = INVALID_ZONE_ID;
 	
 	decl eZoneType[ZoneType];
 	for(new i=0; i<GetArraySize(g_aZoneTypes); i++)
@@ -219,6 +219,8 @@ public OnMapStart()
 	
 	ClearArray(g_aZones);
 	ClearArray(g_aZoneTypes);
+	ClearTrie(g_hTrie_TypeIDToIndex);
+	
 	CreateNotSetZoneType();
 	
 	new result;
@@ -254,7 +256,7 @@ Forward_OnZoneRemoved(iZoneID, bool:bIsPre)
 SortZoneTypesByName()
 {
 	new iArraySize = GetArraySize(g_aZoneTypes);
-	decl String:szName[MAX_ZONE_TYPE_NAME_LEN], eZoneType[ZoneType], j, iIndex, iID, iID2;
+	decl String:szName[MAX_ZONE_TYPE_NAME_LEN], eZoneType[ZoneType], j, iIndex, iID, iID2, String:szTypeID[12];
 	
 	for(new i=1; i<iArraySize; i++) // Start at index 1 instead of 0 so Not Set is always first.
 	{
@@ -280,8 +282,11 @@ SortZoneTypesByName()
 		SwapArrayItems(g_aZoneTypes, i, iIndex);
 		
 		// We must swap the IDtoIndex too.
-		g_iZoneTypeIDToIndex[iID] = iIndex;
-		g_iZoneTypeIDToIndex[iID2] = i;
+		IntToString(iID, szTypeID, sizeof(szTypeID));
+		SetTrieValue(g_hTrie_TypeIDToIndex, szTypeID, iIndex, true);
+		
+		IntToString(iID2, szTypeID, sizeof(szTypeID));
+		SetTrieValue(g_hTrie_TypeIDToIndex, szTypeID, i, true);
 	}
 }
 
@@ -310,7 +315,11 @@ CreateNotSetZoneType()
 	eZoneType[ZoneType_ForwardEditData] = INVALID_HANDLE;
 	eZoneType[ZoneType_ForwardTypeAssigned] = INVALID_HANDLE;
 	eZoneType[ZoneType_ForwardTypeUnassigned] = INVALID_HANDLE;
-	g_iZoneTypeIDToIndex[ZONE_TYPE_NOT_SET] = PushArrayArray(g_aZoneTypes, eZoneType);
+	new iIndex = PushArrayArray(g_aZoneTypes, eZoneType);
+	
+	decl String:szTypeID[12];
+	IntToString(ZONE_TYPE_NOT_SET, szTypeID, sizeof(szTypeID));
+	SetTrieValue(g_hTrie_TypeIDToIndex, szTypeID, iIndex, true);
 }
 
 public Event_RoundStart_Pre(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
@@ -831,7 +840,11 @@ public _ZoneManager_RegisterZoneType(Handle:hPlugin, iNumParams)
 		eZoneType[ZoneType_ForwardTypeUnassigned] = INVALID_HANDLE;
 	}
 	
-	g_iZoneTypeIDToIndex[iZoneType] = PushArrayArray(g_aZoneTypes, eZoneType);
+	new iIndex = PushArrayArray(g_aZoneTypes, eZoneType);
+	
+	decl String:szTypeID[12];
+	IntToString(iZoneType, szTypeID, sizeof(szTypeID));
+	SetTrieValue(g_hTrie_TypeIDToIndex, szTypeID, iIndex, true);
 	
 	return true;
 }
@@ -1096,6 +1109,17 @@ bool:ImportTrigger(iClient, const String:szTriggerName[])
 	return true;
 }
 
+GetZoneTypeIndexFromID(iTypeID)
+{
+	static iIndex, String:szID[12];
+	IntToString(iTypeID, szID, sizeof(szID));
+	
+	if(!GetTrieValue(g_hTrie_TypeIDToIndex, szID, iIndex))
+		return -1;
+	
+	return iIndex;
+}
+
 DisplayMenu_SelectZone(iClient)
 {
 	if(!IsValidZoneID(g_iSelectedZoneID[iClient]))
@@ -1104,9 +1128,21 @@ DisplayMenu_SelectZone(iClient)
 		return;
 	}
 	
-	decl eZone[Zone], eZoneType[ZoneType];
+	decl eZone[Zone];
 	GetArrayArray(g_aZones, g_iZoneIDToIndex[g_iSelectedZoneID[iClient]], eZone);
-	GetArrayArray(g_aZoneTypes, g_iZoneTypeIDToIndex[eZone[Zone_Type]], eZoneType);
+	
+	new iIndex = GetZoneTypeIndexFromID(eZone[Zone_Type]);
+	if(iIndex == -1)
+	{
+		iIndex = GetZoneTypeIndexFromID(ZONE_TYPE_NOT_SET);
+		if(iIndex == -1)
+			return;
+		
+		PrintToChat(iClient, "[SM] WARNING: This zone's type plugin is not loaded.");
+	}
+	
+	decl eZoneType[ZoneType];
+	GetArrayArray(g_aZoneTypes, iIndex, eZoneType);
 	
 	decl String:szTitle[MAX_VALUE_NAME_LENGTH], iLen;
 	iLen = FormatEx(szTitle, sizeof(szTitle), "Zone Selection");
@@ -1303,9 +1339,21 @@ DisplayMenu_EditZone(iClient)
 		return;
 	}
 	
-	decl eZone[Zone], eZoneType[ZoneType];
+	decl eZone[Zone];
 	GetArrayArray(g_aZones, g_iZoneIDToIndex[g_iSelectedZoneID[iClient]], eZone);
-	GetArrayArray(g_aZoneTypes, g_iZoneTypeIDToIndex[eZone[Zone_Type]], eZoneType);
+	
+	new iIndex = GetZoneTypeIndexFromID(eZone[Zone_Type]);
+	if(iIndex == -1)
+	{
+		iIndex = GetZoneTypeIndexFromID(ZONE_TYPE_NOT_SET);
+		if(iIndex == -1)
+			return;
+		
+		PrintToChat(iClient, "[SM] WARNING: This zone's type plugin is not loaded.");
+	}
+	
+	decl eZoneType[ZoneType];
+	GetArrayArray(g_aZoneTypes, iIndex, eZoneType);
 	
 	decl String:szTitle[MAX_VALUE_NAME_LENGTH], iLen;
 	iLen = FormatEx(szTitle, sizeof(szTitle), "Edit Zone");
@@ -1534,8 +1582,18 @@ Forward_EditData(iClient)
 	decl eZone[Zone];
 	GetArrayArray(g_aZones, g_iZoneIDToIndex[g_iSelectedZoneID[iClient]], eZone);
 	
+	new iIndex = GetZoneTypeIndexFromID(eZone[Zone_Type]);
+	if(iIndex == -1)
+	{
+		iIndex = GetZoneTypeIndexFromID(ZONE_TYPE_NOT_SET);
+		if(iIndex == -1)
+			return;
+		
+		PrintToChat(iClient, "[SM] WARNING: This zone's type plugin is not loaded.");
+	}
+	
 	decl eZoneType[ZoneType];
-	GetArrayArray(g_aZoneTypes, g_iZoneTypeIDToIndex[eZone[Zone_Type]], eZoneType);
+	GetArrayArray(g_aZoneTypes, iIndex, eZoneType);
 	
 	if(eZoneType[ZoneType_ForwardEditData] == INVALID_HANDLE)
 	{
@@ -1561,8 +1619,12 @@ Forward_TypeAssigned(iEntityIndex, iZoneID)
 	decl eZone[Zone];
 	GetArrayArray(g_aZones, g_iZoneIDToIndex[iZoneID], eZone);
 	
+	new iIndex = GetZoneTypeIndexFromID(eZone[Zone_Type]);
+	if(iIndex == -1)
+		return;
+	
 	decl eZoneType[ZoneType];
-	GetArrayArray(g_aZoneTypes, g_iZoneTypeIDToIndex[eZone[Zone_Type]], eZoneType);
+	GetArrayArray(g_aZoneTypes, iIndex, eZoneType);
 	
 	// Global forward to let all plugins know.
 	decl result;
@@ -1587,8 +1649,12 @@ Forward_TypeUnassigned(iEntityIndex, iZoneID, iZoneType)
 	if(!IsValidZoneID(iZoneID))
 		return;
 	
+	new iIndex = GetZoneTypeIndexFromID(iZoneType);
+	if(iIndex == -1)
+		return;
+	
 	decl eZoneType[ZoneType];
-	GetArrayArray(g_aZoneTypes, g_iZoneTypeIDToIndex[iZoneType], eZoneType);
+	GetArrayArray(g_aZoneTypes, iIndex, eZoneType);
 	
 	// Global forward to let all plugins know.
 	decl result;
@@ -1616,9 +1682,21 @@ DisplayMenu_EditType(iClient)
 		return;
 	}
 	
-	decl eZone[Zone], eZoneType[ZoneType];
+	decl eZone[Zone];
 	GetArrayArray(g_aZones, g_iZoneIDToIndex[g_iSelectedZoneID[iClient]], eZone);
-	GetArrayArray(g_aZoneTypes, g_iZoneTypeIDToIndex[eZone[Zone_Type]], eZoneType);
+	
+	new iIndex = GetZoneTypeIndexFromID(eZone[Zone_Type]);
+	if(iIndex == -1)
+	{
+		iIndex = GetZoneTypeIndexFromID(ZONE_TYPE_NOT_SET);
+		if(iIndex == -1)
+			return;
+		
+		PrintToChat(iClient, "[SM] WARNING: This zone's type plugin is not loaded.");
+	}
+	
+	decl eZoneType[ZoneType];
+	GetArrayArray(g_aZoneTypes, iIndex, eZoneType);
 	
 	new Handle:hMenu = CreateMenu(MenuHandle_EditType);
 	
@@ -1827,54 +1905,50 @@ bool:IsValidZoneID(iZoneID)
 
 SelectZone_Previous(iClient)
 {
-	decl eZone[Zone], iIndex;
-	new bool:bFoundFreeZone, iLastZoneID, iArraySize = GetArraySize(g_aZones);
+	new iArraySize = GetArraySize(g_aZones);
+	if(!iArraySize)
+		return;
 	
-	for(iIndex=iArraySize-1; iIndex>=0; iIndex--)
+	decl iIndex;
+	if(g_iSelectedZoneID[iClient])
 	{
-		GetArrayArray(g_aZones, iIndex, eZone);
-		
-		bFoundFreeZone = true;
-		
-		if(iIndex == (iArraySize - 1))
-			iLastZoneID = eZone[Zone_ID];
-		
-		if(eZone[Zone_ID] >= g_iSelectedZoneID[iClient])
-			continue;
-		
-		SetSelectedZone(iClient, eZone[Zone_ID]);
-		break;
+		iIndex = g_iZoneIDToIndex[g_iSelectedZoneID[iClient]] - 1;
+		if(iIndex < 0)
+			iIndex = iArraySize - 1;
+	}
+	else
+	{
+		iIndex = 0;
 	}
 	
-	if(bFoundFreeZone && iIndex < 0)
-		SetSelectedZone(iClient, iLastZoneID);
+	decl eZone[Zone];
+	GetArrayArray(g_aZones, iIndex, eZone);
+	SetSelectedZone(iClient, eZone[Zone_ID]);
 	
 	DisplayMenu_SelectZone(iClient);
 }
 
 SelectZone_Next(iClient)
 {
-	decl eZone[Zone], iIndex;
-	new bool:bFoundFreeZone, iFirstZoneID, iArraySize = GetArraySize(g_aZones);
+	new iArraySize = GetArraySize(g_aZones);
+	if(!iArraySize)
+		return;
 	
-	for(iIndex=0; iIndex<iArraySize; iIndex++)
+	decl iIndex;
+	if(g_iSelectedZoneID[iClient])
 	{
-		GetArrayArray(g_aZones, iIndex, eZone);
-		
-		bFoundFreeZone = true;
-		
-		if(iIndex == 0)
-			iFirstZoneID = eZone[Zone_ID];
-		
-		if(eZone[Zone_ID] <= g_iSelectedZoneID[iClient])
-			continue;
-		
-		SetSelectedZone(iClient, eZone[Zone_ID]);
-		break;
+		iIndex = g_iZoneIDToIndex[g_iSelectedZoneID[iClient]] + 1;
+		if(iIndex >= iArraySize)
+			iIndex = 0;
+	}
+	else
+	{
+		iIndex = 0;
 	}
 	
-	if(bFoundFreeZone && iIndex >= iArraySize)
-		SetSelectedZone(iClient, iFirstZoneID);
+	decl eZone[Zone];
+	GetArrayArray(g_aZones, iIndex, eZone);
+	SetSelectedZone(iClient, eZone[Zone_ID]);
 	
 	DisplayMenu_SelectZone(iClient);
 }
@@ -2166,8 +2240,13 @@ public OnTouchPost(iZone, iOther)
 	static eZone[Zone];
 	GetArrayArray(g_aZones, g_iZoneIDToIndex[iZoneID], eZone);
 	
+	static iIndex;
+	iIndex = GetZoneTypeIndexFromID(eZone[Zone_Type]);
+	if(iIndex == -1)
+		return;
+	
 	static eZoneType[ZoneType];
-	GetArrayArray(g_aZoneTypes, g_iZoneTypeIDToIndex[eZone[Zone_Type]], eZoneType);
+	GetArrayArray(g_aZoneTypes, iIndex, eZoneType);
 	
 	if(eZoneType[ZoneType_ForwardTouch] == INVALID_HANDLE)
 		return;
@@ -2187,8 +2266,12 @@ public OnStartTouchPost(iZone, iOther)
 	static eZone[Zone];
 	GetArrayArray(g_aZones, g_iZoneIDToIndex[iZoneID], eZone);
 	
+	new iIndex = GetZoneTypeIndexFromID(eZone[Zone_Type]);
+	if(iIndex == -1)
+		return;
+	
 	static eZoneType[ZoneType];
-	GetArrayArray(g_aZoneTypes, g_iZoneTypeIDToIndex[eZone[Zone_Type]], eZoneType);
+	GetArrayArray(g_aZoneTypes, iIndex, eZoneType);
 	
 	if(eZoneType[ZoneType_ForwardStartTouch] == INVALID_HANDLE)
 		return;
@@ -2208,8 +2291,12 @@ public OnEndTouchPost(iZone, iOther)
 	static eZone[Zone];
 	GetArrayArray(g_aZones, g_iZoneIDToIndex[iZoneID], eZone);
 	
+	new iIndex = GetZoneTypeIndexFromID(eZone[Zone_Type]);
+	if(iIndex == -1)
+		return;
+	
 	static eZoneType[ZoneType];
-	GetArrayArray(g_aZoneTypes, g_iZoneTypeIDToIndex[eZone[Zone_Type]], eZoneType);
+	GetArrayArray(g_aZoneTypes, iIndex, eZoneType);
 	
 	if(eZoneType[ZoneType_ForwardEndTouch] == INVALID_HANDLE)
 		return;
