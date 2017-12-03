@@ -403,6 +403,7 @@ native SetEntDataString(entity, offset, const String:buffer[], maxlen, bool:chan
  * @param prop			Property name.
  * @return				An offset, or -1 on failure.
  */
+#pragma deprecated Use FindSendPropInfo instead, or HasEntProp if you just want to check for existence.
 native FindSendPropOffs(const String:cls[], const String:prop[]);
 
 /**
@@ -445,6 +446,7 @@ native FindSendPropInfo(const String:cls[],
  *						divisible by 8 (including 0 if unknown).
  * @return				An offset, or -1 on failure.
  */
+#pragma deprecated Use FindDataMapInfo instead, or HasEntProp if you just want to check for existence.
 native FindDataMapOffs(entity, 
 					   const String:prop[],
 					   &PropFieldType:type=PropFieldType:0,
@@ -497,6 +499,33 @@ stock GetEntSendPropOffs(ent, const String:prop[], bool:actual=false)
 	{
 		return FindSendPropOffs(cls, prop);
 	}
+}
+
+/**
+ * Checks if an entity property exists on an entity.
+ *
+ * @param entity		Entity/edict index.
+ * @param type			Property type.
+ * @param prop			Property name.
+ * @return				Whether the property exists on the entity.
+ * @error				Invalid entity.
+ */
+stock bool:HasEntProp(entity, PropType:type, const String:prop[])
+{
+	if (type == Prop_Data) {
+		return (FindDataMapInfo(entity, prop) != -1);
+	}
+
+	if (type != Prop_Send) {
+		return false;
+	}
+
+	decl String:cls[64];
+	if (!GetEntityNetClass(entity, cls, sizeof(cls))) {
+		return false;
+	}
+
+	return (FindSendPropInfo(cls, prop) != -1);
 }
 
 /**
