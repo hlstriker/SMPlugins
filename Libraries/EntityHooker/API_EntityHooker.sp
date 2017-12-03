@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Entity Hooker";
-new const String:PLUGIN_VERSION[] = "1.8";
+new const String:PLUGIN_VERSION[] = "1.9";
 
 public Plugin:myinfo =
 {
@@ -748,8 +748,8 @@ DisplayMenu_EntitySelect(iClient, iHookDataIndex, iClassNameIndex, iSelectType=0
 		if(eHookData[HOOK_DATA_TYPE] != eHookDataProperty[HOOK_PROP_DATA_TYPE])
 			continue;
 		
-		//if(!HasEntProp(iEnt, eHookDataProperty[HOOK_PROP_PROP_TYPE], eHookDataProperty[HOOK_PROP_PROPERTY]))
-		//	continue;
+		if(!HasEntProp(iEnt, eHookDataProperty[HOOK_PROP_PROP_TYPE], eHookDataProperty[HOOK_PROP_PROPERTY]))
+			continue;
 		
 		switch(eHookDataProperty[HOOK_PROP_FIELD_TYPE])
 		{
@@ -972,6 +972,12 @@ FindPrevEntity(iClient, const String:szClassName[])
 
 TeleportToEntity(iClient, iEnt)
 {
+	if(!HasEntProp(iEnt, Prop_Send, "m_vecOrigin"))
+	{
+		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {red}This entity has no location to teleport to.");
+		return;
+	}
+	
 	decl Float:fOrigin[3], Float:fMins[3], Float:fMaxs[3];
 	GetEntPropVector(iEnt, Prop_Send, "m_vecOrigin", fOrigin);
 	GetEntPropVector(iEnt, Prop_Send, "m_vecMins", fMins);
@@ -1007,6 +1013,9 @@ ShowBox(iClient, Float:fBeamWidth, const iColor[4])
 	static iEnt;
 	iEnt = g_iStartEnt[iClient];
 	if(iEnt == INVALID_ENT_REFERENCE)
+		return;
+	
+	if(!HasEntProp(iEnt, Prop_Send, "m_vecOrigin"))
 		return;
 	
 	static Float:fOrigin[3], Float:fMins[3], Float:fMaxs[3], i;
