@@ -8,7 +8,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Countdown Timer";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
@@ -30,6 +30,7 @@ public OnPluginStart()
 {
 	CreateConVar("ultjb_command_timer_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	RegConsoleCmd("sm_timer", OnTimer, "[Usage] sm_timer <seconds> - Starts a countdown timer");
+	RegConsoleCmd("sm_stoptimer", OnStopTimer, "[Usage] sm_stoptimer - Stops the countdown timer.");
 	
 	HookEvent("round_end", Event_RoundEnd);
 }
@@ -85,10 +86,35 @@ public Action:OnTimer(iClient, iArgCount)
 	return Plugin_Handled;
 }
 
+public Action:OnStopTimer(iClient, iArgCount)
+{
+	if(!iClient)
+		return Plugin_Handled;
+	
+	if(UltJB_Warden_GetWarden() != iClient)
+	{
+		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {lightred}Error: {olive}You must be the warden to stop the timer.");
+		return Plugin_Handled;
+	}
+	
+	if(g_hTimer_Countdown != INVALID_HANDLE)
+	{
+		StopTimer_Countdown();
+		CPrintToChatAll("{green}[{lightred}SM{green}] {lightred}The timer has been stopped.");
+	}
+	else
+	{
+		ReplyToCommand(iClient, "[SM] There is no timer running.");
+	}
+	
+	return Plugin_Handled;
+}
+
 StartTimer_Countdown()
 {
 	g_iTimerCountdown = 0;
 	ShowCountdown();
+	CPrintToChatAll("{green}[{lightred}SM{green}] {olive}The timer has started for {lightred}%i {olive}seconds.", g_iCountdown - g_iTimerCountdown);
 	
 	StopTimer_Countdown();
 	g_hTimer_Countdown = CreateTimer(1.0, Timer_Countdown, _, TIMER_REPEAT);
