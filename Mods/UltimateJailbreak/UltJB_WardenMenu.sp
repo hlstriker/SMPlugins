@@ -19,7 +19,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warden Menu";
-new const String:PLUGIN_VERSION[] = "1.8";
+new const String:PLUGIN_VERSION[] = "1.9";
 
 public Plugin:myinfo =
 {
@@ -129,6 +129,7 @@ public OnPluginStart()
 	HookEvent("cs_pre_restart", Event_CSPreRestart_Post, EventHookMode_PostNoCopy);
 	
 	RegConsoleCmd("sm_wm", OnWardenMenu, "Opens the warden's menu.");
+	RegConsoleCmd("sm_cc", OnClientColor, "Sets the clients render color.");
 }
 
 public OnAllPluginsLoaded()
@@ -213,6 +214,45 @@ public UltJB_Warden_OnSelected(iClient)
 public UltJB_Warden_OnRemoved(iClient)
 {
 	RemoveHealingArea();
+}
+
+public Action:OnClientColor(iClient, iArgCount)
+{
+	if(!iClient)
+		return Plugin_Handled;
+	
+	if(UltJB_Warden_GetWarden() != iClient)
+	{
+		DisplayMustBeWardenMessage(iClient);
+		return Plugin_Handled;
+	}
+	
+	if(iArgCount)
+	{
+		decl String:szArg[8];
+		GetCmdArg(1, szArg, sizeof(szArg));
+		
+		if(StrEqual(szArg,"ring", false))
+		{
+			SetClientsColor(false, _, true, true);
+			CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}Client colors have been set based on ring colors.");
+		}
+		else if(StrEqual(szArg,"remove", false))
+		{
+			SetClientsColor(true, _, false, false);
+			CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}Client colors have all been removed.");
+		}
+		else
+		{
+			ReplyToCommand(iClient, "[SM] Please enter 'ring' or 'remove'.");
+		}
+	}
+	else
+	{
+		ReplyToCommand(iClient, "[SM] Please enter 'ring' or 'remove'.");
+	}
+	
+	return Plugin_Handled;
 }
 
 public Action:OnWardenMenu(iClient, iArgNum)
