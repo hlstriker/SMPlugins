@@ -4,11 +4,12 @@
 #include <emitsoundany>
 #include "../Includes/ultjb_warden"
 #include "../Includes/ultjb_last_request"
+#include "../Includes/ultjb_days"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Countdown Timer";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -55,6 +56,12 @@ public Action:OnTimer(iClient, iArgCount)
 	if(UltJB_Warden_GetWarden() != iClient)
 	{
 		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {lightred}Error: {olive}You must be the warden to use the timer.");
+		return Plugin_Handled;
+	}
+	
+	if(UltJB_Day_IsInProgress())
+	{
+		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {lightred}Error: {olive}You cannot use the timer if a day is in progress.")
 		return Plugin_Handled;
 	}
 	
@@ -142,6 +149,13 @@ public Action:Timer_Countdown(Handle:hTimer)
 	{
 		g_hTimer_Countdown = INVALID_HANDLE;
 		PrintHintTextToAll("<font color='#DE2626'>Countdown Stopped due to LR!</font>");
+		return Plugin_Stop;
+	}
+	
+	if(UltJB_Day_IsInProgress())
+	{
+		g_hTimer_Countdown = INVALID_HANDLE;
+		PrintHintTextToAll("<font color='#DE2626'>Countdown Stopped due to a day starting!</font>");
 		return Plugin_Stop;
 	}
 	
