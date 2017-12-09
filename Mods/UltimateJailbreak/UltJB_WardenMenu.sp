@@ -140,6 +140,7 @@ public OnPluginStart()
 	CreateConVar("ultjb_wardenmenu_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	
 	HookEvent("cs_pre_restart", Event_CSPreRestart_Post, EventHookMode_PostNoCopy);
+	HookEvent("player_death", EventPlayerDeath_Post, EventHookMode_PostNoCopy);
 	
 	RegConsoleCmd("sm_wm", OnWardenMenu, "Opens the warden's menu.");
 	RegConsoleCmd("sm_cc", OnClientColor, "Sets the clients render color.");
@@ -273,6 +274,13 @@ public Action:OnClientColor(iClient, iArgCount)
 
 public UltJB_LR_OnLastRequestInitialized(iClient)
 {
+	FadeScreen(iClient, 0, 0, {1, 1, 1, 255}, FFADE_PURGE);
+}
+
+public EventPlayerDeath_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
+{
+	new iClient = GetClientOfUserId(GetEventInt(hEvent, "userid"));
+	
 	FadeScreen(iClient, 0, 0, {1, 1, 1, 255}, FFADE_PURGE);
 }
 
