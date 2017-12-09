@@ -11,7 +11,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Voice Chat";
-new const String:PLUGIN_VERSION[] = "1.14";
+new const String:PLUGIN_VERSION[] = "1.15";
 
 public Plugin:myinfo =
 {
@@ -60,7 +60,11 @@ public SquelchManager_OnClientStartSpeaking(iClient)
 	
 	fNextMessageTime[iClient] = fCurTime + MUTE_MESSAGE_DELAY;
 	
-	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {red}Your microphone is muted right now.");
+	if(g_hMuteTimer == INVALID_HANDLE)
+		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {red}Your microphone is muted right now. Possible Reasons: Talking over Warden, Admin Muted, Timed Muted, Dead");
+	else
+		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {red}Your microphone is muted right now. T's are muted for the first 60 seconds on the round.");
+	
 	EmitSoundToClientAny(iClient, g_szRestrictedSound[6], SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_FRIDGE, SND_NOFLAGS);
 }
 
