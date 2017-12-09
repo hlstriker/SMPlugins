@@ -65,7 +65,7 @@ public SquelchManager_OnClientStartSpeaking(iClient)
 	else
 		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {red}Your microphone is muted right now. T's are muted for the first 60 seconds on the round.");
 	
-	EmitSoundToClientAny(iClient, g_szRestrictedSound[6], SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_FRIDGE, SND_NOFLAGS);
+	EmitSoundToClientAny(iClient, g_szRestrictedSound[6], SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_LIBRARY, SND_NOFLAGS);
 }
 
 public EventPlayerDeath_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
