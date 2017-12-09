@@ -61,7 +61,7 @@ public Action:OnTimer(iClient, iArgCount)
 	
 	if(UltJB_Day_IsInProgress())
 	{
-		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {lightred}Error: {olive}You cannot use the timer if a day is in progress.")
+		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {lightred}Error: {olive}You cannot use the timer if a day is in progress.");
 		return Plugin_Handled;
 	}
 	
