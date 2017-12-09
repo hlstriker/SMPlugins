@@ -6,7 +6,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Fat Kid";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -19,6 +19,9 @@ public Plugin:myinfo =
 
 #define DAY_NAME	"Fat Kid"
 new const DayType:DAY_TYPE = DAY_TYPE_WARDAY;
+
+new const HEALTH_BASE = 2000;
+new const HEALTH_PER_CT = 100;
 
 
 public OnPluginStart()
@@ -48,7 +51,7 @@ public OnFreezeEnd()
 		{
 			case TEAM_GUARDS:
 			{
-				iWeapon = UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_NEGEV);
+				iWeapon = UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_M249);
 				SetEntPropEnt(iClient, Prop_Send, "m_hActiveWeapon", iWeapon);
 			}
 			case TEAM_PRISONERS:
@@ -56,8 +59,25 @@ public OnFreezeEnd()
 				iWeapon = UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_KNIFE_T);
 				SetEntPropEnt(iClient, Prop_Send, "m_hActiveWeapon", iWeapon);
 				
-				SetEntPropFloat(iClient, Prop_Send, "m_flLaggedMovementValue", 0.7);
-				UltJB_LR_SetClientsHealth(iClient, 2000);
+				SetEntPropFloat(iClient, Prop_Send, "m_flLaggedMovementValue", 0.8);
+				
+				new iHealthToGive = HEALTH_BASE;
+				
+				for(new iPlayer=1; iPlayer<=MaxClients; iPlayer++)
+				{
+					if(!IsClientInGame(iPlayer))
+						continue;
+					
+					if(!IsPlayerAlive(iPlayer))
+						continue;
+					
+					if(GetClientTeam(iPlayer) != TEAM_GUARDS)
+						continue;
+					
+					iHealthToGive += HEALTH_PER_CT;
+				}
+				
+				UltJB_LR_SetClientsHealth(iClient, iHealthToGive);
 			}
 		}
 	}
