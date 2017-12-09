@@ -19,7 +19,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warden Menu";
-new const String:PLUGIN_VERSION[] = "1.9";
+new const String:PLUGIN_VERSION[] = "1.10";
 
 public Plugin:myinfo =
 {
@@ -41,6 +41,14 @@ new const String:g_szRingNames[][] =
 	"Red",
 	"Yellow",
 	"Blue"
+};
+
+new const String:g_szColorHex[][] =
+{
+	"#00ff00",
+	"#ff0000",
+	"#ffff00",
+	"#00ffff"
 };
 
 new g_iRingColors[][] =
@@ -82,6 +90,11 @@ new Float:g_fRingCustomRadius[sizeof(g_iRingColors)];
 #define RING_SIZE_MAX		5.0
 #define RING_RADIUS			50.0
 #define RING_UPDATE_TIME	0.3
+
+#define FFADE_STAYOUT	0x0008
+#define FFADE_PURGE		0x0010
+
+new UserMsg:g_msgFade;
 
 new Float:g_fNextRingUpdate;
 new g_iWardenCount;
@@ -130,6 +143,8 @@ public OnPluginStart()
 	
 	RegConsoleCmd("sm_wm", OnWardenMenu, "Opens the warden's menu.");
 	RegConsoleCmd("sm_cc", OnClientColor, "Sets the clients render color.");
+	
+	g_msgFade = GetUserMessageId("Fade");
 }
 
 public OnAllPluginsLoaded()
@@ -199,6 +214,7 @@ public Event_CSPreRestart_Post(Handle:hEvent, const String:szName[], bool:bDontB
 	RemoveHealingArea();
 	RemoveAllRings(0);
 	g_iWardenCount = 0;
+	SetClientsColor(true, _, false, false);
 }
 
 public UltJB_Warden_OnSelected(iClient)
@@ -253,6 +269,11 @@ public Action:OnClientColor(iClient, iArgCount)
 	}
 	
 	return Plugin_Handled;
+}
+
+public UltJB_LR_OnLastRequestInitialized(iClient)
+{
+	FadeScreen(iClient, 0, 0, {1, 1, 1, 255}, FFADE_PURGE);
 }
 
 public Action:OnWardenMenu(iClient, iArgNum)
@@ -907,11 +928,16 @@ SetClientsColor(bool:bRemoveColor, const iColor[4]={255, 255, 255, 255}, bool:bI
 		{
 			SetEntityRenderColor(iClient, 255, 255, 255, 255);
 			SetEntProp(iClient, Prop_Send, "m_nSkin", 0);
+			FadeScreen(iClient, 0, 0, {1, 1, 1, 255}, FFADE_PURGE);
+			PrintHintText(iClient, "Your color has been removed.");
 		}
 		else
 		{
 			SetEntityRenderColor(iClient, iNewColor[0], iNewColor[1], iNewColor[2], iNewColor[3]);
 			SetEntProp(iClient, Prop_Send, "m_nSkin", 1);
+			iNewColor[3] = 20;
+			FadeScreen(iClient, 0, 0, iNewColor, FFADE_STAYOUT | FFADE_PURGE);
+			PrintHintText(iClient, "Your color has been set to\n<font color='%s'>%s</font>.", g_szColorHex[iRingIndex], g_szRingNames[iRingIndex]);
 		}
 	}
 }
@@ -936,4 +962,32 @@ GetClientsRingIndex(iClient)
 	}
 
 	return -1;
+}
+
+FadeScreen(iClient, iDurationMilliseconds, iHoldMilliseconds, iColor[4], iFlags)
+{
+	decl iClients[1];
+	iClients[0] = iClient;
+	
+	new Handle:hMessage = StartMessageEx(g_msgFade, iClients, 1);
+	
+	if(GetUserMessageType() == UM_Protobuf)
+	{
+		PbSetInt(hMessage, "duration", iDurationMilliseconds);
+		PbSetInt(hMessage, "hold_time", iHoldMilliseconds);
+		PbSetInt(hMessage, "flags", iFlags);
+		PbSetColor(hMessage, "clr", iColor);
+	}
+	else
+	{
+		BfWriteShort(hMessage, iDurationMilliseconds);
+		BfWriteShort(hMessage, iHoldMilliseconds);
+		BfWriteShort(hMessage, iFlags);
+		BfWriteByte(hMessage, iColor[0]);
+		BfWriteByte(hMessage, iColor[1]);
+		BfWriteByte(hMessage, iColor[2]);
+		BfWriteByte(hMessage, iColor[3]);
+	}
+	
+	EndMessage();
 }
