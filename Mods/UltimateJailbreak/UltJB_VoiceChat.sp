@@ -4,13 +4,14 @@
 #include <sdktools_functions>
 #include <sdktools_voice>
 #include <hls_color_chat>
+#include <emitsoundany>
 #include "Includes/ultjb_last_request"
 #include "../../Libraries/TimedPunishments/timed_punishments"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Voice Chat";
-new const String:PLUGIN_VERSION[] = "1.13";
+new const String:PLUGIN_VERSION[] = "1.14";
 
 public Plugin:myinfo =
 {
@@ -30,7 +31,7 @@ new bool:g_bIsClientMutedBySourceMod[MAXPLAYERS+1];
 
 #define MUTE_MESSAGE_DELAY	4.0
 
-new const String:g_szRestrictedSound[] = "buttons/button11.wav";
+new const String:g_szRestrictedSound[] = "sound/buttons/button11.wav";
 
 
 public OnPluginStart()
@@ -60,7 +61,7 @@ public SquelchManager_OnClientStartSpeaking(iClient)
 	fNextMessageTime[iClient] = fCurTime + MUTE_MESSAGE_DELAY;
 	
 	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {red}Your microphone is muted right now.");
-	ClientCommand(iClient, "play %s", g_szRestrictedSound);
+	EmitSoundToClientAny(iClient, g_szRestrictedSound[6], SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_FRIDGE, SND_NOFLAGS);
 }
 
 public EventPlayerDeath_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
@@ -121,6 +122,9 @@ public Event_Intermission_Post(Handle:hEvent, const String:szName[], bool:bDontB
 public OnMapStart()
 {
 	g_bHasRoundStarted = false;
+	
+	AddFileToDownloadsTable(g_szRestrictedSound);
+	PrecacheSoundAny(g_szRestrictedSound[6]);
 }
 
 public OnClientPutInServer(iClient)
