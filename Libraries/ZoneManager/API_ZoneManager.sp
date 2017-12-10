@@ -55,7 +55,6 @@ enum _:Zone
 };
 
 new Handle:g_hTrie_TypeIDToIndex;
-//new g_iZoneTypeIDToIndex[MAX_ZONES+1] = {INVALID_ZONE_ID, ...};
 new Handle:g_aZoneTypes;
 enum _:ZoneType
 {
