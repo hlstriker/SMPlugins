@@ -30,7 +30,7 @@ public OnPluginStart()
 {
 	CreateConVar("bhop_cap_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	
-	cvar_bhop_hard_cap_speed = CreateConVar("bhop_hard_cap_speed", "550.0", "The hard cap to apply to jumping.");
+	cvar_bhop_hard_cap_speed = CreateConVar("bhop_hard_cap_speed", "500.0", "The hard cap to apply to jumping.");
 	cvar_bhop_soft_cap_percent = CreateConVar("bhop_soft_cap_percent", "0.7", "The percent of the hard cap to use as the soft cap.");
 	cvar_bhop_soft_cap_reducer_percent = CreateConVar("bhop_soft_cap_reducer_percent", "0.04", "The percent to reduce the difference between the current speed and soft cap.");
 	
