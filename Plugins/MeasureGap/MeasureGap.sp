@@ -98,13 +98,13 @@ DisplayMenu_Gap(iClient)
 	IntToString(MENUSELECT_SNAP_INCREMENT, szInfo, sizeof(szInfo));
 	AddMenuItem(hMenu, szInfo, szBuffer);
 	
-	FormatEx(szBuffer, sizeof(szBuffer), "Horizontal: %f", g_fMeasureDelta[iClient][0]);
+	FormatEx(szBuffer, sizeof(szBuffer), "Horizontal: %.2f", g_fMeasureDelta[iClient][0]);
 	AddMenuItem(hMenu, "", szBuffer, ITEMDRAW_DISABLED);
 	
-	FormatEx(szBuffer, sizeof(szBuffer), "Vertical: %f", g_fMeasureDelta[iClient][1]);
+	FormatEx(szBuffer, sizeof(szBuffer), "    Vertical: %.2f", g_fMeasureDelta[iClient][1]);
 	AddMenuItem(hMenu, "", szBuffer, ITEMDRAW_DISABLED);
 	
-	FormatEx(szBuffer, sizeof(szBuffer), "Total: %f", g_fMeasureDelta[iClient][2]);
+	FormatEx(szBuffer, sizeof(szBuffer), "        Total: %.2f", g_fMeasureDelta[iClient][2]);
 	AddMenuItem(hMenu, "", szBuffer, ITEMDRAW_DISABLED);
 	
 	SetMenuPagination(hMenu, MENU_NO_PAGINATION);
