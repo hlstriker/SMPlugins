@@ -403,7 +403,7 @@ native SetEntDataString(entity, offset, const String:buffer[], maxlen, bool:chan
  * @param prop			Property name.
  * @return				An offset, or -1 on failure.
  */
-#pragma deprecated Use FindSendPropInfo instead, or HasEntProp if you just want to check for existence.
+//#pragma deprecated Use FindSendPropInfo instead, or HasEntProp if you just want to check for existence.
 native FindSendPropOffs(const String:cls[], const String:prop[]);
 
 /**
@@ -446,7 +446,7 @@ native FindSendPropInfo(const String:cls[],
  *						divisible by 8 (including 0 if unknown).
  * @return				An offset, or -1 on failure.
  */
-#pragma deprecated Use FindDataMapInfo instead, or HasEntProp if you just want to check for existence.
+//#pragma deprecated Use FindDataMapInfo instead, or HasEntProp if you just want to check for existence.
 native FindDataMapOffs(entity, 
 					   const String:prop[],
 					   &PropFieldType:type=PropFieldType:0,
