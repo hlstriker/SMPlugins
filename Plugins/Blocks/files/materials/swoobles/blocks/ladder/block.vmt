@@ -1,0 +1,6 @@
+"VertexLitGeneric"
+{
+	$basetexture	"swoobles/blocks/ladder/block"
+	$model		1
+	$translucent	1
+}

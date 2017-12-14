@@ -1,0 +1,5 @@
+"VertexLitGeneric"
+{
+	$basetexture	"swoobles/blocks/weapons/mac10"
+	$model		1
+}

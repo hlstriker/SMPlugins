@@ -1,0 +1,5 @@
+"VertexLitGeneric"
+{
+	$basetexture	"swoobles/blocks/healing/block"
+	$model		1
+}

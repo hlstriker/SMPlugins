@@ -1,0 +1,6 @@
+"VertexLitGeneric"
+{
+	$basetexture	"swoobles/blocks/cautiontape/block"
+	$model		1
+	$translucent	1
+}

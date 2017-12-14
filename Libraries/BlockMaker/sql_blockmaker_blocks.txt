@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS plugin_blockmaker_blocks
+(
+	game_id		SMALLINT UNSIGNED	NOT NULL,
+	map_id		MEDIUMINT UNSIGNED	NOT NULL,
+	block_id	INT UNSIGNED		NOT NULL,
+
+	type_name	VARCHAR( 255 )		NOT NULL,
+
+	origin0		FLOAT( 11, 6 )		NOT NULL,
+	origin1		FLOAT( 11, 6 )		NOT NULL,
+	origin2		FLOAT( 11, 6 )		NOT NULL,
+
+	angles0		FLOAT( 11, 6 )		NOT NULL,
+	angles1		FLOAT( 11, 6 )		NOT NULL,
+	angles2		FLOAT( 11, 6 )		NOT NULL,
+
+	data_string	VARCHAR( 255 )		NOT NULL,
+
+	PRIMARY KEY ( game_id, map_id, block_id )
+) ENGINE = INNODB;

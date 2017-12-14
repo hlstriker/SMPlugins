@@ -1,0 +1,6 @@
+"VertexLitGeneric"
+{
+	$basetexture	"swoobles/blocks/teambarrier/allow_t"
+	$model		1
+	$translucent	1
+}

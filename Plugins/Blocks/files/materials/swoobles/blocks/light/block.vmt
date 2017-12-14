@@ -1,0 +1,6 @@
+"UnlitGeneric"
+{
+	$basetexture	"swoobles/blocks/light/block"
+	$model		1
+	$translucent	1
+}
