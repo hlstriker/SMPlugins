@@ -8,7 +8,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: One In The Chamber";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -29,7 +29,7 @@ public OnPluginStart()
 
 public UltJB_Day_OnRegisterReady()
 {
-	UltJB_Day_RegisterDay(DAY_NAME, DAY_TYPE, _, OnDayStart, OnDayEnd, OnFreezeEnd);
+	UltJB_Day_RegisterDay(DAY_NAME, DAY_TYPE, DAY_FLAG_KILL_WEAPON_EQUIPS, OnDayStart, OnDayEnd, OnFreezeEnd);
 }
 
 public OnDayStart(iClient)

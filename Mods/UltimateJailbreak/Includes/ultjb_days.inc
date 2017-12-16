@@ -29,6 +29,7 @@ enum DayType
 #define DAY_FLAG_STRIP_GUARDS_WEAPONS		(1<<2)	// Note: This flag is for wardays only.
 #define DAY_FLAG_GIVE_GUARDS_INFINITE_AMMO	(1<<3)	// Note: This flag is for wardays only.
 #define DAY_FLAG_KEEP_PRISONERS_WEAPONS		(1<<4)	// Note: This flag is for wardays only.
+#define DAY_FLAG_KILL_WEAPON_EQUIPS			(1<<5)	// Note: This flag is for wardays only.
 
 
 #define DAY_MAX_NAME_LENGTH		48

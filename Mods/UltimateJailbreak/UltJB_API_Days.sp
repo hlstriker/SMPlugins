@@ -3,6 +3,7 @@
 #include <cstrike>
 #include <hls_color_chat>
 #include <sdktools_functions>
+#include <sdktools_entinput>
 #include "Includes/ultjb_last_request"
 #include "Includes/ultjb_days"
 #include "Includes/ultjb_warden"
@@ -13,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.10";
+new const String:PLUGIN_VERSION[] = "1.11";
 
 public Plugin:myinfo =
 {
@@ -637,6 +638,9 @@ InitWarday(iClient, iFlags, iFreezeTime, Handle:hForwardFreezeEnd)
 	if(iFlags & DAY_FLAG_STRIP_GUARDS_WEAPONS)
 		StripTeamsWeapons(TEAM_GUARDS);
 	
+	if(iFlags & DAY_FLAG_KILL_WEAPON_EQUIPS)
+		KillWeaponEqiuips();
+	
 	if(!UltJB_CellDoors_HaveOpened())
 		UltJB_CellDoors_ForceOpen();
 	
@@ -653,6 +657,15 @@ InitWarday(iClient, iFlags, iFreezeTime, Handle:hForwardFreezeEnd)
 	{
 		Forward_OnWardayStart(iClient);
 		Forward_FreezeEnd(hForwardFreezeEnd);
+	}
+}
+
+KillWeaponEqiuips()
+{
+	new iEnt = -1;
+	while((iEnt = FindEntityByClassname(iEnt, "game_player_equip")) != -1)
+	{
+		AcceptEntityInput(iEnt, "Kill");
 	}
 }
 
