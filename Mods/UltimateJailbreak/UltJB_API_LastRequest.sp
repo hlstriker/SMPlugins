@@ -2108,7 +2108,10 @@ TeleportToWarden(iClient)
 TeleportToLRZone(iClient)
 {
 	if(!g_iTeleportLRZoneID)
+	{
 		TeleportToWarden(iClient);
+		return;
+	}
 		
 	if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
 		return;
