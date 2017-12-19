@@ -16,6 +16,8 @@
 #include "Includes/ultjb_days"
 #include "Includes/ultjb_settings"
 #include "Includes/ultjb_logger"
+#include "../../Libraries/ZoneManager/zone_manager"
+#include "../../Plugins/ZoneTypes/Includes/zonetype_teleport"
 
 #undef REQUIRE_PLUGIN
 #include "../../Libraries/SquelchManager/squelch_manager"
@@ -25,7 +27,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Last Request API";
-new const String:PLUGIN_VERSION[] = "1.39";
+new const String:PLUGIN_VERSION[] = "1.40";
 
 public Plugin:myinfo =
 {
@@ -136,6 +138,8 @@ enum _:Category
 };
 
 new g_iRoundNumber;
+
+new g_iTeleportLRZoneID;
 
 new Float:g_fPreLastRequestLocations[MAXPLAYERS+1][3];
 
@@ -2070,7 +2074,8 @@ InitializeLastRequest(iClient)
 	g_hTimer_SelectLastRequest[iClient] = CreateTimer(GetConVarFloat(cvar_select_last_request_time), Timer_SelectLastRequest, GetClientSerial(iClient));
 	//PrintToChat(iClient, "[SM] You have %i seconds to select a last request.", GetConVarInt(cvar_select_last_request_time));
 	
-	TeleportToWarden(iClient);
+	//TeleportToWarden(iClient);
+	TeleportToLRZone(iClient);
 	
 	new result;
 	Call_StartForward(g_hFwd_OnLastRequestInitialized);
@@ -2098,6 +2103,52 @@ TeleportToWarden(iClient)
 	
 	if(iTarget)
 		TeleportNearClient(iTarget, iClient, false);
+}
+
+TeleportToLRZone(iClient)
+{
+	if(!g_iTeleportLRZoneID)
+		TeleportToWarden(iClient);
+		
+	if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
+		return;
+
+	if(!ZoneTypeTeleport_TryToTeleport(g_iTeleportLRZoneID, iClient))
+		return;
+}
+
+public ZoneManager_OnTypeAssigned(iEnt, iZoneID, iZoneType)
+{
+	if(iZoneType != ZONE_TYPE_TELEPORT_DESTINATION)
+		return;
+	
+	decl String:szBuffer[8];
+	if(!ZoneManager_GetDataString(iZoneID, 1, szBuffer, sizeof(szBuffer)))
+		return;
+	
+	if(!StrEqual(szBuffer, "lr_tele"))
+		return;
+	
+	g_iTeleportLRZoneID = iZoneID;
+}
+
+public ZoneManager_OnTypeUnassigned(iEnt, iZoneID, iZoneType)
+{
+	if(iZoneType != ZONE_TYPE_TELEPORT_DESTINATION)
+		return;
+	
+	if(iZoneID != g_iTeleportLRZoneID)
+		return;
+	
+	g_iTeleportLRZoneID = 0;
+}
+
+public ZoneManager_OnZoneRemoved_Pre(iZoneID)
+{
+	if(iZoneID != g_iTeleportLRZoneID)
+		return;
+	
+	g_iTeleportLRZoneID = 0;
 }
 
 public Action:Timer_SelectLastRequest(Handle:hTimer, any:iClientSerial)
