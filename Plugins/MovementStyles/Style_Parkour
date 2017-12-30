@@ -232,7 +232,7 @@ OnGrapple(iClient, bState)
 				GetChargeColor(iClient, iColor);
 				
 				GetAngleVectors(fEyeAngles, fEyeAngles, NULL_VECTOR, NULL_VECTOR);
-				ScaleVector(fEyeAngles, 200.0)
+				ScaleVector(fEyeAngles, 200.0);
 				AddVectors(fClientPos, fEyeAngles, fClientPos);
 				
 				TE_SetupBeamPoints(fClientPos, fGrappleEntPos, g_Sprite, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, iColor, 0);
