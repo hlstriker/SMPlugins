@@ -11,7 +11,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Voice Chat";
-new const String:PLUGIN_VERSION[] = "1.15";
+new const String:PLUGIN_VERSION[] = "1.16";
 
 public Plugin:myinfo =
 {
@@ -23,6 +23,7 @@ public Plugin:myinfo =
 }
 
 new bool:g_bHasRoundStarted;
+new bool:g_bHasMapEnded;
 new Handle:g_hMuteTimer;
 new Handle:cvar_mute_prisoner_time;
 
@@ -119,6 +120,7 @@ public Action:Event_RoundEnd_Post(Handle:hEvent, const String:szName[], bool:bDo
 
 public Event_Intermission_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
 {
+	g_bHasMapEnded = true;
 	CancelUnmuteTimer();
 	MuteNonAdmins();
 }
@@ -126,6 +128,7 @@ public Event_Intermission_Post(Handle:hEvent, const String:szName[], bool:bDontB
 public OnMapStart()
 {
 	g_bHasRoundStarted = false;
+	g_bHasMapEnded = false;
 	
 	AddFileToDownloadsTable(g_szRestrictedSound);
 	PrecacheSoundAny(g_szRestrictedSound[6]);
@@ -143,6 +146,13 @@ public OnClientPutInServer(iClient)
 
 CheckToMutePlayer(iClient)
 {
+	// Mute players if the map is over.
+	if(g_bHasMapEnded)
+	{
+		MutePlayer(iClient);
+		return;
+	}
+	
 	// Don't mute anyone if there aren't any guards yet.
 	if(GetTeamClientCount(TEAM_GUARDS) < 1)
 	{
