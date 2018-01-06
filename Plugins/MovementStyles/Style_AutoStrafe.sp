@@ -1,4 +1,5 @@
 #include <sourcemod>
+#include <sdktools_functions>
 #include "../../Libraries/MovementStyles/movement_styles"
 
 #pragma semicolon 1
@@ -94,7 +95,7 @@ public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVel[3], Float
 	if(GetEntityFlags(iClient) & FL_ONGROUND)
 		return Plugin_Continue;
 	
-  if(!IsPlayerAlive(iClient))
+	if(!IsPlayerAlive(iClient))
 		return Plugin_Continue;
 	
 	decl Float:fEyeAngles[3];
@@ -102,15 +103,16 @@ public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVel[3], Float
 	
 	if(fVel[0] == 0.0 && fVel[1] == 0.0)
 	{
+		// Hymns, the global variable g_fLastStrafeAngle doesn't exist. Fix this!
 		new Float:fAngleAdded = fEyeAngles[1] - g_fLastStrafeAngle[iClient];
-		if (fAngleAdded != 0.0)
+		
+		if(fAngleAdded != 0.0)
 		{
 			new bool:bIsLeft = (fAngleAdded > 0.0);
-			if (FloatAbs(fAngleAdded) > 180.0)
+			if(FloatAbs(fAngleAdded) > 180.0)
 			{
 				bIsLeft = !bIsLeft;
 			}
-			
 			
 			if (bIsLeft)
 			{
@@ -121,9 +123,11 @@ public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVel[3], Float
 				fVel[1] = 450.0;
 			}
 		}
+		
 		g_fLastStrafeAngle[iClient] = fEyeAngles[1];
 		return Plugin_Changed;
 	}
+	
 	g_fLastStrafeAngle[iClient] = fEyeAngles[1];
 	return Plugin_Continue;
 }

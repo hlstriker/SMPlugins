@@ -1,5 +1,11 @@
 #include <sourcemod>
 #include <sdkhooks>
+#include <sdktools_functions>
+#include <sdktools_engine>
+#include <sdktools_trace>
+#include <sdktools_tempents>
+#include <sdktools_tempents_stocks>
+#include <sdktools_entinput>
 #include "../../Libraries/MovementStyles/movement_styles"
 
 #pragma semicolon 1
@@ -27,7 +33,6 @@ new Handle:cvar_force_autobhop;
 
 new const FSOLID_NOT_SOLID = 0x0004;
 new const FSOLID_TRIGGER = 0x0008;
-new const FSOLID_USE_TRIGGER_BOUNDS = 0x0080;
 #define SOLID_NONE	0
 #define COLLISION_GROUP_PLAYER_MOVEMENT	8
 #define ROCKET_COLLISION_GROUP	COLLISION_GROUP_PLAYER_MOVEMENT
@@ -54,20 +59,18 @@ enum _:ParkourData
 {
 	Parkour_Ticks,
 	bool:Parkour_Enabled,
-	Grapple_HookEntity,
+	Grapple_HookEntityRef,
 	Float:Grapple_Charge,
 	bool:Grapple_Hooked,
 	bool:Grapple_Expired,
 	Float:WallJump_LastJumpTime,
 	WallJump_JumpsSinceGround
 };
+
 new g_eParkourData[MAXPLAYERS + 1][ParkourData];
 
 new g_Sprite;
-public OnMapStart()
-{
-	g_Sprite = PrecacheModel("materials/sprites/laserbeam.vmt");
-}
+
 
 public OnPluginStart()
 {
@@ -75,6 +78,11 @@ public OnPluginStart()
 	
 	cvar_add_autobhop = CreateConVar("style_parkour_add_autobhop", "0", "Add an additional auto-bhop style for this style too.", _, true, 0.0, true, 1.0);
 	cvar_force_autobhop = CreateConVar("style_parkour_force_autobhop", "0", "Force auto-bhop on this style.", _, true, 0.0, true, 1.0);
+}
+
+public OnMapStart()
+{
+	g_Sprite = PrecacheModel("materials/sprites/laserbeam.vmt");
 }
 
 public MovementStyles_OnRegisterReady()
@@ -124,7 +132,7 @@ public OnActivated(iClient)
 	SDKHook(iClient, SDKHook_PreThinkPost, OnPreThinkPost);
 	g_eParkourData[iClient][Parkour_Enabled] = true;
 	g_eParkourData[iClient][Grapple_Charge] = GRAPPLE_CHARGE_MAX;
-	g_eParkourData[iClient][Grapple_HookEntity] = -1;
+	g_eParkourData[iClient][Grapple_HookEntityRef] = -1;
 }
 
 public OnDeactivated(iClient)
@@ -152,7 +160,7 @@ bool:IsNearWall(iClient)
 	
 	TR_TraceHullFilter(fEyePos, fEyePos, fMins, fMaxs, MASK_PLAYERSOLID, TraceFilter_DontHitPlayers);
 	
-	if (TR_DidHit())
+	if(TR_DidHit())
 	{
 		return true;
 	}
@@ -177,7 +185,7 @@ public OnPreThinkPost(iClient)
 	
 	OnGrapple(iClient, iButtons & IN_ATTACK);
 
-	if (iButtons & IN_ATTACK2)
+	if(iButtons & IN_ATTACK2)
 	{
 		OnAttack2(iClient);
 	}
@@ -195,15 +203,15 @@ OnGrapple(iClient, bState)
 {
 	if(bState && !g_eParkourData[iClient][Grapple_Expired])
 	{
-		if (IsValidEntity(g_eParkourData[iClient][Grapple_HookEntity]))
+		new iHook = EntRefToEntIndex(g_eParkourData[iClient][Grapple_HookEntityRef]);
+		if(iHook > 0)
 		{
 			if(g_eParkourData[iClient][Grapple_Hooked])
 			{
 				decl Float:fClientPos[3], Float:fEyeAngles[3], Float:fGrappleEntPos[3];
 				GetClientEyePosition(iClient, fClientPos);
 				GetClientEyeAngles(iClient, fEyeAngles);
-				GetEntPropVector(g_eParkourData[iClient][Grapple_HookEntity], Prop_Send, "m_vecOrigin", fGrappleEntPos);
-				
+				GetEntPropVector(iHook, Prop_Send, "m_vecOrigin", fGrappleEntPos);
 				
 				decl Float:fClientVel[3], Float:fHookDir[3];
 				GetEntPropVector(iClient, Prop_Data, "m_vecVelocity", fClientVel);
@@ -211,7 +219,6 @@ OnGrapple(iClient, bState)
 				SubtractVectors(fGrappleEntPos, fClientPos, fHookDir);
 				NormalizeVector(fHookDir, fHookDir);
 				new Float:fSpeedTowardsHook = GetVectorDotProduct(fClientVel, fHookDir);
-				
 				
 				if (fSpeedTowardsHook < GRAPPLE_PULL_MAX)
 				{
@@ -225,7 +232,7 @@ OnGrapple(iClient, bState)
 					AddVectors(fClientVel, fHookDir, fClientVel);
 					TeleportEntity(iClient, NULL_VECTOR, NULL_VECTOR, fClientVel);
 				}
-
+				
 				HookCharge(iClient, GRAPPLE_CHARGE_USE);
 				
 				decl iColor[4];
@@ -243,11 +250,11 @@ OnGrapple(iClient, bState)
 		}
 		else
 		{
-			new iHook = CreateRocket(iClient);
+			iHook = CreateHook(iClient);
 			if(!iHook)
 				return;
 			
-			g_eParkourData[iClient][Grapple_HookEntity] = iHook;
+			g_eParkourData[iClient][Grapple_HookEntityRef] = EntIndexToEntRef(iHook);
 			
 			decl Float:fEyePos[3], Float:fVelocity[3];
 			GetClientEyePosition(iClient, fEyePos);
@@ -270,45 +277,43 @@ OnGrapple(iClient, bState)
 	else
 	{
 		HookCharge(iClient, GRAPPLE_CHARGE_REGEN);
-		if(IsValidEntity(g_eParkourData[iClient][Grapple_HookEntity]))
-			KillHook(iClient);
+		
+		KillHook(iClient);
+		
 		if(g_eParkourData[iClient][Grapple_Expired])
 			g_eParkourData[iClient][Grapple_Expired] = false;
 	}
 }
 
-CreateRocket(iClient)
+CreateHook(iClient)
 {
-	new iRocket = CreateEntityByName("smokegrenade_projectile");
-	if(iRocket < 1 || !IsValidEntity(iRocket))
+	new iEnt = CreateEntityByName("smokegrenade_projectile");
+	if(iEnt < 1 || !IsValidEntity(iEnt))
 		return 0;
 	
-	InitRocket(iClient, iRocket);
-	return iRocket;
+	InitHook(iClient, iEnt);
+	return iEnt;
 }
 
 KillHook(iClient)
 {
-	if (g_eParkourData[iClient][Grapple_HookEntity])
-	{
-		if (IsValidEntity(g_eParkourData[iClient][Grapple_HookEntity]))
-		{
-			AcceptEntityInput(g_eParkourData[iClient][Grapple_HookEntity], "KillHierarchy");
-		}
-		g_eParkourData[iClient][Grapple_Hooked] = false;
-		g_eParkourData[iClient][Grapple_HookEntity] = -1;	
-	}
+	new iHook = EntRefToEntIndex(g_eParkourData[iClient][Grapple_HookEntityRef]);
+	if(iHook > 0)
+		AcceptEntityInput(iHook, "KillHierarchy");
+	
+	g_eParkourData[iClient][Grapple_Hooked] = false;
+	g_eParkourData[iClient][Grapple_HookEntityRef] = -1;
 }
 
 HookCharge(iClient, Float:fAmount)
 {
-	if (GetEntityFlags(iClient) & FL_ONGROUND && fAmount > 0.0)
+	if(GetEntityFlags(iClient) & FL_ONGROUND && fAmount > 0.0)
 	{
-		g_eParkourData[iClient][Grapple_Charge] +=  10.0 * fAmount;
+		g_eParkourData[iClient][Grapple_Charge] += 10.0 * fAmount;
 	}
 	else
 	{
-		g_eParkourData[iClient][Grapple_Charge] +=  fAmount;
+		g_eParkourData[iClient][Grapple_Charge] += fAmount;
 	}
 
 	if (g_eParkourData[iClient][Grapple_Charge] > GRAPPLE_CHARGE_MAX)
@@ -325,14 +330,14 @@ HookCharge(iClient, Float:fAmount)
 
 GetChargeColor(iClient, iResult[4])
 {
-	new iGreen = RoundToFloor((255/GRAPPLE_CHARGE_MAX)*g_eParkourData[iClient][Grapple_Charge]);
-	new iRed = RoundToFloor(255.0 - (255/GRAPPLE_CHARGE_MAX)*g_eParkourData[iClient][Grapple_Charge]);
+	new iGreen = RoundToFloor((255 / GRAPPLE_CHARGE_MAX) * g_eParkourData[iClient][Grapple_Charge]);
+	new iRed = RoundToFloor(255.0 - (255 / GRAPPLE_CHARGE_MAX) * g_eParkourData[iClient][Grapple_Charge]);
 	
-	if (iRed < 0)
+	if(iRed < 0)
 	{
 		iRed = 0;
 	}
-	if (iGreen < 0)
+	if(iGreen < 0)
 	{
 		iGreen = 0;
 	}
@@ -344,52 +349,56 @@ GetChargeColor(iClient, iResult[4])
 	iResult = iColor;
 }
 
-InitRocket(iClient, iRocket)
+InitHook(iClient, iHook)
 {
-	DispatchSpawn(iRocket);
+	DispatchSpawn(iHook);
 	
-	SetEntityMoveType(iRocket, MOVETYPE_FLYGRAVITY);
-	SetEntProp(iRocket, Prop_Send, "m_CollisionGroup", ROCKET_COLLISION_GROUP);
-	SetEntProp(iRocket, Prop_Data, "m_nSolidType", SOLID_NONE);
-	SetEntProp(iRocket, Prop_Send, "m_usSolidFlags", FSOLID_NOT_SOLID | FSOLID_TRIGGER);
-	SetEntPropEnt(iRocket, Prop_Send, "m_hOwnerEntity", iClient);
+	SetEntityMoveType(iHook, MOVETYPE_FLYGRAVITY);
+	SetEntProp(iHook, Prop_Send, "m_CollisionGroup", ROCKET_COLLISION_GROUP);
+	SetEntProp(iHook, Prop_Data, "m_nSolidType", SOLID_NONE);
+	SetEntProp(iHook, Prop_Send, "m_usSolidFlags", FSOLID_NOT_SOLID | FSOLID_TRIGGER);
+	SetEntPropEnt(iHook, Prop_Send, "m_hOwnerEntity", iClient);
 	
-	SetEntProp(iRocket, Prop_Data, "m_nSurroundType", USE_SPECIFIED_BOUNDS);
-	SetEntPropFloat(iRocket, Prop_Data, "m_flRadius", 0.0);
-	SetEntProp(iRocket, Prop_Data, "m_triggerBloat", 0);
+	SetEntProp(iHook, Prop_Data, "m_nSurroundType", USE_SPECIFIED_BOUNDS);
+	SetEntPropFloat(iHook, Prop_Data, "m_flRadius", 0.0);
+	SetEntProp(iHook, Prop_Data, "m_triggerBloat", 0);
 	
-	SetEntPropVector(iRocket, Prop_Send, "m_vecMins", g_fRocketMins);
-	SetEntPropVector(iRocket, Prop_Send, "m_vecMaxs", g_fRocketMaxs);
+	SetEntPropVector(iHook, Prop_Send, "m_vecMins", g_fRocketMins);
+	SetEntPropVector(iHook, Prop_Send, "m_vecMaxs", g_fRocketMaxs);
 	
-	SetEntPropVector(iRocket, Prop_Send, "m_vecSpecifiedSurroundingMins", g_fRocketMins);
-	SetEntPropVector(iRocket, Prop_Send, "m_vecSpecifiedSurroundingMaxs", g_fRocketMaxs);
+	SetEntPropVector(iHook, Prop_Send, "m_vecSpecifiedSurroundingMins", g_fRocketMins);
+	SetEntPropVector(iHook, Prop_Send, "m_vecSpecifiedSurroundingMaxs", g_fRocketMaxs);
 	
-	SetEntPropVector(iRocket, Prop_Data, "m_vecSurroundingMins", g_fRocketMins);
-	SetEntPropVector(iRocket, Prop_Data, "m_vecSurroundingMaxs", g_fRocketMaxs);
+	SetEntPropVector(iHook, Prop_Data, "m_vecSurroundingMins", g_fRocketMins);
+	SetEntPropVector(iHook, Prop_Data, "m_vecSurroundingMaxs", g_fRocketMaxs);
 	
-	SDKHook(iRocket, SDKHook_StartTouchPost, OnHookStartTouchPost);
+	SDKHook(iHook, SDKHook_StartTouchPost, OnHookStartTouchPost);
 }
 
-public OnHookStartTouchPost(iRocket, iOther)
+public OnHookStartTouchPost(iHook, iOther)
 {
-	new iOwner = GetEntPropEnt(iRocket, Prop_Send, "m_hOwnerEntity");
+	new iOwner = GetEntPropEnt(iHook, Prop_Send, "m_hOwnerEntity");
 	g_eParkourData[iOwner][Grapple_Hooked] = true;
 	
-	TeleportEntity(iRocket, NULL_VECTOR, NULL_VECTOR, Float:{0.0, 0.0, 0.0});
-	SetEntityMoveType(iRocket, MOVETYPE_NONE);
+	TeleportEntity(iHook, NULL_VECTOR, NULL_VECTOR, Float:{0.0, 0.0, 0.0});
+	SetEntityMoveType(iHook, MOVETYPE_NONE);
 }
-
 
 OnAttack2(iClient)
 {
-	if ((GetEngineTime() - g_eParkourData[iClient][WallJump_LastJumpTime] >= WALLJUMP_COOLDOWN_BASE)&&IsNearWall(iClient)&&(g_eParkourData[iClient][WallJump_JumpsSinceGround] < WALLJUMP_MAX_IN_AIR))
+	if((GetEngineTime() - g_eParkourData[iClient][WallJump_LastJumpTime] >= WALLJUMP_COOLDOWN_BASE)
+	&& IsNearWall(iClient)
+	&& (g_eParkourData[iClient][WallJump_JumpsSinceGround] < WALLJUMP_MAX_IN_AIR))
 	{
 		g_eParkourData[iClient][WallJump_JumpsSinceGround]++;
+		
 		decl Float:fNewVel[3], Float:fVelocity[3], Float:fEyeAngles[3];
 		GetEntPropVector(iClient, Prop_Data, "m_vecVelocity", fVelocity);
 		GetClientEyeAngles(iClient, fEyeAngles);
 		GetAngleVectors(fEyeAngles, fNewVel, NULL_VECTOR, NULL_VECTOR);
+		
 		ScaleVector(fNewVel, 200.0);
+		
 		if(fNewVel[2] > 0)
 		{
 			fNewVel[2] += 300.0;
@@ -398,7 +407,7 @@ OnAttack2(iClient)
 		{
 			fNewVel[2] = 0.0;
 		}
-
+		
 		fVelocity[2] = 0.0;
 		AddVectors(fVelocity, fNewVel, fNewVel);
 		TeleportEntity(iClient, NULL_VECTOR, NULL_VECTOR, fNewVel);
