@@ -24,6 +24,7 @@ public Plugin:myinfo =
 new Handle:cvar_add_autobhop;
 new Handle:cvar_force_autobhop;
 
+new Float:g_fLastStrafeAngle[MAXPLAYERS + 1];
 new bool:g_bActivated[MAXPLAYERS+1];
 
 
@@ -103,7 +104,6 @@ public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVel[3], Float
 	
 	if(fVel[0] == 0.0 && fVel[1] == 0.0)
 	{
-		// Hymns, the global variable g_fLastStrafeAngle doesn't exist. Fix this!
 		new Float:fAngleAdded = fEyeAngles[1] - g_fLastStrafeAngle[iClient];
 		
 		if(fAngleAdded != 0.0)
