@@ -1,7 +1,7 @@
 #include <sourcemod>
 #include <keyvalues>
 #include <hls_color_chat>
-#include <../../Libraries/WebPageViewer/web_page_viewer>
+#include "../../Libraries/WebPageViewer/web_page_viewer"
 
 #pragma semicolon 1
 
