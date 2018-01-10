@@ -1,0 +1,27 @@
+"InfoMenus"
+{
+	// You can add unlimited menus with unlimited links
+	//
+	//"The Menu Title To Display"   // Limit of 128 chars
+	//{
+	//	"Command" "sm_type_this"    // Limit of 24 chars
+	//	"URLS"
+	//	{
+	//		"Displayed Name" "WebsiteToOpen.com"  //Display Name Limit of 128 chars
+	//		"Google" "https://www.google.ca/"     //URL Limit of 192 chars (Try to keep shorter than that)
+	//		"YouTube" "https://www.youtube.com/"
+	//	}
+	//}
+	
+	"Swoobles Info"
+	{
+		"Command" "sm_swoobles"
+		"URLS"
+		{
+			"Homepage" "https://swoobles.com"
+			"Forums" "https://swoobles.com/forums"
+			"Register" "https://swoobles.com/forums/member.php?action=register&referrer=3794" // Owners change this to your referral link
+			"Report Players/Admins" "https://swoobles.com/forums/forum-39.html"
+		}
+	}
+}
