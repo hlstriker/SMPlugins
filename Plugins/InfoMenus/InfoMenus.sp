@@ -42,14 +42,19 @@ public OnPluginStart()
 {
 	CreateConVar("info_menus_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	
-	LoadMenus();
+	g_aMenuData = CreateArray(MenuData, 0);
+	g_aMenuLookup = CreateArray(MAX_LENGTH_COMMAND, 0);
 }
+
+public OnMapStart()
+{
+	LoadMenus();
+} 
 
 LoadMenus()
 {
-	g_aMenuData = CreateArray(MenuData, 0);
-	g_aMenuLookup = CreateArray(MAX_LENGTH_COMMAND, 0);
-	
+	ClearArray(g_aMenuData);
+	ClearArray(g_aMenuLookup);
 	
 	decl String:szBuffer[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, szBuffer, sizeof(szBuffer), "configs/info_menus.txt");
@@ -63,15 +68,12 @@ LoadMenus()
 	
 	if(KvGotoFirstSubKey(kv))
 	{
-		PrintToServer("Starting Iter");
-		
 		new String:szTitle[MAX_LENGTH_TITLE], String:szCommand[MAX_LENGTH_COMMAND];
 		do
 		{
 			KvSavePosition(kv);
 			KvGetSectionName(kv, szTitle, sizeof(szTitle));
 			KvGetString(kv, "Command", szCommand, sizeof(szCommand), "ERROR");
-			PrintToServer(szCommand);
 			
 			if(StrEqual(szCommand, "ERROR"))
 				continue;
@@ -87,11 +89,9 @@ LoadMenus()
 				{
 					KvGetSectionName(kv, szLinkName, sizeof(szLinkName));
 					KvGetString(kv, NULL_STRING, szLinkURL, sizeof(szLinkURL));
-					static eInfoLink[InfoLink];
+					decl eInfoLink[InfoLink];
 					eInfoLink[InfoLink_Name] = szLinkName;
 					eInfoLink[InfoLink_URL] = szLinkURL;
-					
-					PrintToServer("%s %s %s", szTitle, szLinkName, szLinkURL);
 					
 					PushArrayArray(aInfoLinks, eInfoLink);
 				}
@@ -106,10 +106,9 @@ LoadMenus()
 			KvGoBack(kv);
 			new String:szBuffer2[32];
 			KvGetSectionName(kv, szBuffer2, sizeof(szBuffer2));
-			PrintToServer(szBuffer2);
 			
 			
-			static eMenuData[MenuData];
+			decl eMenuData[MenuData];
 			eMenuData[MenuData_Title] = szTitle;
 			eMenuData[MenuData_InfoLinks] = aInfoLinks;
 			
@@ -139,11 +138,8 @@ public Action:OnInfoMenu(iClient, iArgs)
 	decl String:szCommand[MAX_LENGTH_COMMAND];
 	GetCmdArg(0, szCommand, MAX_LENGTH_COMMAND);
 	
-	PrintToChat(iClient, szCommand);
-	
 	new iMenuIndex = FindStringInArray(g_aMenuLookup, szCommand);
 	
-	PrintToChat(iClient, "%i", iMenuIndex);
 	if (iMenuIndex == -1)
 		return Plugin_Handled;
 	
@@ -155,7 +151,7 @@ public Action:OnInfoMenu(iClient, iArgs)
 
 DisplayMenu_InfoMenus(iClient, iMenuIndex)
 {
-	static eMenuData[MenuData];
+	decl eMenuData[MenuData];
 	GetArrayArray(g_aMenuData, iMenuIndex, eMenuData);
 	
 	new Handle:hMenu = CreateMenu(MenuHandle_InfoMenus);
@@ -165,7 +161,7 @@ DisplayMenu_InfoMenus(iClient, iMenuIndex)
 	
 	for (new i=0;i<GetArraySize(aInfoLinks);i++)
 	{
-		static eInfoLink[InfoLink];
+		decl eInfoLink[InfoLink];
 		GetArrayArray(aInfoLinks, i, eInfoLink);
 		AddMenuItem(hMenu, eInfoLink[InfoLink_URL], eInfoLink[InfoLink_Name]);
 	}
