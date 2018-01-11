@@ -143,17 +143,28 @@ public Action:OnInfoMenu(iClient, iArgs)
 	if (iMenuIndex == -1)
 		return Plugin_Handled;
 	
-	DisplayMenu_InfoMenus(iClient, iMenuIndex);
+	decl eMenuData[MenuData];
+	GetArrayArray(g_aMenuData, iMenuIndex, eMenuData);
+	
+	
+	if(GetArraySize(eMenuData[MenuData_InfoLinks]) == 1)
+	{
+		decl eInfoLink[InfoLink];
+		GetArrayArray(eMenuData[MenuData_InfoLinks], 0, eInfoLink);
+		
+		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}Loading Page {blue}%s", eInfoLink[InfoLink_URL]);
+		WebPageViewer_OpenPage(iClient, eInfoLink[InfoLink_URL]);
+		return Plugin_Handled;
+	}
+	
+	DisplayMenu_InfoMenus(iClient, eMenuData);
 	return Plugin_Handled;
 	
 }
 
 
-DisplayMenu_InfoMenus(iClient, iMenuIndex)
+DisplayMenu_InfoMenus(iClient, eMenuData[MenuData])
 {
-	decl eMenuData[MenuData];
-	GetArrayArray(g_aMenuData, iMenuIndex, eMenuData);
-	
 	new Handle:hMenu = CreateMenu(MenuHandle_InfoMenus);
 	SetMenuTitle(hMenu, eMenuData[MenuData_Title]);
 	
