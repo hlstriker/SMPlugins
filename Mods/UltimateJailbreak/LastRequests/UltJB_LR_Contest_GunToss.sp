@@ -11,7 +11,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] LR: Contest - Gun Toss";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -163,6 +163,7 @@ LastRequestEndCleanup(iClient, iEffectID)
 	
 	SDKUnhook(iClient, SDKHook_WeaponDropPost, OnWeaponDropPost);
 	SDKUnhook(iClient, SDKHook_PreThinkPost, OnPreThinkPost);
+	SDKUnhook(EntRefToEntIndex(g_iWeaponEntRef[iClient]), SDKHook_OnTakeDamage, OnTakeDamage);
 }
 
 public OnWeaponDropPost(iClient, iWeapon)
@@ -173,6 +174,7 @@ public OnWeaponDropPost(iClient, iWeapon)
 	SetStartPosition(iClient);
 	
 	SDKHook(iClient, SDKHook_PreThinkPost, OnPreThinkPost);
+	SDKHook(iWeapon, SDKHook_OnTakeDamage, OnTakeDamage);
 }
 
 SetStartPosition(iClient)
@@ -197,6 +199,19 @@ public OnPreThinkPost(iClient)
 {
 	CheckWeaponMovement(iClient);
 	TryDrawBeams(iClient);
+}
+
+public Action:OnTakeDamage(victim, &attacker, &inflictor, &Float:damage, &damagetype, &weapon, 
+Float:damageForce[3], Float:damagePosition[3])
+{
+	damageForce[0] = 0.0;
+	damageForce[1] = 0.0;
+	damageForce[2] = 0.0;
+	damagePosition[0] = 0.0;
+	damagePosition[1] = 0.0;
+	damagePosition[2] = 0.0;
+	
+	return Plugin_Changed;
 }
 
 CheckWeaponMovement(iClient)
