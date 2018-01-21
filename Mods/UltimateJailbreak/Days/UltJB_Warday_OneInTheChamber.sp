@@ -24,7 +24,7 @@ new const DayType:DAY_TYPE = DAY_TYPE_WARDAY;
 
 public OnPluginStart()
 {
-	CreateConVar("warday_taser_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
+	CreateConVar("warday_oneinthechamber_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 }
 
 public UltJB_Day_OnRegisterReady()

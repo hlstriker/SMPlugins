@@ -64,7 +64,7 @@ public SquelchManager_OnClientStartSpeaking(iClient)
 	if(g_hMuteTimer == INVALID_HANDLE)
 		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {red}Your microphone is muted right now. Possible Reasons: Talking over Warden, Admin Muted, Timed Muted, Dead");
 	else
-		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {red}Your microphone is muted right now. T's are muted for the first 60 seconds on the round.");
+		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {red}Your microphone is muted right now. T's are muted for the first 60 seconds of the round.");
 	
 	EmitSoundToClientAny(iClient, g_szRestrictedSound[6], SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_LIBRARY, SND_NOFLAGS);
 }
