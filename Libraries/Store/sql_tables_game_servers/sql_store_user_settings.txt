@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS store_user_settings
+(
+	user_id		INT UNSIGNED		NOT NULL,
+	setting_type	SMALLINT		NOT NULL, -- Positive values are for item type flags, negative values for anything else.
+	setting_value	INT			NOT NULL,
+	PRIMARY KEY ( user_id )
+) ENGINE = INNODB;

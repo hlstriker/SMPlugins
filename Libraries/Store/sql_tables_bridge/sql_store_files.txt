@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS store_files
+(
+	item_id			SMALLINT UNSIGNED	NOT NULL,
+	file_path		VARCHAR( 255 )		NOT NULL,
+	precache_type		TINYINT UNSIGNED	NOT NULL,
+	PRIMARY KEY ( item_id, file_path )
+) ENGINE = INNODB;
