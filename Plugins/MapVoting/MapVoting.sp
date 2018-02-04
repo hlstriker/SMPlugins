@@ -1,3 +1,9 @@
+/*
+** Delete the following plugins if you use this plugin:
+** rockthevote.smx, mapchooser.smx, nominations.smx,
+** basetriggers.smx, nextmap.smx, randomcycle.smx
+*/
+
 #include <sourcemod>
 #include <cstrike>
 #include <emitsoundany>
