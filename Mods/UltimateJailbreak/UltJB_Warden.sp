@@ -18,12 +18,13 @@
 #include "../../Libraries/ClientSettings/client_settings"
 #include "../../Libraries/PlayerChat/player_chat"
 #include "../../Libraries/ModelSkinManager/model_skin_manager"
+#include "../../Plugins/StoreItems/Paintballs/item_paintballs"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warden";
-new const String:PLUGIN_VERSION[] = "1.36";
+new const String:PLUGIN_VERSION[] = "1.37";
 
 public Plugin:myinfo =
 {
@@ -1176,6 +1177,15 @@ GetSecondaryWarden()
 	AddPlayerToQueue(iClient, g_aQueueSecondary);
 	
 	return iClient;
+}
+
+public Action:ItemPaintballs_OnShootPaintball(iClient)
+{
+	// Don't let store paintballs get fired if the client is the warden. Otherwise we would have duplicate paintballs.
+	if(g_iWardenSerial == GetClientSerial(iClient))
+		return Plugin_Handled;
+	
+	return Plugin_Continue;
 }
 
 public EventBulletImpact_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
