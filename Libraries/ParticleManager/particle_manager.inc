@@ -24,7 +24,7 @@ public SharedPlugin:__pl_particle_manager =
  * @param particle_effect		The name of the particle effect.
  * @noreturn
  */
-native PM_PrecacheParticleEffect(const String:particle_filepath[], const String:particle_effect[]);
+native PM_PrecacheParticleEffect(const String:particle_filepath[]="", const String:particle_effect[]="");
 
 native PM_CreateEntityEffect(entity, const String:particle_effect[], attachment_point=0, bool:stop_prior_effects=false, const send_to_clients[]={}, num_send_to_clients=0);
 

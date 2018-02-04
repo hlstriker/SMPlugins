@@ -12,7 +12,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Particle Manager";
-new const String:PLUGIN_VERSION[] = "1.5";
+new const String:PLUGIN_VERSION[] = "1.6";
 
 public Plugin:myinfo =
 {
@@ -361,7 +361,11 @@ PrecacheEffect(const String:szEffect[])
 
 PrecacheParticleEffect(const String:szParticleFilePath[], const String:szParticleEffect[])
 {
-	PrecacheGeneric(szParticleFilePath, true);
+	if(szParticleFilePath[0])
+		PrecacheGeneric(szParticleFilePath, true);
+	
+	if(!szParticleEffect[0])
+		return;
 	
 	static iTable = INVALID_STRING_TABLE;
 	
