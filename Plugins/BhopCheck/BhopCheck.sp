@@ -83,7 +83,7 @@ public Action:Command_BhopCheck(iClient, iArgs)
 		fSpeed += eBhop[Bhop_Speed];
 		iLate += eBhop[Bhop_LateTicks];
 		
-		if (eBhop[Bhop_LateTicks] == 1)
+		if (eBhop[Bhop_LateTicks] == 0)
 			iPerfs++;
 		
 		decl String:szInputs[3];
