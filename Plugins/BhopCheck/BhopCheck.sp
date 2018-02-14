@@ -125,12 +125,12 @@ public Action:Command_BhopCheck(iClient, iArgs)
 	PrintToConsole(iClient, "          Averages");
 	PrintToConsole(iClient, "   ---------------------");
 	decl String:szInputs[6], String: szLate[6];
-	Format(szInputs, 6, "%.2f      ", float(g_eBhopTotal[iClient][Total_Inputs]) / float(iBhops));
-	Format(szLate, 6, "%.2f       ", float(g_eBhopTotal[iClient][Total_Late]) / float(iBhops));
-	PrintToConsole(iClient, "    %s | %s | %.1f", szInputs, szLate, g_eBhopTotal[iClient][Total_Speed] / iBhops);
+	Format(szInputs, 6, "%.2f      ", float(g_eBhopTotal[iTarget][Total_Inputs]) / float(iBhops));
+	Format(szLate, 6, "%.2f       ", float(g_eBhopTotal[iTarget][Total_Late]) / float(iBhops));
+	PrintToConsole(iClient, "    %s | %s | %.1f", szInputs, szLate, g_eBhopTotal[iTarget][Total_Speed] / iBhops);
 	PrintToConsole(iClient, "   ---------------------");
 	PrintToConsole(iClient, "        Perfect Jumps");
-	PrintToConsole(iClient, "           %.2f%", (float(g_eBhopTotal[iClient][Total_Perfs]) / iBhops) * 100.0);
+	PrintToConsole(iClient, "           %.2f%", (float(g_eBhopTotal[iTarget][Total_Perfs]) / iBhops) * 100.0);
 	
 	return Plugin_Handled;
 }
