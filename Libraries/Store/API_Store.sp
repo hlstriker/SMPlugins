@@ -619,6 +619,7 @@ bool:Query_CreateTable_StoreItems()
 		item_name		VARCHAR( 32 )		NOT NULL,\
 		item_type		TINYINT UNSIGNED	NOT NULL,\
 		data_string1	VARCHAR( 42 )		NOT NULL,\
+		image_path		TEXT				NOT NULL,\
 		PRIMARY KEY ( item_id )\
 	) ENGINE = INNODB");
 	
