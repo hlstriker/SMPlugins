@@ -667,7 +667,7 @@ bool:Query_CreateTable_StoreInventory()
 	(\
 		game_id			SMALLINT UNSIGNED	NOT NULL,\
 		item_id			SMALLINT UNSIGNED	NOT NULL,\
-		item_price		MEDIUMINT UNSIGNED	NOT NULL,\
+		item_price		MEDIUMINT			NOT NULL,\
 		PRIMARY KEY ( game_id, item_id )\
 	) ENGINE = INNODB");
 	
