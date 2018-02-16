@@ -6,7 +6,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Gloves";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -79,6 +79,7 @@ BuildArray_Types()
 	AddType("Hand Wraps", 5032);
 	AddType("Moto Gloves", 5033);
 	AddType("Specialist Gloves", 5034);
+	AddType("Hydra Gloves", 5035);
 	
 	SortTypeArrayByName(g_aTypes, g_iStartIndex_Type);
 }
@@ -118,6 +119,30 @@ BuildArray_Paints()
 	AddPaint("Crimson Kimono", 10033);
 	AddPaint("Emerald Web", 10034);
 	AddPaint("Foundation", 10035);
+	AddPaint("King Snake", 10041);
+	AddPaint("Imperial Plaid", 10042);
+	AddPaint("Overtake", 10043);
+	AddPaint("Racing Green", 10044);
+	AddPaint("Amphibious", 10045);
+	AddPaint("Bronze Morph", 10046);
+	AddPaint("Omega", 10047);
+	AddPaint("Vice", 10048);
+	AddPaint("POW!", 10049);
+	AddPaint("Turtle", 10050);
+	AddPaint("Transport", 10051);
+	AddPaint("Polygon", 10052);
+	AddPaint("Cobalt Skulls", 10053);
+	AddPaint("Overprint", 10054);
+	AddPaint("Duct Tape", 10055);
+	AddPaint("Arboreal", 10056);
+	AddPaint("Emerald", 10057);
+	AddPaint("Mangrove", 10058);
+	AddPaint("Rattler", 10059);
+	AddPaint("Case Hardened", 10060);
+	AddPaint("Crimson Web", 10061);
+	AddPaint("Buckshot", 10062);
+	AddPaint("Fade", 10063);
+	AddPaint("Mogul", 10064);
 	
 	SortTypeArrayByName(g_aPaints, g_iStartIndex_Paint);
 }
