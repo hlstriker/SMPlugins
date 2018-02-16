@@ -7,10 +7,14 @@
 #include "../../Libraries/DatabaseUserStats/database_user_stats"
 #include <hls_color_chat>
 
+#undef REQUIRE_PLUGIN
+#include "../../Libraries/Store/store"
+#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "User Points";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
@@ -31,6 +35,8 @@ new Handle:cvar_points_hours_played_bonus_percent;
 
 const Float:POINT_DISPLAY_DELAY = 120.0;
 new Float:g_fNextPointDisplay[MAXPLAYERS+1];
+
+new bool:g_bLibLoaded_Store;
 
 
 public OnPluginStart()
@@ -105,6 +111,19 @@ public Action:OnCheckPoints(iClient, iArgNum)
 public OnAllPluginsLoaded()
 {
 	ClientTimes_SetTimeBeforeMarkedAsAway(45);
+	g_bLibLoaded_Store = LibraryExists("store");
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "store"))
+		g_bLibLoaded_Store = true;
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "store"))
+		g_bLibLoaded_Store = false;
 }
 
 public OnClientPutInServer(iClient)
@@ -235,8 +254,8 @@ public Event_Intermission_Post(Handle:hEvent, const String:szName[], bool:bDontB
 		}
 		else
 		{
-			// TODO: Display this message if the store library is loaded.
-			//CPrintToChat(iClient, "{olive}Remember to type {yellow}!shop {olive}to see {yellow}items you can get{olive}!");
+			if(g_bLibLoaded_Store)
+				CPrintToChat(iClient, "{olive}Remember to type {yellow}!shop {olive}to see {yellow}items you can get{olive}!");
 		}
 	}
 }
