@@ -215,7 +215,15 @@ public _Store_GetItemsMainFilePrecacheID(Handle:hPlugin, iNumParams)
 
 public _Store_CanClientUseItem(Handle:hPlugin, iNumParams)
 {
-	// TODO: Implement...
+	new iClient = GetNativeCell(1);
+	new iItemID = GetNativeCell(2);
+	
+	if(FindValueInArray(g_aClientItems[iClient], iItemID) == -1)
+		return false;
+	
+	// TODO: Check if item is active.
+	// -->
+	
 	return true;
 }
 
@@ -242,6 +250,29 @@ public _Store_FindItemByType(Handle:hPlugin, iNumParams)
 	}
 	
 	return -1;
+}
+
+public DBUsers_OnUserIDReady(iClient, iUserID)
+{
+	DB_TQuery(g_szDatabaseServersConfigName, Query_GetUserItems, DBPrio_Low, GetClientSerial(iClient), "\
+		SELECT item_id FROM store_user_items WHERE user_id = %i", iUserID);
+}
+
+public Query_GetUserItems(Handle:hDatabase, Handle:hQuery, any:iClientSerial)
+{
+	if(hQuery == INVALID_HANDLE)
+		return;
+	
+	new iClient = GetClientFromSerial(iClientSerial);
+	if(!iClient)
+		return;
+	
+	decl iItemID;
+	while(SQL_FetchRow(hQuery))
+	{
+		iItemID = SQL_FetchInt(hQuery, 0);
+		PushArrayCell(g_aClientItems[iClient], iItemID);
+	}
 }
 
 public DB_OnStartConnectionSetup()
