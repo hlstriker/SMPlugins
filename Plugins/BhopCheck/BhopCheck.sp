@@ -85,22 +85,25 @@ public Action:Command_BhopCheck(iClient, iArgs)
 		return Plugin_Handled;
 	}
 	
-	decl String:szTarget[MAX_TARGET_LENGTH];
+	decl String:szTarget[MAX_TARGET_LENGTH], String:szAuthID[24];
 	GetCmdArg(1, szTarget, sizeof(szTarget));
 	
 	new iTarget = FindTarget(iClient, szTarget, true, false);
 	if(iTarget == -1)
 		return Plugin_Handled;
 	
+	GetClientAuthId(iTarget, AuthId_Steam2, szAuthID, sizeof(szAuthID), false);
 	PrintToChat(iClient, "Bhop Stats for %N printed to console", iTarget);
 	
 	PrintToConsole(iClient, "   ------BhopCheck------");
-	PrintToConsole(iClient, "   %N", iTarget);
+	PrintToConsole(iClient, "   Name: %N", iTarget);
+	PrintToConsole(iClient, "   Steam ID: %s", szAuthID);
 	
 	decl String:szMapName[PLATFORM_MAX_PATH];
 	GetCurrentMap(szMapName, sizeof(szMapName));
 	
-	PrintToConsole(iClient, "   %s - %i", szMapName, SourceTV_GetRecordingTick());
+	PrintToConsole(iClient, "   Map: %s", szMapName);
+	PrintToConsole(iClient, "   Tick: %i\n", SourceTV_GetRecordingTick());
 	new Handle:hBhopArray = g_hBhopData[iTarget];
 	new iBhops = GetArraySize(hBhopArray);
 	if (!iBhops)
@@ -119,15 +122,15 @@ public Action:Command_BhopCheck(iClient, iArgs)
 		decl String:szInputs[3];
 		Format(szInputs, 3, "%i ", eBhop[Bhop_Inputs]);
 		
-		PrintToConsole(iClient, "      %s  |  %i   | %.1f", szInputs, eBhop[Bhop_LateTicks], eBhop[Bhop_Speed]);
+		PrintToConsole(iClient, "      %s  |  %2i  | %.1f", szInputs, eBhop[Bhop_LateTicks], eBhop[Bhop_Speed]);
 	}
 	PrintToConsole(iClient, "   ---------------------");
 	PrintToConsole(iClient, "          Averages");
 	PrintToConsole(iClient, "   ---------------------");
 	decl String:szInputs[6], String: szLate[6];
 	Format(szInputs, 6, "%.2f      ", float(g_eBhopTotal[iTarget][Total_Inputs]) / float(iBhops));
-	Format(szLate, 6, "%.2f       ", float(g_eBhopTotal[iTarget][Total_Late]) / float(iBhops));
-	PrintToConsole(iClient, "    %s | %s | %.1f", szInputs, szLate, g_eBhopTotal[iTarget][Total_Speed] / iBhops);
+	Format(szLate, 6, "%.2f      ", float(g_eBhopTotal[iTarget][Total_Late]) / float(iBhops));
+	PrintToConsole(iClient, "    %s | %s| %.1f", szInputs, szLate, g_eBhopTotal[iTarget][Total_Speed] / iBhops);
 	PrintToConsole(iClient, "   ---------------------");
 	PrintToConsole(iClient, "        Perfect Jumps");
 	PrintToConsole(iClient, "           %.2f%", (float(g_eBhopTotal[iTarget][Total_Perfs]) / iBhops) * 100.0);
