@@ -4,5 +4,5 @@ CREATE TABLE IF NOT EXISTS store_user_items
 	item_id		SMALLINT UNSIGNED	NOT NULL,
 	time_obtained	INT UNSIGNED		NOT NULL,
 
-	PRIMARY KEY ( user_id )
+	PRIMARY KEY ( user_id, item_id )
 ) ENGINE = INNODB;

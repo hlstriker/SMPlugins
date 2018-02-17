@@ -723,7 +723,7 @@ bool:Query_CreateTable_StoreUserItems()
 		user_id			INT UNSIGNED		NOT NULL,\
 		item_id			SMALLINT UNSIGNED	NOT NULL,\
 		time_obtained	INT UNSIGNED		NOT NULL,\
-		PRIMARY KEY ( user_id )\
+		PRIMARY KEY ( user_id, item_id )\
 	) ENGINE = INNODB");
 	
 	if(hQuery == INVALID_HANDLE)
