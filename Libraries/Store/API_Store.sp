@@ -6,11 +6,13 @@
 #include "../../Libraries/DatabaseUsers/database_users"
 #include "../../Libraries/FileDownloader/file_downloader"
 #include "../../Plugins/UserPoints/user_points"
+#include "../../Libraries/WebPageViewer/web_page_viewer"
 #include "store"
 #include <hls_color_chat>
 
 #undef REQUIRE_PLUGIN
 #include "../../Libraries/ParticleManager/particle_manager"
+#include "../../Libraries/Donators/donators"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
@@ -106,6 +108,21 @@ public OnPluginStart()
 	g_hFwd_OnItemsReady = CreateGlobalForward("Store_OnItemsReady", ET_Ignore);
 	
 	CreateTimer(10.0, Timer_ServerCheck, _, TIMER_REPEAT);
+	
+	RegConsoleCmd("sm_shop", OnOpenStore, "Opens the store.");
+	RegConsoleCmd("sm_store", OnOpenStore, "Opens the store.");
+	RegConsoleCmd("sm_models", OnOpenStore, "Opens the store.");
+	RegConsoleCmd("sm_skins", OnOpenStore, "Opens the store.");
+}
+
+public Action:OnOpenStore(iClient, iArgNum)
+{
+	if(!iClient)
+		return Plugin_Handled;
+	
+	WebPageViewer_OpenPage(iClient, "http://swoobles.com/store-database");
+	
+	return Plugin_Handled;
 }
 
 public OnAllPluginsLoaded()
@@ -119,13 +136,17 @@ public OnAllPluginsLoaded()
 public OnLibraryAdded(const String:szName[])
 {
 	if(StrEqual(szName, "particle_manager"))
+	{
 		g_bLibLoaded_ParticleManager = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
 {
 	if(StrEqual(szName, "particle_manager"))
+	{
 		g_bLibLoaded_ParticleManager = false;
+	}
 }
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)

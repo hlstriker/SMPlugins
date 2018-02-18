@@ -8,12 +8,13 @@
 
 #undef REQUIRE_PLUGIN
 #include "../../Libraries/ModelSkinManager/model_skin_manager"
+#include "../../Libraries/Store/store"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Donators";
-new const String:PLUGIN_VERSION[] = "2.7";
+new const String:PLUGIN_VERSION[] = "2.8";
 
 public Plugin:myinfo =
 {
@@ -47,6 +48,7 @@ new Float:g_fNextMessageDisplay[MAXPLAYERS+1];
 
 new bool:g_bLibLoaded_ModelSkinManager;
 new bool:g_bLibLoaded_UserPoints;
+new bool:g_bLibLoaded_Store;
 
 
 public OnPluginStart()
@@ -88,7 +90,11 @@ public _Donators_OpenSettingsMenu(Handle:hPlugin, iNumParams)
 		return false;
 	
 	new iClient = GetNativeCell(1);
-	DisplayMenu_Settings(iClient);
+	
+	if(IsDonator(iClient))
+		DisplayMenu_Settings(iClient);
+	else
+		DisplayMenu_NonDonator(iClient);
 	
 	return true;
 }
@@ -217,6 +223,7 @@ public OnAllPluginsLoaded()
 	
 	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
 	g_bLibLoaded_UserPoints = LibraryExists("user_points");
+	g_bLibLoaded_Store = LibraryExists("store");
 }
 
 public OnLibraryAdded(const String:szName[])
@@ -229,6 +236,10 @@ public OnLibraryAdded(const String:szName[])
 	{
 		g_bLibLoaded_UserPoints = true;
 	}
+	else if(StrEqual(szName, "store"))
+	{
+		g_bLibLoaded_Store = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
@@ -240,6 +251,10 @@ public OnLibraryRemoved(const String:szName[])
 	else if(StrEqual(szName, "user_points"))
 	{
 		g_bLibLoaded_UserPoints = false;
+	}
+	else if(StrEqual(szName, "store"))
+	{
+		g_bLibLoaded_Store = false;
 	}
 }
 
@@ -496,8 +511,8 @@ public Action:OnOpenDonatorMenu_Store(iClient, iArgNum)
 	if(!iClient)
 		return Plugin_Handled;
 	
-	// TODO: Return if the store is loaded.
-	// -->
+	if(g_bLibLoaded_Store)
+		return Plugin_Handled;
 	
 	if(IsDonator(iClient))
 		DisplayMenu_Settings(iClient);
