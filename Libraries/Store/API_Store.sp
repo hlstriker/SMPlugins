@@ -5,6 +5,7 @@
 #include "../../Libraries/DatabaseServers/database_servers"
 #include "../../Libraries/DatabaseUsers/database_users"
 #include "../../Libraries/FileDownloader/file_downloader"
+#include "../../Plugins/UserPoints/user_points"
 #include "store"
 #include <hls_color_chat>
 
@@ -103,6 +104,8 @@ public OnPluginStart()
 	}
 	
 	g_hFwd_OnItemsReady = CreateGlobalForward("Store_OnItemsReady", ET_Ignore);
+	
+	CreateTimer(10.0, Timer_ServerCheck, _, TIMER_REPEAT);
 }
 
 public OnAllPluginsLoaded()
@@ -267,11 +270,50 @@ public Query_GetUserItems(Handle:hDatabase, Handle:hQuery, any:iClientSerial)
 	if(!iClient)
 		return;
 	
-	decl iItemID;
 	while(SQL_FetchRow(hQuery))
+		GiveClientStoreItem(iClient, SQL_FetchInt(hQuery, 0));
+}
+
+GiveClientStoreItem(iClient, iItemID, bool:bMessage=false)
+{
+	if(FindValueInArray(g_aClientItems[iClient], iItemID) != -1)
+		return;
+	
+	PushArrayCell(g_aClientItems[iClient], iItemID);
+	
+	if(bMessage)
 	{
-		iItemID = SQL_FetchInt(hQuery, 0);
-		PushArrayCell(g_aClientItems[iClient], iItemID);
+		decl String:szItemID[12], iIndex;
+		IntToString(iItemID, szItemID, sizeof(szItemID));
+		if(!GetTrieValue(g_hTrie_ItemIDToInventoryIndex, szItemID, iIndex))
+			return;
+		
+		decl eItem[InventoryItem];
+		GetArrayArray(g_aInventoryItems, iIndex, eItem);
+		
+		CPrintToChat(iClient, "{olive}Giving item on respawn: {yellow}%s", eItem[ITEM_NAME]);
+	}
+}
+
+RemoveClientStoreItem(iClient, iItemID, bool:bMessage=false)
+{
+	new iIndex = FindValueInArray(g_aClientItems[iClient], iItemID);
+	if(iIndex == -1)
+		return;
+	
+	RemoveFromArray(g_aClientItems[iClient], iIndex);
+	
+	if(bMessage)
+	{
+		decl String:szItemID[12];
+		IntToString(iItemID, szItemID, sizeof(szItemID));
+		if(!GetTrieValue(g_hTrie_ItemIDToInventoryIndex, szItemID, iIndex))
+			return;
+		
+		decl eItem[InventoryItem];
+		GetArrayArray(g_aInventoryItems, iIndex, eItem);
+		
+		CPrintToChat(iClient, "{lightred}Removing item on respawn: {yellow}%s", eItem[ITEM_NAME]);
 	}
 }
 
@@ -300,6 +342,9 @@ public DBServers_OnServerIDReady(iServerID, iGameID)
 	
 	if(!Query_CreateTable_StoreUserSettings())
 		SetFailState("There was an error creating the store_user_settings sql table.");
+	
+	if(!Query_CreateTable_StoreServerCheck())
+		SetFailState("There was an error creating the store_server_check sql table.");
 	
 	new Handle:hItemIDs = CreateArray();
 	
@@ -489,6 +534,78 @@ bool:Query_GetFiles(const Handle:hItemIDs)
 	AddToDownloadsTableAndPrecache();
 	
 	return true;
+}
+
+public Action:Timer_ServerCheck(Handle:hTimer)
+{
+	TransactionStart_ServerCheck();
+}
+
+bool:TransactionStart_ServerCheck()
+{
+	new Handle:hDatabase = DB_GetDatabaseHandleFromConnectionName(g_szDatabaseBridgeConfigName);
+	if(hDatabase == INVALID_HANDLE)
+		return false;
+	
+	decl String:szQuery[2048];
+	new Handle:hTransaction = SQL_CreateTransaction();
+	
+	FormatEx(szQuery, sizeof(szQuery), "SELECT type, user_id, item_id, points FROM store_server_check WHERE server_id = %i ORDER BY time ASC", DBServers_GetServerID());
+	SQL_AddQuery(hTransaction, szQuery);
+	
+	FormatEx(szQuery, sizeof(szQuery), "DELETE FROM store_server_check WHERE server_id = %i", DBServers_GetServerID());
+	SQL_AddQuery(hTransaction, szQuery);
+	
+	SQL_ExecuteTransaction(hDatabase, hTransaction, TransactionSuccess_ServerCheck, TransactionFailure_ServerCheck, _, DBPrio_Low);
+	
+	return true;
+}
+
+public TransactionSuccess_ServerCheck(Handle:hDatabase, any:data, iNumQueries, Handle:hResults[], any:queryData[])
+{
+	if(iNumQueries < 1)
+		return;
+	
+	new Handle:hQuery = hResults[0];
+	if(hQuery == INVALID_HANDLE)
+		return;
+	
+	while(SQL_FetchRow(hQuery))
+		TryAddRemoveUserItem(SQL_FetchInt(hQuery, 0), SQL_FetchInt(hQuery, 1), SQL_FetchInt(hQuery, 2), SQL_FetchInt(hQuery, 3));
+}
+
+public TransactionFailure_ServerCheck(Handle:hDatabase, any:data, iNumQueries, const String:szError[], iFailIndex, any:queryData[])
+{
+	LogMessage("ServerCheck query failed [%i] [%s]", iFailIndex, szError);
+}
+
+TryAddRemoveUserItem(iType, iUserID, iItemID, iPoints)
+{
+	new iClient = FindClientByUserID(iUserID);
+	if(!iClient)
+		return;
+	
+	switch(iType)
+	{
+		case 0: RemoveClientStoreItem(iClient, iItemID, true);
+		case 1: GiveClientStoreItem(iClient, iItemID, true);
+	}
+	
+	UserPoints_AddToVisualOffset(iClient, iPoints);
+}
+
+FindClientByUserID(iUserID)
+{
+	for(new iClient=1; iClient<=MaxClients; iClient++)
+	{
+		if(!IsClientInGame(iClient))
+			continue;
+		
+		if(DBUsers_GetUserID(iClient) == iUserID)
+			return iClient;
+	}
+	
+	return 0;
 }
 
 public OnMapStart()
@@ -748,6 +865,33 @@ bool:Query_CreateTable_StoreUserSettings()
 		setting_type	SMALLINT		NOT NULL,\
 		setting_value	INT				NOT NULL,\
 		PRIMARY KEY ( user_id )\
+	) ENGINE = INNODB");
+	
+	if(hQuery == INVALID_HANDLE)
+		return false;
+	
+	DB_CloseQueryHandle(hQuery);
+	bTableCreated = true;
+	
+	return true;
+}
+
+bool:Query_CreateTable_StoreServerCheck()
+{
+	static bool:bTableCreated = false;
+	if(bTableCreated)
+		return true;
+	
+	new Handle:hQuery = DB_Query(g_szDatabaseBridgeConfigName, "\
+	CREATE TABLE IF NOT EXISTS store_server_check\
+	(\
+		server_id	SMALLINT UNSIGNED	NOT NULL,\
+		type		TINYINT				NOT NULL,\
+		user_id		INT UNSIGNED		NOT NULL,\
+		item_id		SMALLINT UNSIGNED	NOT NULL,\
+		points		INT					NOT NULL,\
+		time		INT UNSIGNED		NOT NULL,\
+		PRIMARY KEY ( server_id, type, user_id, item_id )\
 	) ENGINE = INNODB");
 	
 	if(hQuery == INVALID_HANDLE)

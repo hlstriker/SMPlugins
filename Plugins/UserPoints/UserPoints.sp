@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "User Points";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -35,6 +35,8 @@ new Handle:cvar_points_hours_played_bonus_percent;
 
 const Float:POINT_DISPLAY_DELAY = 120.0;
 new Float:g_fNextPointDisplay[MAXPLAYERS+1];
+
+new g_iPointsOffset[MAXPLAYERS+1];
 
 new bool:g_bLibLoaded_Store;
 
@@ -75,7 +77,13 @@ public OnPluginStart()
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
 {
 	RegPluginLibrary("user_points");
+	CreateNative("UserPoints_AddToVisualOffset", _UserPoints_AddToVisualOffset);
 	return APLRes_Success;
+}
+
+public _UserPoints_AddToVisualOffset(Handle:hPlugin, iNumParams)
+{
+	g_iPointsOffset[GetNativeCell(1)] += GetNativeCell(2);
 }
 
 public Action:OnTag(iClient, iArgNum)
@@ -128,6 +136,7 @@ public OnLibraryRemoved(const String:szName[])
 
 public OnClientPutInServer(iClient)
 {
+	g_iPointsOffset[iClient] = 0;
 	g_fNextPointDisplay[iClient] = 0.0;
 	
 	if(!IsFakeClient(iClient))
@@ -149,7 +158,7 @@ public OnSpawnPost(iClient)
 
 DisplayPointsMessage(iClient)
 {
-	CPrintToChat(iClient, "{olive}You have {lightred}%i {olive}points.", ClientCookies_GetCookie(iClient, CC_TYPE_SWOOBLES_POINTS));
+	CPrintToChat(iClient, "{olive}You have {lightred}%i {olive}points.", ClientCookies_GetCookie(iClient, CC_TYPE_SWOOBLES_POINTS) + g_iPointsOffset[iClient]);
 }
 
 public OnClientDisconnect(iClient)

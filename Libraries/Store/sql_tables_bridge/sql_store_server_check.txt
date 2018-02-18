@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS store_server_check
+(
+	server_id	SMALLINT UNSIGNED	NOT NULL,
+	type		TINYINT			NOT NULL,
+	user_id		INT UNSIGNED		NOT NULL,
+	item_id		SMALLINT UNSIGNED	NOT NULL,
+	points		INT			NOT NULL,	-- Points to add or remove VISUALLY (aka not for real). Use negative for remove.
+	time		INT UNSIGNED		NOT NULL,
+	PRIMARY KEY ( server_id, type, user_id, item_id )
+) ENGINE = INNODB;
