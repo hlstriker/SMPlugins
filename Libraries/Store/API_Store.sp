@@ -71,6 +71,7 @@ enum
 };
 
 new Handle:g_aClientItems[MAXPLAYERS+1];
+new Handle:g_aClientItemsActive[MAXPLAYERS+1];
 new Handle:g_aClientSettings[MAXPLAYERS+1];
 new Handle:g_aTrie_ClientSettingsTypeToIndex[MAXPLAYERS+1];
 enum _:ClientSettings
@@ -101,6 +102,7 @@ public OnPluginStart()
 	for(new iClient=1; iClient<sizeof(g_aClientItems); iClient++)
 	{
 		g_aClientItems[iClient] = CreateArray();
+		g_aClientItemsActive[iClient] = CreateArray();
 		g_aClientSettings[iClient] = CreateArray(ClientSettings);
 		g_aTrie_ClientSettingsTypeToIndex[iClient] = CreateTrie();
 	}
@@ -245,8 +247,8 @@ public _Store_CanClientUseItem(Handle:hPlugin, iNumParams)
 	if(FindValueInArray(g_aClientItems[iClient], iItemID) == -1)
 		return false;
 	
-	// TODO: Check if item is active.
-	// -->
+	if(FindValueInArray(g_aClientItemsActive[iClient], iItemID) == -1)
+		return false;
 	
 	return true;
 }
@@ -293,10 +295,47 @@ public Query_GetUserItems(Handle:hDatabase, Handle:hQuery, any:iClientSerial)
 	
 	while(SQL_FetchRow(hQuery))
 		GiveClientStoreItem(iClient, SQL_FetchInt(hQuery, 0));
+	
+	DB_TQuery(g_szDatabaseServersConfigName, Query_GetUserItemsActive, DBPrio_Low, GetClientSerial(iClient), "\
+		SELECT item_id FROM store_user_items_active WHERE user_id = %i", DBUsers_GetUserID(iClient));
+}
+
+public Query_GetUserItemsActive(Handle:hDatabase, Handle:hQuery, any:iClientSerial)
+{
+	if(hQuery == INVALID_HANDLE)
+		return;
+	
+	new iClient = GetClientFromSerial(iClientSerial);
+	if(!iClient)
+		return;
+	
+	while(SQL_FetchRow(hQuery))
+		ActivateClientItem(iClient, SQL_FetchInt(hQuery, 0), true);
+}
+
+ActivateClientItem(iClient, iItemID, bool:bShouldActivate)
+{
+	if(bShouldActivate)
+	{
+		if(FindValueInArray(g_aClientItemsActive[iClient], iItemID) != -1)
+			return;
+		
+		PushArrayCell(g_aClientItemsActive[iClient], iItemID);
+	}
+	else
+	{
+		new iIndex = FindValueInArray(g_aClientItemsActive[iClient], iItemID);
+		if(iIndex == -1)
+			return;
+		
+		RemoveFromArray(g_aClientItemsActive[iClient], iIndex);
+	}
 }
 
 GiveClientStoreItem(iClient, iItemID, bool:bMessage=false)
 {
+	ActivateClientItem(iClient, iItemID, true);
+	
 	if(FindValueInArray(g_aClientItems[iClient], iItemID) != -1)
 		return;
 	
@@ -318,6 +357,8 @@ GiveClientStoreItem(iClient, iItemID, bool:bMessage=false)
 
 RemoveClientStoreItem(iClient, iItemID, bool:bMessage=false)
 {
+	ActivateClientItem(iClient, iItemID, false);
+	
 	new iIndex = FindValueInArray(g_aClientItems[iClient], iItemID);
 	if(iIndex == -1)
 		return;
@@ -361,6 +402,9 @@ public DBServers_OnServerIDReady(iServerID, iGameID)
 	if(!Query_CreateTable_StoreUserItems())
 		SetFailState("There was an error creating the store_user_items sql table.");
 	
+	if(!Query_CreateTable_StoreUserItemsActive())
+		SetFailState("There was an error creating the store_user_items_active sql table.");
+	
 	if(!Query_CreateTable_StoreUserSettings())
 		SetFailState("There was an error creating the store_user_settings sql table.");
 	
@@ -395,6 +439,7 @@ public DBServers_OnServerIDReady(iServerID, iGameID)
 public OnClientPutInServer(iClient)
 {
 	ClearArray(g_aClientItems[iClient]);
+	ClearArray(g_aClientItemsActive[iClient]);
 	ClearArray(g_aClientSettings[iClient]);
 	ClearTrie(g_aTrie_ClientSettingsTypeToIndex[iClient]);
 }
@@ -610,6 +655,8 @@ TryAddRemoveUserItem(iType, iUserID, iItemID, iPoints)
 	{
 		case 0: RemoveClientStoreItem(iClient, iItemID, true);
 		case 1: GiveClientStoreItem(iClient, iItemID, true);
+		case 2: ActivateClientItem(iClient, iItemID, false);
+		case 3: ActivateClientItem(iClient, iItemID, true);
 	}
 	
 	UserPoints_AddToVisualOffset(iClient, iPoints);
@@ -861,6 +908,29 @@ bool:Query_CreateTable_StoreUserItems()
 		user_id			INT UNSIGNED		NOT NULL,\
 		item_id			SMALLINT UNSIGNED	NOT NULL,\
 		time_obtained	INT UNSIGNED		NOT NULL,\
+		PRIMARY KEY ( user_id, item_id )\
+	) ENGINE = INNODB");
+	
+	if(hQuery == INVALID_HANDLE)
+		return false;
+	
+	DB_CloseQueryHandle(hQuery);
+	bTableCreated = true;
+	
+	return true;
+}
+
+bool:Query_CreateTable_StoreUserItemsActive()
+{
+	static bool:bTableCreated = false;
+	if(bTableCreated)
+		return true;
+	
+	new Handle:hQuery = DB_Query(g_szDatabaseServersConfigName, "\
+	CREATE TABLE IF NOT EXISTS store_user_items_active\
+	(\
+		user_id		INT UNSIGNED		NOT NULL,\
+		item_id		SMALLINT UNSIGNED	NOT NULL,\
 		PRIMARY KEY ( user_id, item_id )\
 	) ENGINE = INNODB");
 	

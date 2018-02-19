@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS store_server_check
 (
 	server_id	SMALLINT UNSIGNED	NOT NULL,
-	type		TINYINT			NOT NULL,
+	type		TINYINT			NOT NULL,	-- 0: Item removed, 1: Item added, 2: Item deactivated, 3: Item activated
 	user_id		INT UNSIGNED		NOT NULL,
 	item_id		SMALLINT UNSIGNED	NOT NULL,
 	points		INT			NOT NULL,	-- Points to add or remove VISUALLY (aka not for real). Use negative for remove.
