@@ -109,7 +109,7 @@ public OnPluginStart()
 	
 	g_hFwd_OnItemsReady = CreateGlobalForward("Store_OnItemsReady", ET_Ignore);
 	
-	CreateTimer(10.0, Timer_ServerCheck, _, TIMER_REPEAT);
+	CreateTimer(5.0, Timer_ServerCheck, _, TIMER_REPEAT);
 	
 	RegConsoleCmd("sm_shop", OnOpenStore, "Opens the store.");
 	RegConsoleCmd("sm_store", OnOpenStore, "Opens the store.");
