@@ -1,6 +1,7 @@
 "InfoMenus"
 {
 	// You can add unlimited menus with unlimited links
+	// If a menu only has 1 URL, the command will open that url directly, see "Rules" example
 	//
 	//"The Menu Title To Display"   // Limit of 128 chars
 	//{
@@ -13,6 +14,7 @@
 	//	}
 	//}
 	
+	
 	"Swoobles Info"
 	{
 		"Command" "sm_swoobles"
@@ -24,4 +26,14 @@
 			"Report Players/Admins" "https://swoobles.com/forums/forum-39.html"
 		}
 	}
+	
+	
+	//"Rules"		//This block is meant to replace the existing rules plugin
+	//{			//So remove that first
+	//	"Command" "sm_rules"
+	//	"URLS"
+	//	{
+	//		"Rules" "https://swoobles.com/forums/announcement-14.html"
+	//	}
+	//}
 }
