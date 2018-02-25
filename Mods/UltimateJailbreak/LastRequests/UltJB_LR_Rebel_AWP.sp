@@ -5,19 +5,19 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "[UltJB] LR: Rebel - Sniper";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_NAME[] = "[UltJB] LR: Rebel - AWP";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
 	name = PLUGIN_NAME,
 	author = "RussianLightning",
-	description = "Last Request: Rebel - Sniper",
+	description = "Last Request: Rebel - AWP",
 	version = PLUGIN_VERSION,
 	url = "www.swoobles.com"
 }
 
-#define LR_NAME			"Sniper"
+#define LR_NAME			"AWP"
 #define LR_CATEGORY		"Rebel"
 #define LR_DESCRIPTION	""
 
@@ -26,7 +26,7 @@ new const HEALTH_BASE = 125;
 
 public OnPluginStart()
 {
-	CreateConVar("lr_rebel_sniper_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
+	CreateConVar("lr_rebel_awp_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 }
 
 public UltJB_LR_OnRegisterReady()
@@ -51,6 +51,9 @@ PrepareWeapons(iClient)
 	UltJB_LR_StripClientsWeapons(iClient, true);
 	UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_KNIFE_T);
 	UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_AWP);
+	
+	SetEntProp(iClient, Prop_Send, "m_ArmorValue", 100);
+	SetEntProp(iClient, Prop_Send, "m_bHasHelmet", 1);
 }
 
 RestoreWeaponsIfNeeded(iClient)
