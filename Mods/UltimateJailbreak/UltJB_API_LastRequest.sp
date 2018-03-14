@@ -486,6 +486,7 @@ public OnMapStart()
 	PrecacheSoundAny(SZ_SOUND_LR_ACTIVATED[6]);
 	
 	g_iRoundNumber = 0;
+	g_iTeleportLRZoneID = 0;
 	
 	g_iBeamIndex = PrecacheModel(SZ_BEAM_MATERIAL);
 	g_iBeamWallIndex = PrecacheModel(SZ_BEAM_WALL_MATERIAL);
