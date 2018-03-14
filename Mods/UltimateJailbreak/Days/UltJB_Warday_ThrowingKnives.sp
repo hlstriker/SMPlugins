@@ -120,7 +120,7 @@ public Event_WeaponFire(Handle:hEvent, const String:szName[], bool:bDontBroadcas
 			case TEAM_PRISONERS:
 				SetEntPropFloat(iClient, Prop_Send, "m_flNextAttack", GetGameTime() + 1.0);
 			case TEAM_GUARDS:
-				SetEntPropFloat(iClient, Prop_Send, "m_flNextAttack", GetGameTime() + 2.0);
+				SetEntPropFloat(iClient, Prop_Send, "m_flNextAttack", GetGameTime() + 1.2);
 		}
 	}
 }
