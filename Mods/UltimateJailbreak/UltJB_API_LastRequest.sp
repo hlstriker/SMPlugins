@@ -27,7 +27,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Last Request API";
-new const String:PLUGIN_VERSION[] = "1.40";
+new const String:PLUGIN_VERSION[] = "1.41";
 
 public Plugin:myinfo =
 {
@@ -140,6 +140,7 @@ enum _:Category
 new g_iRoundNumber;
 
 new g_iTeleportLRZoneID;
+new Handle:g_aTeleportLRRebelZone;
 
 new Float:g_fPreLastRequestLocations[MAXPLAYERS+1][3];
 
@@ -190,6 +191,7 @@ public OnPluginStart()
 	
 	g_aLastRequests = CreateArray(LastRequest);
 	g_aCategories = CreateArray(Category);
+	g_aTeleportLRRebelZone = CreateArray();
 	
 	g_hFwd_OnRegisterReady = CreateGlobalForward("UltJB_LR_OnRegisterReady", ET_Ignore);
 	g_hFwd_OnLastRequestInitialized = CreateGlobalForward("UltJB_LR_OnLastRequestInitialized", ET_Ignore, Param_Cell);
@@ -520,6 +522,7 @@ public OnMapStart()
 	
 	ClearArray(g_aLastRequests);
 	ClearArray(g_aCategories);
+	ClearArray(g_aTeleportLRRebelZone);
 	
 	new result;
 	Call_StartForward(g_hFwd_OnRegisterReady);
@@ -2108,17 +2111,40 @@ TeleportToWarden(iClient)
 
 TeleportToLRZone(iClient)
 {
+	if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
+		return;
+		
 	if(!g_iTeleportLRZoneID)
 	{
 		TeleportToWarden(iClient);
 		return;
 	}
-		
-	if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
-		return;
-
+	
 	if(!ZoneTypeTeleport_TryToTeleport(g_iTeleportLRZoneID, iClient))
 		return;
+}
+
+TeleportToRebelZone(iClient)
+{
+	if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
+		return;
+	
+	if(GetArraySize(g_aTeleportLRRebelZone) == 0)
+	{
+		GotoRandomLastRequestTeleportOrigin(iClient);
+		return;
+	}
+		
+	new iIndex = GetRandomInt(0, GetArraySize(g_aTeleportLRRebelZone)-1);
+	new iZone = GetArrayCell(g_aTeleportLRRebelZone, iIndex);
+	
+	if(!ZoneTypeTeleport_TryToTeleport(iZone, iClient))
+		return;
+}
+
+public ZoneManager_CreateZoneEnts_Pre()
+{
+	ClearArray(g_aTeleportLRRebelZone);
 }
 
 public ZoneManager_OnTypeAssigned(iEnt, iZoneID, iZoneType)
@@ -2126,14 +2152,21 @@ public ZoneManager_OnTypeAssigned(iEnt, iZoneID, iZoneType)
 	if(iZoneType != ZONE_TYPE_TELEPORT_DESTINATION)
 		return;
 	
-	decl String:szBuffer[8];
+	decl String:szBuffer[16];
 	if(!ZoneManager_GetDataString(iZoneID, 1, szBuffer, sizeof(szBuffer)))
 		return;
 	
-	if(!StrEqual(szBuffer, "lr_tele"))
+	if(StrEqual(szBuffer, "lr_tele"))
+	{
+		g_iTeleportLRZoneID = iZoneID;
 		return;
+	}
 	
-	g_iTeleportLRZoneID = iZoneID;
+	if(StrEqual(szBuffer, "rebel_tele"))
+	{
+		PushArrayCell(g_aTeleportLRRebelZone, iZoneID);
+		return;
+	}
 }
 
 public ZoneManager_OnTypeUnassigned(iEnt, iZoneID, iZoneType)
@@ -2141,18 +2174,30 @@ public ZoneManager_OnTypeUnassigned(iEnt, iZoneID, iZoneType)
 	if(iZoneType != ZONE_TYPE_TELEPORT_DESTINATION)
 		return;
 	
-	if(iZoneID != g_iTeleportLRZoneID)
+	if(iZoneID == g_iTeleportLRZoneID)
+	{
+		g_iTeleportLRZoneID = 0;
 		return;
+	}
 	
-	g_iTeleportLRZoneID = 0;
+	new iIndex = FindValueInArray(g_aTeleportLRRebelZone, iZoneID);
+	
+	if(iIndex != -1)
+		RemoveFromArray(g_aTeleportLRRebelZone, iIndex);
 }
 
 public ZoneManager_OnZoneRemoved_Pre(iZoneID)
 {
-	if(iZoneID != g_iTeleportLRZoneID)
+	if(iZoneID == g_iTeleportLRZoneID)
+	{
+		g_iTeleportLRZoneID = 0;
 		return;
+	}
+		
+	new iIndex = FindValueInArray(g_aTeleportLRRebelZone, iZoneID);
 	
-	g_iTeleportLRZoneID = 0;
+	if(iIndex != -1)
+		RemoveFromArray(g_aTeleportLRRebelZone, iIndex);
 }
 
 public Action:Timer_SelectLastRequest(Handle:hTimer, any:iClientSerial)
@@ -2554,7 +2599,8 @@ StartLastRequest(iClient, iLastRequestIndex, bool:bFromFreedayAdminCommand=false
 		SetTempInvincibility(iClient, 1.0);
 		
 	if(eLastRequest[LR_Flags] & LR_FLAG_RANDOM_TELEPORT_LOCATION)
-		GotoRandomLastRequestTeleportOrigin(iClient);
+		//GotoRandomLastRequestTeleportOrigin(iClient);
+		TeleportToRebelZone(iClient);
 	
 	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}You have chosen {purple}%s {olive}- {purple}%s{olive}.", szCategoryName, eLastRequest[LR_Name]);
 	
