@@ -7,7 +7,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Zone Type: Teleport";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
@@ -52,7 +52,7 @@ public _ZoneTypeTeleport_TryToTeleport(Handle:hPlugin, iNumParams)
 	if(iNumParams != 2)
 		SetFailState("Invalid number of parameters ZoneTypeTeleport_TryToTeleport");
 	
-	return TryToTeleport(GetNativeCell(1), GetNativeCell(2));
+	return TryToTeleport(GetNativeCell(1), GetNativeCell(2), true);
 }
 
 public ZoneManager_OnRegisterReady()
@@ -69,39 +69,47 @@ public OnStartTouch(iZone, iOther)
 	static iZoneID;
 	iZoneID = GetZoneID(iZone);
 	
-	TryToTeleport(iZoneID, iOther);
+	TryToTeleport(iZoneID, iOther, false);
 }
 
-bool:TryToTeleport(iZoneID, iClient)
+bool:TryToTeleport(iZoneID, iClient, bool:bZoneIsDest)
 {
-	static String:szTarget[MAX_ZONE_DATA_STRING_LENGTH];
-	if(!ZoneManager_GetDataString(iZoneID, 1, szTarget, sizeof(szTarget)) || !szTarget[0])
-	{
-		CPrintToChat(iClient, "{red}Teleport's destination not set.");
-		return false;
-	}
-	
-	static Handle:hZoneIDs;
-	hZoneIDs = CreateArray();
-	ZoneManager_GetAllZones(hZoneIDs, ZONE_TYPE_TELEPORT_DESTINATION);
-	
 	new iDestZoneID;
-	static String:szDestName[MAX_ZONE_DATA_STRING_LENGTH], iTempID;
-	for(new i=0; i<GetArraySize(hZoneIDs); i++)
-	{
-		iTempID = GetArrayCell(hZoneIDs, i);
-		
-		if(!ZoneManager_GetDataString(iTempID, 1, szDestName, sizeof(szDestName)) || !szDestName[0])
-			continue;
-		
-		if(!StrEqual(szTarget, szDestName))
-			continue;
-		
-		iDestZoneID = iTempID;
-		break;
-	}
 	
-	CloseHandle(hZoneIDs);
+	if(bZoneIsDest)
+	{
+		iDestZoneID = iZoneID;
+	}
+	else
+	{
+		static String:szTarget[MAX_ZONE_DATA_STRING_LENGTH];
+		if(!ZoneManager_GetDataString(iZoneID, 1, szTarget, sizeof(szTarget)) || !szTarget[0])
+		{
+			CPrintToChat(iClient, "{red}Teleport's destination not set.");
+			return false;
+		}
+		
+		static Handle:hZoneIDs;
+		hZoneIDs = CreateArray();
+		ZoneManager_GetAllZones(hZoneIDs, ZONE_TYPE_TELEPORT_DESTINATION);
+		
+		static String:szDestName[MAX_ZONE_DATA_STRING_LENGTH], iTempID;
+		for(new i=0; i<GetArraySize(hZoneIDs); i++)
+		{
+			iTempID = GetArrayCell(hZoneIDs, i);
+			
+			if(!ZoneManager_GetDataString(iTempID, 1, szDestName, sizeof(szDestName)) || !szDestName[0])
+				continue;
+			
+			if(!StrEqual(szTarget, szDestName))
+				continue;
+			
+			iDestZoneID = iTempID;
+			break;
+		}
+		
+		CloseHandle(hZoneIDs);
+	}
 	
 	if(!iDestZoneID)
 	{

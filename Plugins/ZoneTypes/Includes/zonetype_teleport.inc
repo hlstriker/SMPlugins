@@ -17,4 +17,11 @@ public SharedPlugin:__pl_zonetype_teleport =
 
 
 
+/**
+ * Tries to teleport the client to the specified zone_id.
+ *
+ * @param zone_id		The zone ID to teleport to.
+ * @param client		The client to teleport.
+ * @return				True on success, false otherwise.
+ */
 native bool:ZoneTypeTeleport_TryToTeleport(zone_id, client);
