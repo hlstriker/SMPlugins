@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Zone Manager";
-new const String:PLUGIN_VERSION[] = "1.16";
+new const String:PLUGIN_VERSION[] = "1.17";
 
 public Plugin:myinfo =
 {
@@ -147,6 +147,7 @@ new Handle:g_hFwd_OnZonesLoaded;
 new Handle:g_hFwd_OnZoneCreated;
 new Handle:g_hFwd_OnZoneRemoved_Pre;
 new Handle:g_hFwd_OnZoneRemoved_Post;
+new Handle:g_hFwd_CreateZoneEnts_Pre;
 
 new g_iUniqueMapCounter;
 new bool:g_bAreZonesLoadedFromDB;
@@ -169,6 +170,7 @@ public OnPluginStart()
 	g_hFwd_OnZoneCreated = CreateGlobalForward("ZoneManager_OnZoneCreated", ET_Ignore, Param_Cell);
 	g_hFwd_OnZoneRemoved_Pre = CreateGlobalForward("ZoneManager_OnZoneRemoved_Pre", ET_Ignore, Param_Cell);
 	g_hFwd_OnZoneRemoved_Post = CreateGlobalForward("ZoneManager_OnZoneRemoved_Post", ET_Ignore, Param_Cell);
+	g_hFwd_CreateZoneEnts_Pre = CreateGlobalForward("ZoneManager_CreateZoneEnts_Pre", ET_Ignore);
 	
 	g_aZones = CreateArray(Zone);
 	g_aZoneTypes = CreateArray(ZoneType);
@@ -328,6 +330,9 @@ public Event_RoundStart_Pre(Handle:hEvent, const String:szName[], bool:bDontBroa
 
 CreateZoneEnts()
 {
+	Call_StartForward(g_hFwd_CreateZoneEnts_Pre);
+	Call_Finish();
+	
 	decl eZone[Zone];
 	for(new i=0; i<GetArraySize(g_aZones); i++)
 	{

@@ -67,6 +67,7 @@ forward ZoneManager_OnZonesLoaded();
 forward ZoneManager_OnZoneCreated(zone_id);
 forward ZoneManager_OnZoneRemoved_Pre(zone_id);
 forward ZoneManager_OnZoneRemoved_Post(zone_id);
+forward ZoneManager_CreateZoneEnts_Pre();
 
 
 native bool:ZoneManager_RegisterZoneType(zone_type, const String:zone_type_name[], Callback_OnTouch:touch_callback=INVALID_FUNCTION, Callback_OnStartTouch:start_touch_callback=INVALID_FUNCTION, Callback_OnEndTouch:end_touch_callback=INVALID_FUNCTION, Callback_OnEditData:edit_data_callback=INVALID_FUNCTION, Callback_OnTypeAssigned:type_assigned_callback=INVALID_FUNCTION, Callback_OnTypeUnassigned:type_unassigned_callback=INVALID_FUNCTION);
