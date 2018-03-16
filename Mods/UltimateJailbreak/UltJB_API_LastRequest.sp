@@ -2117,6 +2117,7 @@ TeleportToLRZone(iClient)
 	if(!g_iTeleportLRZoneID)
 	{
 		TeleportToWarden(iClient);
+		CPrintToChatAll("{red}[SM] This map is still using the old teleport system. Please let leads know so they can setup the zones.");
 		return;
 	}
 	
@@ -2132,6 +2133,7 @@ TeleportToRebelZone(iClient)
 	if(GetArraySize(g_aTeleportLRRebelZone) == 0)
 	{
 		GotoRandomLastRequestTeleportOrigin(iClient);
+		CPrintToChatAll("{red}[SM] This map is still using the old teleport system. Please let leads know so they can setup the zones.");
 		return;
 	}
 		
