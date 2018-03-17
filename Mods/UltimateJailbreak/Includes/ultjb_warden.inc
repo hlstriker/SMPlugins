@@ -53,7 +53,7 @@ forward UltJB_Warden_OnRemoved(client);
 /**
  * Called when a warden dies.
  *
- * @param client		The client that was removed from warden.
+ * @param client		The client that was warden that died.
  * @noreturn
  */
 forward UltJB_Warden_OnDeath(client);
