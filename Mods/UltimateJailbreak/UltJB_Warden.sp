@@ -24,7 +24,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warden";
-new const String:PLUGIN_VERSION[] = "1.37";
+new const String:PLUGIN_VERSION[] = "1.38";
 
 public Plugin:myinfo =
 {
@@ -74,6 +74,7 @@ new g_iBeamEndEntRef;
 
 new Handle:g_hFwd_OnSelected;
 new Handle:g_hFwd_OnRemoved;
+new Handle:g_hFwd_OnWardenDeath;
 
 #if !defined MAX_CLAN_TAG_LENGTH
 #define MAX_CLAN_TAG_LENGTH	22
@@ -137,6 +138,7 @@ public OnPluginStart()
 	
 	g_hFwd_OnSelected = CreateGlobalForward("UltJB_Warden_OnSelected", ET_Ignore, Param_Cell);
 	g_hFwd_OnRemoved = CreateGlobalForward("UltJB_Warden_OnRemoved", ET_Ignore, Param_Cell);
+	g_hFwd_OnWardenDeath = CreateGlobalForward("UltJB_Warden_OnDeath", ET_Ignore, Param_Cell);
 	
 	HookEvent("player_team", EventPlayerTeam_Post, EventHookMode_Post);
 	HookEvent("round_freeze_end", EventRoundFreezeEnd_Post, EventHookMode_PostNoCopy);
@@ -1035,6 +1037,10 @@ public EventPlayerDeath_Pre(Handle:hEvent, const String:szName[], bool:bDontBroa
 	
 	if(iClient && iClient == GetClientFromSerial(g_iWardenSerial))
 	{
+		Call_StartForward(g_hFwd_OnWardenDeath);
+		Call_PushCell(iClient);
+		Call_Finish();
+		
 		CPrintToChatAll("{green}[{lightred}SM{green}] {olive}The warden has died!");
 		EmitSoundToAllAny(WARDENDEATH_SOUND[6], _, _, SNDLEVEL_NONE);
 	}
