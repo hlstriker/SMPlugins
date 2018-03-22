@@ -10,7 +10,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "Warday: Zombie";
+new const String:PLUGIN_NAME[] = "[UltJB] Warday: Zombie";
 new const String:PLUGIN_VERSION[] = "1.3";
 
 new g_ZombieMsg;
