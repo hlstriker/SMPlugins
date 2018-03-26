@@ -11,14 +11,14 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "[UltJB] Command Notify Admins";
+new const String:PLUGIN_NAME[] = "[UltJB] Command Freekill";
 new const String:PLUGIN_VERSION[] = "1.9";
 
 public Plugin:myinfo =
 {
 	name = PLUGIN_NAME,
 	author = "hlstriker",
-	description = "The notify admins plugin for Ultimate Jailbreak.",
+	description = "The freekill command plugin for Ultimate Jailbreak.",
 	version = PLUGIN_VERSION,
 	url = "www.swoobles.com"
 }
@@ -35,10 +35,9 @@ new Float:g_fNextFreekillUsage[MAXPLAYERS+1];
 
 public OnPluginStart()
 {
-	CreateConVar("ultjb_command_notify_admins_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
+	CreateConVar("ultjb_command_freekill_admins_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	
 	RegConsoleCmd("sm_freekill", OnFreeKill, "sm_freekill <msg> - Used to let admins know you were freekilled.");
-	//RegConsoleCmd("sm_other", OnOther, "sm_other <msg> - Message an admin.");
 	RegAdminCmd("sm_whokilled", OnWhoKilled, ADMFLAG_SLAY, "sm_whokilled <who> - Used to check who killed a player.");
 	RegAdminCmd("sm_wk", OnWhoKilled, ADMFLAG_SLAY, "sm_wk <who> - Used to check who killed a player.");
 	
@@ -173,41 +172,6 @@ public Action:OnFreeKill(iClient, iArgCount)
 	return Plugin_Handled;
 }
 
-public Action:OnOther(iClient, iArgCount)
-{
-	if(!iClient)
-		return Plugin_Handled;
-	
-	if(iArgCount < 1)
-	{
-		ReplyToCommand(iClient, "[SM] Usage: sm_other <msg>");
-		return Plugin_Handled;
-	}
-	
-	new iLen;
-	decl String:szReason[256], String:szReasonTemp[256];
-	for(new i=1; i<=iArgCount; i++)
-	{
-		GetCmdArg(i, szReasonTemp, sizeof(szReasonTemp));
-		iLen += FormatEx(szReason[iLen], sizeof(szReason)-iLen, " %s", szReasonTemp);
-	}
-	
-	Format(szReason, sizeof(szReason), "{purple}[OTHER] {olive}%N: {yellow}%s", iClient, szReason);
-	
-	for(new iAdmin=1; iAdmin<=MaxClients; iAdmin++)
-	{
-		if(!IsClientInGame(iAdmin))
-			continue;
-		
-		if(!g_bIsAdmin[iAdmin])
-			continue;
-		
-		CPrintToChat(iAdmin, szReason);
-	}
-	
-	return Plugin_Handled;
-}
-
 public Action:OnWhoKilled(iClient, iArgs)
 {
 	if(iArgs < 1)
@@ -244,4 +208,3 @@ public OnClientPostAdminCheck(iClient)
 	if(CheckCommandAccess(iClient, "sm_say", ADMFLAG_CHAT, false))
 		g_bIsAdmin[iClient] = true;
 }
-
