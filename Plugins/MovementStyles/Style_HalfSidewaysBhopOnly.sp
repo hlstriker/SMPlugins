@@ -97,7 +97,7 @@ public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVel[3], Float
 	if(GetEntityFlags(iClient) & FL_ONGROUND)
 		return Plugin_Continue;
 	
-	if(fVel[0] != 0.0 && fVel[1] != 0.0)
+	if(fVel[0] == 450.0 && (fVel[1] == 450.0 || fVel[1] == -450.0))
 		return Plugin_Continue;
 	
 	fVel[0] = 0.0;
