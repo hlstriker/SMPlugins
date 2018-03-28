@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: Auto Strafe";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
