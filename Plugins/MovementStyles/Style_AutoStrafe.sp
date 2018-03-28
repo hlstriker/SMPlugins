@@ -24,7 +24,7 @@ public Plugin:myinfo =
 new Handle:cvar_add_autobhop;
 new Handle:cvar_force_autobhop;
 
-new Float:g_fLastStrafeAngle[MAXPLAYERS + 1];
+new g_iGroundTicks[MAXPLAYERS + 1];
 new bool:g_bActivated[MAXPLAYERS+1];
 
 
@@ -93,41 +93,38 @@ public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVel[3], Float
 	if(!g_bActivated[iClient])
 		return Plugin_Continue;
 		
+	if(GetEntityMoveType(iClient) == MOVETYPE_NOCLIP)
+		return Plugin_Continue;
+		
 	if(GetEntityFlags(iClient) & FL_ONGROUND)
-		return Plugin_Continue;
-	
-	if(!IsPlayerAlive(iClient))
-		return Plugin_Continue;
+		g_iGroundTicks[iClient]++;
+	else
+		g_iGroundTicks[iClient] = 0;
+		
 	
 	decl Float:fEyeAngles[3];
 	GetClientEyeAngles(iClient, fEyeAngles);
 	
-	if(fVel[0] == 0.0 && fVel[1] == 0.0)
+	if(g_iGroundTicks[iClient] < 5 && fVel[0] == 0.0 && fVel[1] == 0.0)
 	{
-		new Float:fAngleAdded = fEyeAngles[1] - g_fLastStrafeAngle[iClient];
+		new Float:fPredictedDelta = fAngles[1] - fEyeAngles[1];
 		
-		if(fAngleAdded != 0.0)
+		if (fPredictedDelta > 180.0)
+			fPredictedDelta -= 360.0;
+		if (fPredictedDelta < -180.0)
+			fPredictedDelta += 360.0;
+		
+		if (fPredictedDelta > 0.0)
 		{
-			new bool:bIsLeft = (fAngleAdded > 0.0);
-			if(FloatAbs(fAngleAdded) > 180.0)
-			{
-				bIsLeft = !bIsLeft;
-			}
-			
-			if (bIsLeft)
-			{
-				fVel[1] = -450.0;
-			}
-			else
-			{
-				fVel[1] = 450.0;
-			}
+			fVel[1] = -450.0;
+			return Plugin_Changed;
+		}
+		if (fPredictedDelta < 0.0)
+		{
+			fVel[1] = 450.0;
+			return Plugin_Changed;
 		}
 		
-		g_fLastStrafeAngle[iClient] = fEyeAngles[1];
-		return Plugin_Changed;
 	}
-	
-	g_fLastStrafeAngle[iClient] = fEyeAngles[1];
 	return Plugin_Continue;
 }
