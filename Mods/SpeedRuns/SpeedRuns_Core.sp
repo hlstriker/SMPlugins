@@ -530,8 +530,8 @@ DisplayBehindTime(iClient, iStageNumber, iStyleBits, Float:fTotalSeconds)
 
 StageCompleted(iClient, iStageNumber, bool:bIsFinalEnd)
 {
-	new Float:fTotalSecondsMap = (GetGameTime() - g_fTimeStartedFirst[iClient]) - g_fPausedTimeTotal[iClient];
-	new Float:fTotalSecondsStage = (GetGameTime() - g_fTimeStartedCurrent[iClient]) - g_fPausedTimeStage[iClient];
+	new Float:fTotalSecondsMap = GetTotalRunTime(iClient);
+	new Float:fTotalSecondsStage = GetStageRunTime(iClient);
 	
 	decl iIndex, eOldRecord[Record], eNewRecord[Record];
 	new iStyleBits = MovementStyles_GetStyleBits(iClient);
@@ -1075,6 +1075,8 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	CreateNative("SpeedRuns_IsRunPaused", _SpeedRuns_IsRunPaused);
 	CreateNative("SpeedRuns_GetCurrentStage", _SpeedRuns_GetCurrentStage);
 	CreateNative("SpeedRuns_IsInTotalRun", _SpeedRuns_IsInTotalRun);
+	CreateNative("SpeedRuns_GetTotalRunTime", _SpeedRuns_GetTotalRunTime);
+	CreateNative("SpeedRuns_GetStageRunTime", _SpeedRuns_GetStageRunTime);
 	
 	CreateNative("SpeedRuns_GetMapTier", _SpeedRuns_GetMapTier);
 	CreateNative("SpeedRuns_GetMapTierMax", _SpeedRuns_GetMapTierMax);
@@ -1189,6 +1191,45 @@ public _SpeedRuns_GetCurrentStage(Handle:hPlugin, iNumParams)
 	
 	return g_iStageCurrent[iClient];
 }
+
+Float:GetTotalRunTime(iClient)
+{
+	if (!g_bFirstStarted[iClient])
+		return 0.0;
+
+	return GetGameTime() - g_fTimeStartedFirst[iClient] - g_fPausedTimeTotal[iClient];
+}
+
+public _SpeedRuns_GetTotalRunTime(Handle:hPlugin, iNumParams)
+{
+	if (iNumParams != 1)
+	{
+		LogError("Invalid number of parameters SpeedRuns_GetTotalRunTime");
+		return _:0.0;
+	}
+
+	return _:GetTotalRunTime(GetNativeCell(1));
+}
+
+Float:GetStageRunTime(iClient)
+{
+	if (!g_bStageStarted[iClient])
+		return 0.0;
+
+	return GetGameTime() - g_fTimeStartedCurrent[iClient] - g_fPausedTimeStage[iClient];
+}
+
+public _SpeedRuns_GetStageRunTime(Handle:hPlugin, iNumParams)
+{
+	if (iNumParams != 1)
+	{
+		LogError("Invalid number of parameters SpeedRuns_GetStageRunTime");
+		return _:0.0;
+	}
+
+	return _:GetStageRunTime(GetNativeCell(1));
+}
+
 
 public _SpeedRuns_CancelRun(Handle:hPlugin, iNumParams)
 {
@@ -1610,7 +1651,7 @@ GetTimerHUD(iClient, String:szBuffer[], const iMaxLength, HudDisplay:iHudDisplay
 		{
 			iIndex = GetRecordByStage((iHudDisplay == HUD_COMPARE_GLOBAL_TIMES) ? 0 : iClient, 0, iStyleBits, eRecord);
 			
-			fTotalSeconds = (GetGameTime() - g_fTimeStartedFirst[iClient]) - g_fPausedTimeTotal[iClient];
+			fTotalSeconds = GetTotalRunTime(iClient);
 			iTotalSeconds = RoundToFloor(fTotalSeconds);
 			iHour = (iTotalSeconds / 3600) % 24;
 			iMinute = (iTotalSeconds / 60) % 60;
@@ -1656,7 +1697,7 @@ GetTimerHUD(iClient, String:szBuffer[], const iMaxLength, HudDisplay:iHudDisplay
 		{
 			iIndex = GetRecordByStage((iHudDisplay == HUD_COMPARE_GLOBAL_TIMES) ? 0 : iClient, g_iStageCurrent[iClient], iStyleBits, eRecord);
 			
-			fTotalSeconds = (GetGameTime() - g_fTimeStartedCurrent[iClient]) - g_fPausedTimeStage[iClient];
+			fTotalSeconds = GetStageRunTime(iClient);
 			iTotalSeconds = RoundToFloor(fTotalSeconds);
 			iHour = (iTotalSeconds / 3600) % 24;
 			iMinute = (iTotalSeconds / 60) % 60;
