@@ -52,6 +52,9 @@ native bool:SpeedRuns_IsRunPaused(client);
 native SpeedRuns_GetCurrentStage(client);
 native bool:SpeedRuns_IsInTotalRun(client);
 
+native Float:SpeedRuns_GetTotalRunTime(client);
+native Float:SpeedRuns_GetStageRunTime(client);
+
 native SpeedRuns_GetMapTier();
 native SpeedRuns_GetMapTierMax();
 
@@ -73,6 +76,9 @@ public __pl_speed_runs_SetNTVOptional()
 	
 	MarkNativeAsOptional("SpeedRuns_GetCurrentStage");
 	MarkNativeAsOptional("SpeedRuns_IsInTotalRun");
+
+	MarkNativeAsOptional("SpeedRuns_GetTotalRunTime");
+	MarkNativeAsOptional("SpeedRuns_GetStageRunTime");
 	
 	MarkNativeAsOptional("SpeedRuns_GetMapTier");
 	MarkNativeAsOptional("SpeedRuns_GetMapTierMax");
