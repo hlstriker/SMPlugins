@@ -65,15 +65,22 @@ public Action:Timer_Scoreboard(Handle:hTimer, any:iClientSerial)
     if (!iClient || !IsClientInGame(iClient))
         return;
 
-    SetKills(iClient, RoundToNearest(SpeedRuns_GetTotalRunTime(iClient)));
-
     new iStage = SpeedRuns_GetCurrentStage(iClient);
     SetAssists(iClient, iStage);
 
-    if (iStage > 1)
-        SetDeaths(iClient, RoundToNearest(SpeedRuns_GetStageRunTime(iClient)));
-    else
+    if (IsPlayerAlive(iClient))
+    {
+        SetKills(iClient, RoundToNearest(SpeedRuns_GetTotalRunTime(iClient)));
+        if (iStage > 1)
+            SetDeaths(iClient, RoundToNearest(SpeedRuns_GetStageRunTime(iClient)));
+        else
+            SetDeaths(iClient, 0);
+    }
+    else  // If player is dead, don't show their run times.
+    {
+        SetKills(iClient, 0);
         SetDeaths(iClient, 0);
+    }
 }
 
 public SpeedRuns_OnStageCompleted_Post(iClient, iStageNum, iStyleBits, Float:fTimeTaken)
