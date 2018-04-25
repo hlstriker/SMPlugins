@@ -603,7 +603,7 @@ bool:StartDay(iClient, iDayID)
 	g_iCurrentDayType = eDay[Day_Type];
 	g_iRoundsAfterDay[eDay[Day_Type]] = 0;
 	
-	if(UltJB_CellDoors_HaveOpened() && g_iCurrentDayType = DAY_TYPE_WARDAY)
+	if(UltJB_CellDoors_HaveOpened() && g_iCurrentDayType == DAY_TYPE_WARDAY)
 	{
 		PrintToChat(iClient, "[SM] Cells are open, you cannot do a warday.");
 		return false;
