@@ -2076,7 +2076,7 @@ InitializeLastRequest(iClient)
 	CPrintToChatAll("{green}[{lightred}SM{green}] {olive}LR initialized for {lightred}%N{olive}.", iClient);
 	
 	g_hTimer_SelectLastRequest[iClient] = CreateTimer(GetConVarFloat(cvar_select_last_request_time), Timer_SelectLastRequest, GetClientSerial(iClient));
-	//PrintToChat(iClient, "[SM] You have %i seconds to select a last request.", GetConVarInt(cvar_select_last_request_time));
+	PrintToChat(iClient, "[SM] You have %i seconds to select a last request.", GetConVarInt(cvar_select_last_request_time));
 	
 	//TeleportToWarden(iClient);
 	TeleportToLRZone(iClient);
