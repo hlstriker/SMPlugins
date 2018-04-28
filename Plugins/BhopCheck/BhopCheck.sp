@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Bhop Check";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "2.0";
 
 public Plugin:myinfo =
 {
@@ -22,42 +22,166 @@ new Handle:cvar_warn_cooldown;
 new Handle:cvar_bhops_max;
 
 new g_iBhopsMax;
+new Float:g_fMinWarnCooldown;
+new Float:g_fWarnPerfs;
+new Float:g_fWarnInputsPerTick;
 
-enum _:Bhop
+enum _:BhopLog
 {
 	Bhop_Inputs,
-	Bhop_LateTicks,
+	Bhop_AirTicks,
+	Bhop_GroundTicks,
+	Bhop_InputTicks,
+	Bhop_DemoTick,
+	Float:Bhop_InputsPerTick,
 	Float:Bhop_Speed
+}
+
+enum _:Jump
+{
+	Jump_AirTicks,
+	Jump_Inputs,
+	Jump_GroundTicks
 }
 
 enum _:Total
 {
 	Total_Inputs,
-	Total_Perfs,
-	Total_Late,
-	Float:Total_Speed
+	Total_AirTicks,
+	Total_GroundTicks,
+	Float:Total_Speed,
+	Total_Perfs
 }
 
-new Handle:g_hBhopData[MAXPLAYERS + 1];
-new g_eBhopTotal[MAXPLAYERS + 1][Total];
+enum _:Avg
+{
+	Float:Avg_Inputs,
+	Float:Avg_InputsPerTick,
+	Float:Avg_GroundTicks,
+	Float:Avg_Speed,
+	Float:Avg_Perfs
+}
+
+new Handle:g_hBhops[MAXPLAYERS + 1];
+new g_eJump[MAXPLAYERS + 1][Jump];
+new g_eTotals[MAXPLAYERS + 1][Total];
+new g_eAvg[MAXPLAYERS + 1][Avg];
+
+new g_bInJump[MAXPLAYERS + 1];
 
 new g_iInputTicks[MAXPLAYERS + 1];
-new g_iInputsSinceJump[MAXPLAYERS + 1];
-new g_iGroundTicks[MAXPLAYERS + 1];
 
 new Float:g_fLastWarnTime[MAXPLAYERS + 1];
 
-
-public OnClientConnected(iClient)
+StartJump(iClient)
 {
-	g_hBhopData[iClient] = CreateArray(Bhop, 0);
-	new eEmptyTotals[Total];
-	g_eBhopTotal[iClient] = eEmptyTotals;
-	g_fLastWarnTime[iClient] = 0.0;
+	if (g_bInJump[iClient])
+		PushBhopToLog(iClient);
+	
+	g_bInJump[iClient] = true;
+
+	new eStartJumpData[Jump];
+
+	g_eJump[iClient] = eStartJumpData;
 }
 
+AbortJump(iClient)
+{
+
+	g_bInJump[iClient] = false;
+	
+	new eEmptyJumpData[Jump];
+	g_eJump[iClient] = eEmptyJumpData;
+
+}
+
+PushBhopToLog(iClient)
+{
+	new eBhop[BhopLog];
+	eBhop[Bhop_Inputs] = g_eJump[iClient][Jump_Inputs];
+	eBhop[Bhop_AirTicks] = g_eJump[iClient][Jump_AirTicks];
+	eBhop[Bhop_GroundTicks] = g_eJump[iClient][Jump_GroundTicks];
+	eBhop[Bhop_InputTicks] = g_iInputTicks[iClient];
+	eBhop[Bhop_DemoTick] = SourceTV_GetRecordingTick();
+
+
+	if (eBhop[Bhop_AirTicks])
+		eBhop[Bhop_InputsPerTick] = float(eBhop[Bhop_Inputs]) / float(eBhop[Bhop_AirTicks]);
+	else
+		eBhop[Bhop_InputsPerTick] = 0.0;
+	
+	decl Float:fVel[3];
+	GetEntPropVector(iClient, Prop_Data, "m_vecAbsVelocity", fVel);
+	fVel[2] = 0.0;
+	eBhop[Bhop_Speed] = GetVectorLength(fVel);
+
+	g_eTotals[iClient][Total_Inputs] += eBhop[Bhop_Inputs];
+	g_eTotals[iClient][Total_AirTicks] += eBhop[Bhop_AirTicks];
+	g_eTotals[iClient][Total_GroundTicks] += eBhop[Bhop_GroundTicks];
+	g_eTotals[iClient][Total_Speed] += eBhop[Bhop_Speed];
+	if (eBhop[Bhop_GroundTicks] <= 1)
+		g_eTotals[iClient][Total_Perfs]++;
+
+	new iBhops = GetArraySize(g_hBhops[iClient]);
+	if (iBhops)
+	{
+		ShiftArrayUp(g_hBhops[iClient], 0);
+		if (iBhops >= g_iBhopsMax)
+		{
+			decl eDroppedBhop[BhopLog];
+			GetArrayArray(g_hBhops[iClient], g_iBhopsMax, eDroppedBhop);
+
+			g_eTotals[iClient][Total_Inputs] -= eDroppedBhop[Bhop_Inputs];
+			g_eTotals[iClient][Total_AirTicks] -= eDroppedBhop[Bhop_AirTicks];
+			g_eTotals[iClient][Total_GroundTicks] -= eDroppedBhop[Bhop_GroundTicks];
+			g_eTotals[iClient][Total_Speed] -= eDroppedBhop[Bhop_Speed];
+			if (eDroppedBhop[Bhop_GroundTicks] <= 1)
+				g_eTotals[iClient][Total_Perfs]--;
+
+			ResizeArray(g_hBhops[iClient], g_iBhopsMax);
+		}
+		SetArrayArray(g_hBhops[iClient], 0, eBhop);
+	}
+	else
+		PushArrayArray(g_hBhops[iClient], eBhop);
+
+	CalculateAverages(iClient);
+}
+
+CalculateAverages(iClient)
+{
+	new Float:fBhops = float(GetArraySize(g_hBhops[iClient]));
+
+	g_eAvg[iClient][Avg_Inputs] = float(g_eTotals[iClient][Total_Inputs]) / fBhops;
+	g_eAvg[iClient][Avg_InputsPerTick] = float(g_eTotals[iClient][Total_Inputs]) / float(g_eTotals[iClient][Total_AirTicks]);
+	g_eAvg[iClient][Avg_GroundTicks] = float(g_eTotals[iClient][Total_GroundTicks]) / fBhops;
+	g_eAvg[iClient][Avg_Speed] = g_eTotals[iClient][Total_Speed] / fBhops;
+	g_eAvg[iClient][Avg_Perfs] = float(g_eTotals[iClient][Total_Perfs]) / fBhops;
+
+	CheckClient(iClient);
+}
+
+CheckClient(iClient)
+{
+	//if (g_fLastWarnTime[iClient] && (GetClientTime(iClient) - g_fLastWarnTime[iClient]) >= )
+		return;
+}
+
+PrepareClient(iClient)
+{
+	g_fLastWarnTime[iClient] = 0.0;
+	g_hBhops[iClient] = CreateArray(BhopLog, 0);
+	AbortJump(iClient);
+	
+	new eEmptyTotals[Total];
+	g_eTotals[iClient] = eEmptyTotals;
+}
+
+public OnClientConnected(iClient)
+	PrepareClient(iClient);
+
 public OnClientDisconnected(iClient)
-	CloseHandle(g_hBhopData[iClient]);
+	CloseHandle(g_hBhops[iClient]);
 
 
 public OnPluginStart()
@@ -66,187 +190,205 @@ public OnPluginStart()
 	HookEvent("player_jump", Event_PlayerJump, EventHookMode_Post);
 	RegConsoleCmd("sm_bhopcheck", Command_BhopCheck);
 	RegConsoleCmd("sm_bhc", Command_BhopCheck);
+	//RegAdminCmd("sm_bhce", Command_BhopCheckExtended, ADMFLAG_SLAY);
+	RegConsoleCmd("sm_bhce", Command_BhopCheckExtended);
 	
-	cvar_warn_inputs = CreateConVar("bhc_warn_inputs", "19.0", "Min avg. inputs to warn admins", _, true, 15.0, true, 23.0);
+	cvar_warn_inputs = CreateConVar("bhc_warn_inputs", "0.45", "Min avg. inputs per tick to warn admins", _, true, 0.25, true, 0.45);
 	cvar_warn_perfs = CreateConVar("bhc_warn_perfs", "0.8", "Min avg. perfs to warn admins", _, true, 0.6, true, 1.0);
 	cvar_warn_cooldown = CreateConVar("bhc_warn_cooldown", "30.0", "Min time to wait before warning about the same player", _, true, 0.0, false, 0.0);
-	cvar_bhops_max = CreateConVar("bhc_max_bhops", "40", "Max bhops to track per player", _, true, 20.0, true, 100.0);
+	cvar_bhops_max = CreateConVar("bhc_max_bhops", "20", "Max bhops to track per player", _, true, 20.0, true, 100.0);
+
+	g_iBhopsMax = GetConVarInt(cvar_bhops_max);
+	g_fMinWarnCooldown = GetConVarFloat(cvar_warn_cooldown);
+	g_fWarnInputsPerTick = GetConVarFloat(cvar_warn_inputs);
+	g_fWarnPerfs = GetConVarFloat(cvar_warn_perfs);
+
+	for (new i = 1; i <= MaxClients; i++)
+		if (IsClientInGame(i))
+			PrepareClient(i);
 }
 
 public OnMapStart()
+{
 	g_iBhopsMax = GetConVarInt(cvar_bhops_max);
+	g_fMinWarnCooldown = GetConVarFloat(cvar_warn_cooldown);
+	g_fWarnInputsPerTick = GetConVarFloat(cvar_warn_inputs);
+	g_fWarnPerfs = GetConVarFloat(cvar_warn_perfs);
+}
 
 
 public Action:Command_BhopCheck(iClient, iArgs)
 {
 	if(iArgs < 1)
 	{
-		ReplyToCommand(iClient, "[SM] Usage: sm_bhopcheck <#userid|name>");
+		ReplyToCommand(iClient, "[SM] Usage: sm_bhc <#userid|name>");
 		return Plugin_Handled;
 	}
 	
-	decl String:szTarget[MAX_TARGET_LENGTH], String:szAuthID[24];
+	decl String:szTarget[MAX_TARGET_LENGTH];
+	GetCmdArg(1, szTarget, sizeof(szTarget));
+	
+	new iTarget = FindTarget(iClient, szTarget, true, false);
+	if(iTarget == -1)
+		return Plugin_Handled;
+
+	PrintBhopCheck(iClient, iTarget, false);
+
+	return Plugin_Handled;
+}
+
+public Action:Command_BhopCheckExtended(iClient, iArgs)
+{
+	if(iArgs < 1)
+	{
+		ReplyToCommand(iClient, "[SM] Usage: sm_bhce <#userid|name>");
+		return Plugin_Handled;
+	}
+	
+	decl String:szTarget[MAX_TARGET_LENGTH];
 	GetCmdArg(1, szTarget, sizeof(szTarget));
 	
 	new iTarget = FindTarget(iClient, szTarget, true, false);
 	if(iTarget == -1)
 		return Plugin_Handled;
 	
+	PrintBhopCheck(iClient, iTarget, true);
+
+	return Plugin_Handled;
+}
+
+
+PrintBhopCheck(iClient, iTarget, bool:bExtended)
+{
+	decl  String:szAuthID[24];
 	GetClientAuthId(iTarget, AuthId_Steam2, szAuthID, sizeof(szAuthID), false);
-	PrintToChat(iClient, "Bhop Stats for %N printed to console", iTarget);
-	
-	PrintToConsole(iClient, "   ------BhopCheck------");
-	PrintToConsole(iClient, "   Name: %N", iTarget);
-	PrintToConsole(iClient, "   Steam ID: %s", szAuthID);
-	
+
 	decl String:szMapName[PLATFORM_MAX_PATH];
 	GetCurrentMap(szMapName, sizeof(szMapName));
-	
-	PrintToConsole(iClient, "   Map: %s", szMapName);
-	PrintToConsole(iClient, "   Tick: %i\n", SourceTV_GetRecordingTick());
-	new Handle:hBhopArray = g_hBhopData[iTarget];
-	new iBhops = GetArraySize(hBhopArray);
+
+	new iBhops = GetArraySize(g_hBhops[iClient]);
+
+	PrintToConsole(iClient, "\n\t\tBhopCheck %s", PLUGIN_VERSION);
+	PrintToConsole(iClient, "\tName: %N\n\tSteam ID: %s\n\tMap: %s",
+							iTarget,
+							szAuthID,
+							szMapName
+							);
+
 	if (!iBhops)
 	{
-		PrintToConsole(iClient, "   No Scroll Bhops So Far");
-		return Plugin_Handled;
+		PrintToConsole(iClient, "\n\tNo bhops logged for this player");
+		return;
 	}
-	PrintToConsole(iClient, "   Inputs | Late | Speed");
-	PrintToConsole(iClient, "   ---------------------");
-	
-	for (new i=0; i<iBhops; i++)
-	{
-		decl eBhop[Bhop];
-		GetArrayArray(hBhopArray, i, eBhop);
-		
-		decl String:szInputs[3];
-		Format(szInputs, 3, "%i ", eBhop[Bhop_Inputs]);
-		
-		PrintToConsole(iClient, "      %s  |  %2i  | %.1f", szInputs, eBhop[Bhop_LateTicks], eBhop[Bhop_Speed]);
+	if (bExtended){ // Extended Log
+
+		PrintToConsole(iClient, "\t----------------- Bhop Log Extended -----------------");
+		PrintToConsole(iClient, "\tInputs\tAir\tI/T\tGround\tSpeed\tTick\tHeld");
+		PrintToConsole(iClient, "\t-----------------------------------------------------");
+		for (new i = 0; i < iBhops; i++)
+		{
+			decl eBhop[BhopLog];
+			GetArrayArray(g_hBhops[iTarget], i, eBhop);
+
+			PrintToConsole(iClient, "\t%i\t%i\t%s%.2f\t%s%i\t%.1f\t%i\t%s%i",
+			eBhop[Bhop_Inputs],
+			eBhop[Bhop_AirTicks],
+			(eBhop[Bhop_InputsPerTick] >= g_fWarnInputsPerTick) ? "*" : " ",
+			eBhop[Bhop_InputsPerTick],
+			(eBhop[Bhop_GroundTicks] <= 1) ? "# " : "  ",
+			eBhop[Bhop_GroundTicks],
+			eBhop[Bhop_Speed],
+			eBhop[Bhop_DemoTick],
+			(eBhop[Bhop_InputTicks] <= 1) ? "N " : "A ",
+			eBhop[Bhop_InputTicks]);
+		}
 	}
-	PrintToConsole(iClient, "   ---------------------");
-	PrintToConsole(iClient, "          Averages");
-	PrintToConsole(iClient, "   ---------------------");
-	decl String:szInputs[6], String: szLate[6];
-	Format(szInputs, 6, "%.2f      ", float(g_eBhopTotal[iTarget][Total_Inputs]) / float(iBhops));
-	Format(szLate, 6, "%.2f      ", float(g_eBhopTotal[iTarget][Total_Late]) / float(iBhops));
-	PrintToConsole(iClient, "    %s | %s| %.1f", szInputs, szLate, g_eBhopTotal[iTarget][Total_Speed] / iBhops);
-	PrintToConsole(iClient, "   ---------------------");
-	PrintToConsole(iClient, "        Perfect Jumps");
-	PrintToConsole(iClient, "           %.2f%", (float(g_eBhopTotal[iTarget][Total_Perfs]) / iBhops) * 100.0);
-	
-	return Plugin_Handled;
+	else{ // Regular Log
+		PrintToConsole(iClient, "\t------------- Bhop Log -------------");
+		PrintToConsole(iClient, "\tInputs\tI/T\tGround\tSpeed\tType");
+		PrintToConsole(iClient, "\t------------------------------------");
+		for (new i = 0; i < iBhops; i++)
+		{
+			decl eBhop[BhopLog];
+			GetArrayArray(g_hBhops[iTarget], i, eBhop);
+
+			PrintToConsole(iClient, "\t%i\t%.2f\t%s%i\t%.1f\t%s",
+			eBhop[Bhop_Inputs],
+			eBhop[Bhop_InputsPerTick],
+			(eBhop[Bhop_GroundTicks] <= 1) ? "# " : "  ",
+			eBhop[Bhop_GroundTicks],
+			eBhop[Bhop_Speed],
+			(eBhop[Bhop_InputTicks] <= 1) ? "Normal " : "Auto ");
+		}
+	}
+
+
+
+	PrintToConsole(iClient, "\n\t----\t----\tAvg\t----\t----");
+	PrintToConsole(iClient, "\tInputs\tI/T\tGround\tSpeed\tPerfs");
+	PrintToConsole(iClient, "\t%.1f\t%.2f\t%.1f\t%.1f\t%.0f%%",
+		g_eAvg[iTarget][Avg_Inputs],
+		g_eAvg[iTarget][Avg_InputsPerTick],
+		g_eAvg[iTarget][Avg_GroundTicks],
+		g_eAvg[iTarget][Avg_Speed],
+		g_eAvg[iTarget][Avg_Perfs] * 100.0
+	);
 }
 
 
 public Action:Event_PlayerJump(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
 {
 	new iClient = GetClientOfUserId(GetEventInt(hEvent, "userid"));
-	if (g_iGroundTicks[iClient] > 15	//Not a bhop
-		|| g_iInputTicks[iClient] > 1)	//Not a scroll jump
-	{
-		g_iInputsSinceJump[iClient] = 0;
-		return Plugin_Continue;
-	}
-	decl eBhop[Bhop], Float:fVel[3];
-	GetEntPropVector(iClient, Prop_Data, "m_vecAbsVelocity", fVel);
-	fVel[2] = 0.0;
-	
-	eBhop[Bhop_Inputs] 		= g_iInputsSinceJump[iClient];
-	eBhop[Bhop_LateTicks] 	= g_iGroundTicks[iClient] - 1;
-	if (eBhop[Bhop_LateTicks] < 0)
-		eBhop[Bhop_LateTicks] = 0;
-	eBhop[Bhop_Speed] 		= GetVectorLength(fVel, false);
-	
-	g_eBhopTotal[iClient][Total_Inputs] += g_iInputsSinceJump[iClient];
-	g_eBhopTotal[iClient][Total_Late] 	+= g_iGroundTicks[iClient] - 1;
-	g_eBhopTotal[iClient][Total_Speed] 	+= GetVectorLength(fVel, false);
-	if (eBhop[Bhop_LateTicks] == 0)
-		g_eBhopTotal[iClient][Total_Perfs]++;
-	
-	
-	new Handle:hBhopArray = g_hBhopData[iClient];
-	new iBhops = GetArraySize(hBhopArray);
-	if (iBhops)
-	{
-		ShiftArrayUp(hBhopArray, 0);
-		SetArrayArray(hBhopArray, 0, eBhop);
-		iBhops = GetArraySize(hBhopArray);
-		
-		if (iBhops > g_iBhopsMax)
-		{
-			decl eDroppedBhop[Bhop];
-			GetArrayArray(hBhopArray, g_iBhopsMax, eDroppedBhop);
-			
-			g_eBhopTotal[iClient][Total_Inputs] -= eDroppedBhop[Bhop_Inputs];
-			g_eBhopTotal[iClient][Total_Late] -= eDroppedBhop[Bhop_LateTicks];
-			g_eBhopTotal[iClient][Total_Speed] -= eDroppedBhop[Bhop_Speed];
-			
-			if (eDroppedBhop[Bhop_LateTicks] == 0)
-				g_eBhopTotal[iClient][Total_Perfs]--;
-				
-			ResizeArray(hBhopArray, g_iBhopsMax);
-		}
-	}
-	else
-		PushArrayArray(hBhopArray, eBhop);
-	
-	
-	g_iInputsSinceJump[iClient] = 0;
-	
-	AutoCheck(iClient);
-	
+
+	StartJump(iClient);
+
 	return Plugin_Continue;
 }
 
 public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVel[3], Float:fAngles[3], &iWeapon, &iSubType, &iCmdNum, &iTickCount, &iSeed, iMouse[2])
 {
-	if(GetEntityFlags(iClient) & FL_ONGROUND)
-	{
-		g_iGroundTicks[iClient]++;
-		if (g_iGroundTicks[iClient] > 15)
-			g_iInputsSinceJump[iClient] = 0;		
-	}
-	else
-		g_iGroundTicks[iClient] = 0;
-	
 	if(iButtons & IN_JUMP)
 		g_iInputTicks[iClient]++;
-	else if(g_iInputTicks[iClient] > 0)
-	{
-		g_iInputsSinceJump[iClient]++;
+	else
 		g_iInputTicks[iClient] = 0;
-	}
-}
-
-AutoCheck(iClient)
-{
-	new iBhops = GetArraySize(g_hBhopData[iClient]);
-	if (iBhops < 15)
-		return;
 	
-	if (GetEngineTime() - g_fLastWarnTime[iClient] < GetConVarFloat(cvar_warn_cooldown))
-		return;
-	
-	new Float:fAvgInputs 	= float(g_eBhopTotal[iClient][Total_Inputs]) / iBhops;
-	new Float:fPerfsPercent = float(g_eBhopTotal[iClient][Total_Perfs]) / iBhops;
-	
-	if (fAvgInputs >= GetConVarFloat(cvar_warn_inputs) ||
-		fPerfsPercent >= GetConVarFloat(cvar_warn_perfs))
+	if (g_bInJump[iClient])
 	{
-		
-		g_fLastWarnTime[iClient] = GetEngineTime();
-		new Float:fAvgLate 		= float(g_eBhopTotal[iClient][Total_Late]) / iBhops;
-		new Float:fAvgSpeed 	= g_eBhopTotal[iClient][Total_Speed] / iBhops;
-		for (new i = 1; i <= MaxClients; i++)
+		if (!IsPlayerAlive(iClient))
 		{
-			if (IsClientInGame(i) && (GetUserFlagBits(i) & ADMFLAG_BAN))
-			{
-				CPrintToChat(i, "{lightgreen}[BHC]{lightred}: %N, {blue}Averages:", iClient);
-				CPrintToChat(i, "{white}{ Inputs: %.2f, Late: %.2f, Speed: %.2f, Perfs: %.1f%% }",
-										fAvgInputs, fAvgLate, fAvgSpeed, fPerfsPercent * 100.0);
-			}	
+			AbortJump(iClient);
+			return Plugin_Continue;
+		}
+
+		if (GetEntityMoveType(iClient) & (MOVETYPE_NOCLIP | MOVETYPE_LADDER))
+		{
+			AbortJump(iClient);
+			return Plugin_Continue;
 		}
 		
+		if(GetEntityFlags(iClient) & FL_ONGROUND)
+		{
+			if (g_eJump[iClient][Jump_GroundTicks]++ > 20)
+			{
+				AbortJump(iClient);
+				return Plugin_Continue;
+			}
+		}	
+		else
+		{
+			if (g_eJump[iClient][Jump_GroundTicks])
+			{
+				AbortJump(iClient);
+				return Plugin_Continue;
+			}
+
+			g_eJump[iClient][Jump_AirTicks]++;
+			g_eJump[iClient][Jump_GroundTicks] = 0;
+		}
+
+		if (g_iInputTicks[iClient] == 1)
+			g_eJump[iClient][Jump_Inputs]++;
 	}
+
+	return Plugin_Continue;
 }
