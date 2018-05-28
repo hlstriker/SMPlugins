@@ -3497,6 +3497,9 @@ TryRemoveAdminGivenFreeday(iVictim, iAttacker)
 {
 	if(!IsPlayer(iVictim) || !IsPlayer(iAttacker))
 		return;
+
+	if(GetClientTeam(iVictim) == GetClientTeam(iAttacker))
+		return;
 	
 	// Remove the victims freeday if they take damage before they select a day from the menu.
 	if(g_bInitializedAdminGivenFreeday[iVictim] && !g_bHasStarted[iVictim])
