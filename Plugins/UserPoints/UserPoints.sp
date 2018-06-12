@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "User Points";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -166,19 +166,20 @@ public OnClientDisconnect(iClient)
 	if(IsFakeClient(iClient) || !ClientCookies_HaveCookiesLoaded(iClient))
 		return;
 	
-	decl iPoints, iTagPoints, iSpecialPoints, iDonatorPoints, iHoursPlayedPoints;
-	new iTotalPoints = GetDisconnectPoints(iClient, iPoints, iTagPoints, iSpecialPoints, iDonatorPoints, iHoursPlayedPoints);
+	decl iPoints, iTagPoints, iSpecialPoints, iDonatorPoints, iSubscriptions, iHoursPlayedPoints;
+	new iTotalPoints = GetDisconnectPoints(iClient, iPoints, iTagPoints, iSpecialPoints, iDonatorPoints, iSubscriptions, iHoursPlayedPoints);
 	if(iTotalPoints)
 		ClientCookies_SetCookie(iClient, CC_TYPE_SWOOBLES_POINTS, ClientCookies_GetCookie(iClient, CC_TYPE_SWOOBLES_POINTS) + iTotalPoints);
 }
 
-GetDisconnectPoints(iClient, &iPoints, &iTagPoints, &iSpecialPoints, &iDonatorPoints, &iHoursPlayedPoints)
+GetDisconnectPoints(iClient, &iPoints, &iTagPoints, &iSpecialPoints, &iDonatorPoints, &iSubscriptions, &iHoursPlayedPoints)
 {
 	iPoints = 0;
 	iTagPoints = 0;
 	iSpecialPoints = 0;
 	iDonatorPoints = 0;
 	iHoursPlayedPoints = 0;
+	iSubscriptions = 0;
 	
 	decl iTimePlayed;
 	
@@ -211,8 +212,12 @@ GetDisconnectPoints(iClient, &iPoints, &iTagPoints, &iSpecialPoints, &iDonatorPo
 	
 	// Give bonus points for donators.
 	decl iNumDonatorPoints;
+	decl iNumSubscriptions;
 	if(Donators_IsDonator(iClient))
-		iNumDonatorPoints = RoundToFloor(iNumPoints * (GetConVarFloat(cvar_points_donator_bonus_percent) / 100.0));
+	{
+		iNumSubscriptions = Donators_GetActiveSubscriptions(iClient);
+		iNumDonatorPoints = RoundToFloor(iNumPoints * (GetConVarFloat(cvar_points_donator_bonus_percent) * iNumSubscriptions / 100.0));
+	}
 	else
 		iNumDonatorPoints = 0;
 	
@@ -225,6 +230,7 @@ GetDisconnectPoints(iClient, &iPoints, &iTagPoints, &iSpecialPoints, &iDonatorPo
 	iSpecialPoints = iNumSpecialPoints;
 	iDonatorPoints = iNumDonatorPoints;
 	iHoursPlayedPoints = iNumHoursPlayedPoints;
+	iSubscriptions = iNumSubscriptions;
 	
 	// Add bonus points to the total.
 	iNumPoints += iNumTagPoints;
@@ -242,7 +248,7 @@ Float:GetPointsPerHourBonusPercent(iClient)
 
 public Event_Intermission_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
 {
-	decl iTotalPoints, iPoints, iTagPoints, iSpecialPoints, iDonatorPoints, iHoursPlayedPoints;
+	decl iTotalPoints, iPoints, iTagPoints, iSpecialPoints, iDonatorPoints, iSubscriptions, iHoursPlayedPoints;
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
 		if(!IsClientInGame(iClient) || IsFakeClient(iClient))
@@ -250,13 +256,13 @@ public Event_Intermission_Post(Handle:hEvent, const String:szName[], bool:bDontB
 		
 		CPrintToChat(iClient, "{yellow}Points per minute bonus: {purple}%.02f%%{yellow} (based on hours played)", GetPointsPerHourBonusPercent(iClient));
 		
-		iTotalPoints = GetDisconnectPoints(iClient, iPoints, iTagPoints, iSpecialPoints, iDonatorPoints, iHoursPlayedPoints);
+		iTotalPoints = GetDisconnectPoints(iClient, iPoints, iTagPoints, iSpecialPoints, iDonatorPoints, iSubscriptions, iHoursPlayedPoints);
 		if(iTotalPoints)
 		{
 			if(iSpecialPoints)
-				CPrintToChat(iClient, "{olive}Gained {lightred}%i points {olive}({yellow}+%i tag bonus, +%i event bonus, +%i donator bonus{olive}).", iTotalPoints, iTagPoints, iSpecialPoints, iDonatorPoints);
+				CPrintToChat(iClient, "{olive}Gained {lightred}%i points {olive}({yellow}+%i tag bonus, +%i event bonus, +%i donator bonus for %i subscriptions{olive}).", iTotalPoints, iTagPoints, iSpecialPoints, iDonatorPoints, iSubscriptions);
 			else
-				CPrintToChat(iClient, "{olive}Gained {lightred}%i points {olive}({yellow}+%i clantag bonus, +%i donator bonus{olive}).", iTotalPoints, iTagPoints, iDonatorPoints);
+				CPrintToChat(iClient, "{olive}Gained {lightred}%i points {olive}({yellow}+%i clantag bonus, +%i donator bonus for %i subscriptions{olive}).", iTotalPoints, iTagPoints, iDonatorPoints, iSubscriptions);
 			
 			if(!iTagPoints)
 				CPrintToChat(iClient, "{olive}Type {yellow}!tag {olive}to get {yellow}%i%% extra {olive}points per map!", GetConVarInt(cvar_points_clantag_bonus_percent));
