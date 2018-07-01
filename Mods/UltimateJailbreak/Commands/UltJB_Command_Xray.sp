@@ -3,9 +3,11 @@
 #include <sdktools_entinput>
 #include <sdktools_functions>
 #include <sdktools_variant_t>
+#undef REQUIRE_PLUGIN
 #include "../Includes/ultjb_last_request"
 #include "../Includes/ultjb_player_models"
 #include "../Includes/ultjb_last_guard"
+#define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
