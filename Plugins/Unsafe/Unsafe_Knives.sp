@@ -8,7 +8,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Knives";
-new const String:PLUGIN_VERSION[] = "2.0";
+new const String:PLUGIN_VERSION[] = "2.1";
 
 public Plugin:myinfo =
 {
