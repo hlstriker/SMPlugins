@@ -34,7 +34,11 @@ new const String:g_szKnifeNames[][] =
 	"Huntsman",
 	"Butterfly",
 	"Shadow Daggers",
-	"Bowie"
+	"Bowie",
+	"Ursus",
+	"Navaja",
+	"Stiletto",
+	"Talon"
 };
 
 new const g_iItemDefinitionIndexes[] =
@@ -52,7 +56,11 @@ new const g_iItemDefinitionIndexes[] =
 	509,	// Huntsman (tactical)
 	515,	// Butterfly
 	516,	// Shadow Daggers (push)
-	514		// Bowie
+	514,	// Bowie
+	519,	// Ursus
+	520,	// Navaja
+	522,	// Stiletto
+	523 	// Talon
 };
 
 new const String:g_szKnifeEnts[][] =
@@ -70,7 +78,11 @@ new const String:g_szKnifeEnts[][] =
 	"weapon_knife_tactical",
 	"weapon_knife_butterfly",
 	"weapon_knife_push",
-	"weapon_knife_survival_bowie"
+	"weapon_knife_survival_bowie",
+	"weapon_knife_ursus",
+	"weapon_knife_gypsy_jackknife",
+	"weapon_knife_stiletto",
+	"weapon_knife_widowmaker"
 };
 
 new const String:g_szWorldModels[][] =
@@ -88,7 +100,11 @@ new const String:g_szWorldModels[][] =
 	"models/weapons/w_knife_tactical.mdl",
 	"models/weapons/w_knife_butterfly.mdl",
 	"models/weapons/w_knife_push.mdl",
-	"models/weapons/w_knife_survival_bowie.mdl"
+	"models/weapons/w_knife_survival_bowie.mdl",
+	"models/weapons/w_knife_ursus.mdl",
+	"models/weapons/w_knife_gypsy_jackknife.mdl",
+	"models/weapons/w_knife_stiletto.mdl",
+	"models/weapons/w_knife_widowmaker.mdl"
 };
 
 new g_iModelIndex_WorldModels[sizeof(g_szWorldModels)];
