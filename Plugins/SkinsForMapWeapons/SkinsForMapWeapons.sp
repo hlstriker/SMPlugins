@@ -106,11 +106,8 @@ public OnWeaponEquip_Post(iClient, iWeapon)
 	
 	new iNewWeapon = GiveWeapon(iClient, szClassName);
 	
-	new iWeaponRef = INVALID_ENT_REFERENCE;
-	new iNewWeaponRef = INVALID_ENT_REFERENCE;
-	
-	iWeaponRef = EntIndexToEntRef(iWeapon);
-	iNewWeaponRef = EntIndexToEntRef(iNewWeapon);
+	new iWeaponRef = EntIndexToEntRef(iWeapon);
+	new iNewWeaponRef = EntIndexToEntRef(iNewWeapon);
 	
 	if(iNewWeapon != -1)
 	{
