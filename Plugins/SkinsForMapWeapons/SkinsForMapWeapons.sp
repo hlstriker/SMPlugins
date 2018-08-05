@@ -4,11 +4,12 @@
 #include <sdktools_entinput>
 #include <sdktools_variant_t>
 #include <cstrike>
+#include "skins_for_map_weapons"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Skins for map weapons";
-new const String:PLUGIN_VERSION[] = "3.2";
+new const String:PLUGIN_VERSION[] = "3.3";
 
 public Plugin:myinfo =
 {
@@ -38,6 +39,8 @@ enum _:WeaponData
 	WEAPON_TEAM_NUMBER
 };
 
+new Handle:g_hFwd_OnWeaponEquip;
+
 
 public OnPluginStart()
 {
@@ -51,6 +54,8 @@ public OnPluginStart()
 		if(IsClientInGame(iClient))
 			PlayerHooks(iClient);
 	}
+	
+	g_hFwd_OnWeaponEquip = CreateGlobalForward("SFMW_OnWeaponEquip", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
 }
 
 public OnClientPutInServer(iClient)
@@ -100,6 +105,13 @@ public OnWeaponEquip_Post(iClient, iWeapon)
 	RemovePlayerItem(iClient, iWeapon);
 	
 	new iNewWeapon = GiveWeapon(iClient, szClassName);
+	
+	new iWeaponRef = INVALID_ENT_REFERENCE;
+	new iNewWeaponRef = INVALID_ENT_REFERENCE;
+	
+	iWeaponRef = EntIndexToEntRef(iWeapon);
+	iNewWeaponRef = EntIndexToEntRef(iNewWeapon);
+	
 	if(iNewWeapon != -1)
 	{
 		decl iChild;
@@ -114,6 +126,7 @@ public OnWeaponEquip_Post(iClient, iWeapon)
 		}
 		
 		AcceptEntityInput(iWeapon, "Kill");
+		iWeapon = -1;
 	}
 	else
 	{
@@ -122,6 +135,12 @@ public OnWeaponEquip_Post(iClient, iWeapon)
 		if(iActiveWeapon == iWeapon)
 			SetEntPropEnt(iClient, Prop_Send, "m_hActiveWeapon", iWeapon);
 	}
+	
+	Call_StartForward(g_hFwd_OnWeaponEquip);
+	Call_PushCell(iClient);
+	Call_PushCell(iWeaponRef);
+	Call_PushCell(iNewWeaponRef);
+	Call_Finish();
 	
 	CloseHandle(hChildren);
 }

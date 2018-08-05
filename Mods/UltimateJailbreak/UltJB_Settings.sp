@@ -12,12 +12,13 @@
 
 #undef REQUIRE_PLUGIN
 #include "../../Libraries/ModelSkinManager/model_skin_manager"
+#include "../../Plugins/SkinsForMapWeapons/skins_for_map_weapons"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Settings";
-new const String:PLUGIN_VERSION[] = "1.25";
+new const String:PLUGIN_VERSION[] = "1.26";
 
 public Plugin:myinfo =
 {
@@ -77,6 +78,7 @@ new Float:g_fRoundStartTime;
 new Handle:g_hFwd_OnSpawnPost;
 
 new bool:g_bLibLoaded_ModelSkinManager;
+new bool:g_bPluginLoaded_SkinsForMapWeapons;
 
 
 public OnPluginStart()
@@ -108,18 +110,25 @@ public OnPluginStart()
 public OnAllPluginsLoaded()
 {
 	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
+	g_bPluginLoaded_SkinsForMapWeapons = LibraryExists("skins_for_map_weapons");
 }
 
 public OnLibraryAdded(const String:szName[])
 {
 	if(StrEqual(szName, "model_skin_manager"))
 		g_bLibLoaded_ModelSkinManager = true;
+		
+	if(StrEqual(szName, "skins_for_map_weapons"))
+		g_bPluginLoaded_SkinsForMapWeapons = true;
 }
 
 public OnLibraryRemoved(const String:szName[])
 {
 	if(StrEqual(szName, "model_skin_manager"))
 		g_bLibLoaded_ModelSkinManager = false;
+		
+	if(StrEqual(szName, "skins_for_map_weapons"))
+		g_bPluginLoaded_SkinsForMapWeapons = false;
 }
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
@@ -223,33 +232,49 @@ RemoveReserveAmmoFromCellWeapons()
 
 public OnWeaponEquipPost(iClient, iWeapon)
 {
-	if(GetEngineTime() > g_fRoundStartTime + MODIFYING_WEAPON_EQUIP_TIME)
-		return;
-	
-	if(GetClientTeam(iClient) != TEAM_PRISONERS)
-		return;
-	
-	if(!IsValidEntity(iWeapon))
+	if(g_bPluginLoaded_SkinsForMapWeapons)
 		return;
 	
 	new iEntRef = EntIndexToEntRef(iWeapon);
 	if(iEntRef == INVALID_ENT_REFERENCE)
 		return;
-	
-	new iIndex = FindValueInArray(g_aInCellWeapons, iEntRef);
+		
+	SetClipSize(iClient, iEntRef, -1);
+}
+
+public SFMW_OnWeaponEquip(iClient, iOldWeapon, iNewWeapon)
+{
+	SetClipSize(iClient, iOldWeapon, iNewWeapon);
+}
+
+SetClipSize(iClient, iOldWeapon, iNewWeapon)
+{
+	if(GetEngineTime() > g_fRoundStartTime + MODIFYING_WEAPON_EQUIP_TIME)
+		return;
+		
+	if(GetClientTeam(iClient) != TEAM_PRISONERS)
+		return;
+		
+	if(iOldWeapon == INVALID_ENT_REFERENCE)
+		return;
+		
+	new iIndex = FindValueInArray(g_aInCellWeapons, iOldWeapon);
 	if(iIndex == -1)
 		return;
 	
+	if(iNewWeapon == -1)
+		iNewWeapon = iOldWeapon;
+	
 	RemoveFromArray(g_aInCellWeapons, iIndex);
 	
-	SetEntProp(iWeapon, Prop_Send, "m_iPrimaryReserveAmmoCount", 0);
-	SetEntProp(iWeapon, Prop_Send, "m_iSecondaryReserveAmmoCount", 0);
+	SetEntProp(iNewWeapon, Prop_Send, "m_iPrimaryReserveAmmoCount", 0);
+	SetEntProp(iNewWeapon, Prop_Send, "m_iSecondaryReserveAmmoCount", 0);
 	
-	new iClipSize = GetEntProp(iWeapon, Prop_Send, "m_iClip1");
+	new iClipSize = GetEntProp(iNewWeapon, Prop_Send, "m_iClip1");
 	if(iClipSize > MAX_IN_CELL_CLIP_SIZE)
 		iClipSize = MAX_IN_CELL_CLIP_SIZE;
 	
-	SetEntProp(iWeapon, Prop_Send, "m_iClip1", iClipSize);
+	SetEntProp(iNewWeapon, Prop_Send, "m_iClip1", iClipSize);
 }
 
 bool:IsPrisonerSpawnWithinDistance(const Float:fCheckOrigin[3])
