@@ -58,6 +58,13 @@ public OnPluginStart()
 	g_hFwd_OnWeaponEquip = CreateGlobalForward("SFMW_OnWeaponEquip", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
 }
 
+public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
+{
+	RegPluginLibrary("skins_for_map_weapons");
+	
+	return APLRes_Success;
+}
+
 public OnClientPutInServer(iClient)
 {
 	PlayerHooks(iClient);
