@@ -18,7 +18,7 @@
 #pragma dynamic 9000000
 
 new const String:PLUGIN_NAME[] = "Weapon Skins";
-new const String:PLUGIN_VERSION[] = "0.8.1";
+new const String:PLUGIN_VERSION[] = "0.9";
 
 public Plugin:myinfo =
 {
