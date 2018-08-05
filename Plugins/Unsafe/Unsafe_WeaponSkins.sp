@@ -18,7 +18,7 @@
 #pragma dynamic 9000000
 
 new const String:PLUGIN_NAME[] = "Weapon Skins";
-new const String:PLUGIN_VERSION[] = "0.8";
+new const String:PLUGIN_VERSION[] = "0.8.1";
 
 public Plugin:myinfo =
 {
@@ -1860,6 +1860,22 @@ bool:ItemsGame_AddUnknownEntPaintsManually()
 	AddPaintForWeaponClassname("knife_m9_bayonet", _, 577);	// Autotronic
 	AddPaintForWeaponClassname("knife_m9_bayonet", _, 579);	// Bright Water
 	AddPaintForWeaponClassname("knife_m9_bayonet", _, 581);	// Freehand
+
+	// Ursus
+	AddKnifeDuplicatesToKnifeEnt("knife_ursus");
+	AddPaintForWeaponClassname("knife_ursus", _, 735); // Night Stripe
+
+	// Navaja
+	AddKnifeDuplicatesToKnifeEnt("knife_gypsy_jackknife");
+	AddPaintForWeaponClassname("knife_gypsy_jackknife", _, 735); // Night Stripe
+
+	// Stiletto
+	AddKnifeDuplicatesToKnifeEnt("knife_stiletto");
+	AddPaintForWeaponClassname("knife_stiletto", _, 735); // Night Stripe
+
+	// Talon
+	AddKnifeDuplicatesToKnifeEnt("knife_widowmaker");
+	AddPaintForWeaponClassname("knife_widowmaker", _, 735); // Night Stripe
 }
 
 AddKnifeDuplicatesToKnifeEnt(const String:szWeaponEnt[])
