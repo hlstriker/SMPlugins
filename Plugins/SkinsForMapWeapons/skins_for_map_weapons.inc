@@ -18,7 +18,7 @@ public SharedPlugin:__pl_skins_for_map_weapons =
 /**
  * Called when a weapon is equipped.
  *
- * @param client			The client index who started the day.
+ * @param client			The client that equipped the weapon.
  * @param oldweapon			The weapon before it is skinned.
  * @param newweapon			The weapon after it is skinned.
  * @noreturn
