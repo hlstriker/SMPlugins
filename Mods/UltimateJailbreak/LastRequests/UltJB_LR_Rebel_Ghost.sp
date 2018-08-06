@@ -3,7 +3,7 @@
 #include <sdkhooks>
 #include "../Includes/ultjb_last_request"
 #include "../Includes/ultjb_weapon_selection"
-#include "../../Libraries/ParticleManager/particle_manager"
+#include "../../../Libraries/ParticleManager/particle_manager"
 
 #pragma semicolon 1
 
