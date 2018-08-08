@@ -332,17 +332,17 @@ ActivateClientItem(iClient, iItemID, bool:bShouldActivate)
 	}
 }
 
-GiveClientStoreItem(iClient, iItemID, bool:bMessage=false)
+GiveClientStoreItem(iClient, iItemID, bool:bShouldActivate=false)
 {
-	ActivateClientItem(iClient, iItemID, true);
-	
 	if(FindValueInArray(g_aClientItems[iClient], iItemID) != -1)
 		return;
 	
 	PushArrayCell(g_aClientItems[iClient], iItemID);
 	
-	if(bMessage)
+	if(bShouldActivate)
 	{
+		ActivateClientItem(iClient, iItemID, true);
+		
 		decl String:szItemID[12], iIndex;
 		IntToString(iItemID, szItemID, sizeof(szItemID));
 		if(!GetTrieValue(g_hTrie_ItemIDToInventoryIndex, szItemID, iIndex))
