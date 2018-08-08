@@ -19,7 +19,7 @@
 #pragma dynamic 500000
 
 new const String:PLUGIN_NAME[] = "API: Store";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
