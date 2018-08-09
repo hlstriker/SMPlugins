@@ -7,7 +7,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Web Page Viewer";
-new const String:PLUGIN_VERSION[] = "2.1";
+new const String:PLUGIN_VERSION[] = "2.2";
 
 public Plugin:myinfo =
 {
@@ -95,6 +95,10 @@ public _WebPageViewer_OpenPage(Handle:hPlugin, iNumParams)
 	
 	static String:szBuffer[4096];
 	FormatNativeString(0, 2, 3, sizeof(szBuffer), _, szBuffer);
+	
+	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {blue}The in-game web viewer was removed by Valve. Please open the following URL in your web browser.");
+	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}-= %s =-", szBuffer);
+	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {blue}If you would like it back, please email {white}CSGOTeamFeedback@valvesoftware.com {blue}with {white}#PanoramaUI {blue}in the subject line.");
 	
 	if(StrContains(szBuffer, "swoobles.com") != -1)
 	{
