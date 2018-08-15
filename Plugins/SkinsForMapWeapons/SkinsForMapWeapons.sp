@@ -114,7 +114,7 @@ public OnWeaponEquip_Post(iClient, iWeapon)
 	new iNewWeapon = GiveWeapon(iClient, szClassName);
 	
 	new iWeaponRef = EntIndexToEntRef(iWeapon);
-	new iNewWeaponRef = EntIndexToEntRef(iNewWeapon);
+	new iNewWeaponRef;
 	
 	if(iNewWeapon != -1)
 	{
@@ -128,6 +128,8 @@ public OnWeaponEquip_Post(iClient, iWeapon)
 			
 			SetEntProp(iNewWeapon, Prop_Send, "m_iParentAttachment", GetEntProp(iWeapon, Prop_Send, "m_iParentAttachment"));
 		}
+		
+		iNewWeaponRef = EntIndexToEntRef(iNewWeapon);
 		
 		AcceptEntityInput(iWeapon, "Kill");
 		iWeapon = -1;
