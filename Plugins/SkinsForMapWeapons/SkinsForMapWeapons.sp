@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Skins for map weapons";
-new const String:PLUGIN_VERSION[] = "3.3";
+new const String:PLUGIN_VERSION[] = "3.4";
 
 public Plugin:myinfo =
 {
@@ -114,7 +114,7 @@ public OnWeaponEquip_Post(iClient, iWeapon)
 	new iNewWeapon = GiveWeapon(iClient, szClassName);
 	
 	new iWeaponRef = EntIndexToEntRef(iWeapon);
-	new iNewWeaponRef;
+	new iNewWeaponRef = INVALID_ENT_REFERENCE;
 	
 	if(iNewWeapon != -1)
 	{
