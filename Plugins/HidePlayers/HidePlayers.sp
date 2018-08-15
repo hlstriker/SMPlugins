@@ -6,7 +6,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Hide Players";
-new const String:PLUGIN_VERSION[] = "2.6";
+new const String:PLUGIN_VERSION[] = "2.7";
 
 public Plugin:myinfo =
 {
@@ -141,6 +141,9 @@ public OnClientPutInServer(iClient)
 public Action:OnHidePlayers(iClient, iArgNum)
 {
 	if(!iClient)
+		return Plugin_Handled;
+		
+	if(!IsClientInGame(iClient))
 		return Plugin_Handled;
 	
 	if(g_iHideMode == HIDE_DISABLED && GetConVarInt(cvar_hide_players_override) == OVERRIDE_NONE)

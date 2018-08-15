@@ -2,7 +2,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -51,6 +51,9 @@ public OnClientDisconnect(iClient)
 
 public Action:Command_Radio(iClient, const String:szCommand[], iArgCount)
 {
+	if(!IsClientInGame(iClient))
+		return Plugin_Handled;
+	
 	static Float:fCurTime;
 	fCurTime = GetEngineTime();
 	

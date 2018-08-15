@@ -8,7 +8,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Freeze Tag";
-new const String:PLUGIN_VERSION[] = "1.6";
+new const String:PLUGIN_VERSION[] = "1.7";
 
 public Plugin:myinfo =
 {
@@ -127,6 +127,9 @@ public Event_PlayerDeath_Post(Handle:hEvent, const String:szName[], bool:bDontBr
 public OnClientDisconnect(iClient)
 {
 	if(g_hTimer_FreezeTag == INVALID_HANDLE)
+		return;
+	
+	if(!IsClientInGame(iClient))
 		return;
 	
 	if(GetClientTeam(iClient) == TEAM_PRISONERS && GetEntityMoveType(iClient) != MOVETYPE_NONE)
