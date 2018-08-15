@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Client Times";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -317,6 +317,9 @@ UpdateLastUsedClanTagTime(iClient, const String:szClanTag[])
 public OnClientSayCommand_Post(iClient, const String:szCommand[], const String:szArgs[])
 {
 	if(!iClient)
+		return;
+	
+	if(!IsClientInGame(iClient))
 		return;
 	
 	if(GetClientTeam(iClient) <= CS_TEAM_SPECTATOR)
