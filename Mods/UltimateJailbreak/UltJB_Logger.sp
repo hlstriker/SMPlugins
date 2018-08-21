@@ -12,7 +12,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Logger";
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
 {
@@ -63,6 +63,8 @@ public OnPluginStart()
 	HookEntityOutput("trigger_teleport", "OnEndTouch", OnTeleportEndTouch);
 	HookEntityOutput("trigger_hurt", "OnStartTouch", OnHurtEnter);
 	HookEntityOutput("trigger_hurt", "OnEndTouch", OnHurtLeave);
+	
+	LoadTranslations("common.phrases");
 }
 
 public OnAllPluginsLoaded()
