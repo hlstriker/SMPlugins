@@ -7,7 +7,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Weapon Selection";
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
 {
@@ -40,6 +40,7 @@ enum _:WeaponTeam
 #define ITEMDEF_M4A1_SILENCER	60
 #define ITEMDEF_USP_SILENCER	61
 #define ITEMDEF_HKP2000			32
+#define ITEMDEF_MP5SD			23
 
 #define SetWeaponAsFromLR(%1)	SetEntProp(%1, Prop_Data, "m_iPendingTeamNum", 1)
 #define IsWeaponFromLR(%1)		GetEntProp(%1, Prop_Data, "m_iPendingTeamNum")
@@ -207,6 +208,7 @@ public _UltJB_Weapons_GetItemDefIndexFromWeaponID(Handle:hPlugin, iNumParams)
 		case CSWeapon_M4A1_SILENCER: return ITEMDEF_M4A1_SILENCER;
 		case CSWeapon_USP_SILENCER: return ITEMDEF_USP_SILENCER;
 		case CSWeapon_HKP2000: return ITEMDEF_HKP2000;
+		case CSWeapon_MP5SD: return ITEMDEF_MP5SD;
 	}
 	
 	return 0;
@@ -258,6 +260,10 @@ public _UltJB_Weapons_GetEntNameFromWeaponID(Handle:hPlugin, iNumParams)
 		case CSWeapon_REVOLVER:
 		{
 			iCellsWritten = strcopy(szEntityName, sizeof(szEntityName), "weapon_revolver");
+		}
+		case CSWeapon_MP5SD:
+		{
+			iCellsWritten = strcopy(szEntityName, sizeof(szEntityName), "weapon_mp5sd");
 		}
 		default:
 		{
@@ -463,6 +469,9 @@ SelectRandomWeapon(iClient)
 		
 		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_SMGS] & WPN_FLAGS_DISABLE_SMG_BIZON))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_BIZON;
+		
+		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_SMGS] & WPN_FLAGS_DISABLE_SMG_MP5SD))
+			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_MP5SD;
 	}
 	
 	if(g_iWeaponSelectionFlags[iClient][WPN_CAT_RIFLES] != WPN_FLAGS_DISABLE_RIFLES)
@@ -759,6 +768,12 @@ Handle:DisplayMenu_WeaponSelection(iClient, iCategory)
 				IntToString(_:CSWeapon_BIZON, szInfo, sizeof(szInfo));
 				AddMenuItem(hMenu, szInfo, "PP-Bizon");
 			}
+			
+			if(!(g_iWeaponSelectionFlags[iClient][iCategory] & WPN_FLAGS_DISABLE_SMG_MP5SD))
+			{
+				IntToString(_:CSWeapon_MP5SD, szInfo, sizeof(szInfo));
+				AddMenuItem(hMenu, szInfo, "MP5-SD");
+			}
 		}
 		case WPN_CAT_RIFLES:
 		{
@@ -944,6 +959,7 @@ PopulateWeaponTeamArray()
 	AddWeaponToArray("weapon_ump45");
 	AddWeaponToArray("weapon_p90");
 	AddWeaponToArray("weapon_bizon");
+	AddWeaponToArray("weapon_mp5sd");
 	
 	// Rifles
 	AddWeaponToArray("weapon_galilar", WEAPON_TEAM_T);

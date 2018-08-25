@@ -29,6 +29,7 @@ public SharedPlugin:__pl_ultjb_weapon_selection =
 #define CSWeapon_HEALTHSHOT		1005
 #define CSWeapon_TAGRENADE		1006
 #define CSWeapon_REVOLVER		1007
+#define CSWeapon_MP5SD			1008
 
 
 
@@ -86,13 +87,15 @@ public SharedPlugin:__pl_ultjb_weapon_selection =
 #define WPN_FLAGS_DISABLE_SMG_UMP45				(1<<3)
 #define WPN_FLAGS_DISABLE_SMG_P90				(1<<4)
 #define WPN_FLAGS_DISABLE_SMG_BIZON				(1<<5)
+#define WPN_FLAGS_DISABLE_SMG_MP5SD				(1<<6)
 
 #define WPN_FLAGS_DISABLE_SMGS					WPN_FLAGS_DISABLE_SMG_MAC10		|\
 												WPN_FLAGS_DISABLE_SMG_MP7		|\
 												WPN_FLAGS_DISABLE_SMG_MP9		|\
 												WPN_FLAGS_DISABLE_SMG_UMP45		|\
 												WPN_FLAGS_DISABLE_SMG_P90		|\
-												WPN_FLAGS_DISABLE_SMG_BIZON
+												WPN_FLAGS_DISABLE_SMG_BIZON		|\
+												WPN_FLAGS_DISABLE_SMG_MP5SD
 
 #define WPN_FLAGS_DISABLE_RIFLE_GALILAR			(1<<0)
 #define WPN_FLAGS_DISABLE_RIFLE_FAMAS			(1<<1)
