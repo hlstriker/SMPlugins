@@ -434,10 +434,6 @@ public OnClientConnected(iClient)
 	g_fNextMessageDisplay[iClient] = 0.0;
 	ClearArray(g_hDonations[iClient]);
 	g_bIsDonator[iClient] = false;
-}
-
-public OnClientDisconnected(iClient)
-{
 	g_bIsLoaded[iClient] = false;
 }
 
