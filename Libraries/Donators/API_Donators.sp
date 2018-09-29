@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Donators";
-new const String:PLUGIN_VERSION[] = "2.8";
+new const String:PLUGIN_VERSION[] = "2.9";
 
 public Plugin:myinfo =
 {
@@ -30,8 +30,16 @@ new Handle:cvar_database_bridge_configname;
 
 new Handle:g_hFwd_OnStatusLoaded;
 
+enum _:Donation{
+	Donation_ServerID,
+	Float:Donation_ExpiresTime
+}
+
 new bool:g_bIsDonator[MAXPLAYERS+1];
 new Float:g_fExpiresTime[MAXPLAYERS+1];
+new Handle:g_hDonations[MAXPLAYERS+1];
+
+new bool:g_bIsLoaded[MAXPLAYERS+1];
 
 new Handle:g_hFwd_OnRegisterSettingsReady;
 
@@ -71,6 +79,8 @@ public OnPluginStart()
 	g_hFwd_OnRegisterSettingsReady = CreateGlobalForward("Donators_OnRegisterSettingsReady", ET_Ignore);
 	
 	g_aSettingsMenu = CreateArray(SettingsMenu);
+	for (new iClient = 1; iClient < sizeof(g_hDonations); iClient++)
+		g_hDonations[iClient] = CreateArray(Donation);
 }
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
@@ -80,6 +90,7 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	CreateNative("Donators_GetSubscriptionTimeLeft", _Donators_GetSubscriptionTimeLeft);
 	CreateNative("Donators_RegisterSettings", _Donators_RegisterSettings);
 	CreateNative("Donators_OpenSettingsMenu", _Donators_OpenSettingsMenu);
+	CreateNative("Donators_GetActiveSubscriptions", _Donators_GetActiveSubscriptions);
 	
 	return APLRes_Success;
 }
@@ -209,6 +220,39 @@ Float:GetSubscriptionTimeLeft(iClient)
 		return 0.0;
 	
 	return (g_fExpiresTime[iClient] - fCurTime);
+}
+
+public _Donators_GetActiveSubscriptions(Handle:hPlugin, iNumParams)
+{
+	if(iNumParams != 1)
+	{
+		LogError("Invalid number of parameters.");
+		return 0;
+	}
+
+	return GetActiveSubscriptions(GetNativeCell(1));
+}
+
+GetActiveSubscriptions(iClient)
+{
+	if (!g_bIsLoaded[iClient])
+		return 0;
+
+	new iCount = 0;
+
+	new Float:fCurTime = GetGameTime();
+	new iLen = GetArraySize(g_hDonations[iClient]);
+
+	for (new i = 0; i < iLen; i++)
+	{
+		decl eDonation[Donation];
+		GetArrayArray(g_hDonations[iClient], i, eDonation);
+
+		if(fCurTime < eDonation[Donation_ExpiresTime])
+			iCount++;
+	}
+	
+	return iCount;
 }
 
 public DB_OnStartConnectionSetup()
@@ -387,8 +431,14 @@ bool:Query_CreateTable_DonatorServerBills()
 
 public OnClientConnected(iClient)
 {
-	g_bIsDonator[iClient] = false;
 	g_fNextMessageDisplay[iClient] = 0.0;
+	ClearArray(g_hDonations[iClient]);
+	g_bIsDonator[iClient] = false;
+}
+
+public OnClientDisconnected(iClient)
+{
+	g_bIsLoaded[iClient] = false;
 }
 
 public OnClientPutInServer(iClient)
@@ -430,8 +480,8 @@ public OnSpawnPost(iClient)
 public DBUsers_OnUserIDReady(iClient, iUserID)
 {
 	DB_TQuery(g_szDatabaseBridgeConfigName, Query_GetDonatorStatus, DBPrio_High, GetClientSerial(iClient), "\
-		SELECT MAX(donator_end_utime) highest_end_utime, UNIX_TIMESTAMP() as cur_time FROM donator_servers WHERE user_id = %i AND (server_id = 0 OR server_id = %i) GROUP BY user_id",
-		iUserID, DBServers_GetServerID());
+		SELECT donator_end_utime, UNIX_TIMESTAMP() as cur_time, server_id FROM donator_servers WHERE user_id = %i",
+		iUserID);
 }
 
 public Query_GetDonatorStatus(Handle:hDatabase, Handle:hQuery, any:iClientSerial)
@@ -449,29 +499,35 @@ public Query_GetDonatorStatus(Handle:hDatabase, Handle:hQuery, any:iClientSerial
 		return;
 	}
 	
-	if(!SQL_FetchRow(hQuery))
-	{
-		_Donators_OnStatusLoaded(iClient);
-		return;
+	new Float:fCurTime = GetGameTime();
+	while(SQL_FetchRow(hQuery)){
+		new iEndTime = SQL_FetchInt(hQuery, 0);
+		new iCurTime = SQL_FetchInt(hQuery, 1);
+
+		if(iCurTime >= iEndTime)
+			continue;
+
+		decl eDonation[Donation];
+
+		eDonation[Donation_ServerID] = SQL_FetchInt(hQuery, 2);
+		eDonation[Donation_ExpiresTime] = fCurTime + float(iEndTime - iCurTime);
+
+		if (eDonation[Donation_ServerID] == 0 || eDonation[Donation_ServerID] == DBServers_GetServerID()){
+			g_bIsDonator[iClient] = true;
+			
+			if (eDonation[Donation_ExpiresTime] > g_fExpiresTime[iClient])
+				g_fExpiresTime[iClient] = eDonation[Donation_ExpiresTime];
+		}
+
+		PushArrayArray(g_hDonations[iClient], eDonation);
 	}
-	
-	new iEndTime = SQL_FetchInt(hQuery, 0);
-	new iCurTime = SQL_FetchInt(hQuery, 1);
-	
-	if(iCurTime >= iEndTime)
-	{
-		_Donators_OnStatusLoaded(iClient);
-		return;
-	}
-	
-	g_bIsDonator[iClient] = true;
-	g_fExpiresTime[iClient] = GetGameTime() + float(iEndTime - iCurTime);
-	
+
 	_Donators_OnStatusLoaded(iClient);
 }
 
 _Donators_OnStatusLoaded(iClient)
 {
+	g_bIsLoaded[iClient] = true;
 	Call_StartForward(g_hFwd_OnStatusLoaded);
 	Call_PushCell(iClient);
 	Call_Finish();

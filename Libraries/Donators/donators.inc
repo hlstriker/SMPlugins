@@ -46,6 +46,8 @@ native bool:Donators_IsDonator(client);
  */
 native Float:Donators_GetSubscriptionTimeLeft(client);
 
+native Donators_GetActiveSubscriptions(client);
+
 native bool:Donators_RegisterSettings(const String:settings_title[], Callback_OnSettingsCalled:settings_callback);
 
 native bool:Donators_OpenSettingsMenu(client);
@@ -60,5 +62,6 @@ public __pl_donators_SetNTVOptional()
 	MarkNativeAsOptional("Donators_GetSubscriptionTimeLeft");
 	MarkNativeAsOptional("Donators_RegisterSettings");
 	MarkNativeAsOptional("Donators_OpenSettingsMenu");
+	MarkNativeAsOptional("Donators_GetActiveSubscriptions");
 }
 #endif
