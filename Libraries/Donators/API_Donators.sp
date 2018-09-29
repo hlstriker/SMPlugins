@@ -79,6 +79,8 @@ public OnPluginStart()
 	g_hFwd_OnRegisterSettingsReady = CreateGlobalForward("Donators_OnRegisterSettingsReady", ET_Ignore);
 	
 	g_aSettingsMenu = CreateArray(SettingsMenu);
+	for (new iClient = 1; iClient < sizeof(g_hDonations); iClient++)
+		g_hDonations[iClient] = CreateArray(Donation);
 }
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
@@ -429,9 +431,9 @@ bool:Query_CreateTable_DonatorServerBills()
 
 public OnClientConnected(iClient)
 {
-	g_bIsDonator[iClient] = false;
 	g_fNextMessageDisplay[iClient] = 0.0;
-	g_hDonations[iClient] = INVALID_HANDLE;
+	ClearArray(g_hDonations[iClient]);
+	g_bIsDonator[iClient] = false;
 }
 
 public OnClientDisconnected(iClient)
@@ -497,7 +499,6 @@ public Query_GetDonatorStatus(Handle:hDatabase, Handle:hQuery, any:iClientSerial
 		return;
 	}
 	
-	g_hDonations[iClient] = CreateArray(Donation, 0);
 	new Float:fCurTime = GetGameTime();
 	while(SQL_FetchRow(hQuery)){
 		new iEndTime = SQL_FetchInt(hQuery, 0);
