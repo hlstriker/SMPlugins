@@ -471,7 +471,13 @@ public Action:OnNominate(iClient, iArgNum)
 	decl iMapIndex;
 	if(!GetTrieValue(g_aTrie_MapQuickIndex, szMapName, iMapIndex))
 	{
-		DisplayMenu_NominateCategorySelect(iClient);
+		new iDisplayIndex = FindMatchingMapName(szMapName);
+		if (iDisplayIndex == -1)
+		{
+			DisplayMenu_NominateCategorySelect(iClient);
+			return Plugin_Handled;
+		}
+		DisplayMenu_NominateMapSelectAll(iClient, iDisplayIndex);
 		return Plugin_Handled;
 	}
 	
@@ -1555,7 +1561,7 @@ public MenuHandle_NominateCategorySelect(Handle:hMenu, MenuAction:action, iParam
 	DisplayMenu_NominateMapSelect(iParam1, iCategoryIndex);
 }
 
-DisplayMenu_NominateMapSelectAll(iClient)
+DisplayMenu_NominateMapSelectAll(iClient, iStartIndex=0)
 {
 	new Handle:hMenu = CreateMenu(MenuHandle_NominateMapSelect);
 	SetMenuTitle(hMenu, "All maps");
@@ -1589,7 +1595,7 @@ DisplayMenu_NominateMapSelectAll(iClient)
 	if(GetArraySize(g_aCategories) != 1)
 		SetMenuExitBackButton(hMenu, true);
 	
-	if(!DisplayMenu(hMenu, iClient, 0))
+	if(!DisplayMenuAtItem(hMenu, iClient, iStartIndex, 0))
 	{
 		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {red}Could not display menu: nominate map select all.");
 		return;
@@ -2433,4 +2439,28 @@ GetCategoriesPlayedCountForCycle(iCategoryID)
 	GetTrieValue(g_aTrie_CategoryPlayedCount, szKey, iTimesPlayed);
 	
 	return iTimesPlayed;
+}
+
+FindMatchingMapName(String:szMapName[MAX_MAP_NAME_LENGTH])
+{
+	new iDisplayIndex = 0; // The index at which the map will appear in the menu
+	decl eMap[Map];
+	for (new i=0; i<GetArraySize(g_aMaps); i++)
+	{
+		GetArrayArray(g_aMaps, i, eMap);
+		if (eMap[Map_Disabled])
+			continue;
+
+		if (StrContains(eMap[Map_Name], szMapName, false) != -1)
+		{
+			decl iMapIndex;
+			if(GetTrieValue(g_aTrie_MapQuickIndex, eMap[Map_Name], iMapIndex))
+			{
+				return iDisplayIndex;
+			}
+			return -1;
+		}
+		iDisplayIndex++;
+	}
+	return -1;
 }
