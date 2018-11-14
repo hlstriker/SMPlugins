@@ -87,7 +87,7 @@ public SharedPlugin:__pl_ultjb_weapon_selection =
 #define WPN_FLAGS_DISABLE_SMG_UMP45				(1<<3)
 #define WPN_FLAGS_DISABLE_SMG_P90				(1<<4)
 #define WPN_FLAGS_DISABLE_SMG_BIZON				(1<<5)
-#define WPN_FLAGS_DISABLE_SMG_MP5SD				(1<<6)
+#define WPN_FLAGS_DISABLE_SMG_MP5NAVY			(1<<6)
 
 #define WPN_FLAGS_DISABLE_SMGS					WPN_FLAGS_DISABLE_SMG_MAC10		|\
 												WPN_FLAGS_DISABLE_SMG_MP7		|\
@@ -95,7 +95,7 @@ public SharedPlugin:__pl_ultjb_weapon_selection =
 												WPN_FLAGS_DISABLE_SMG_UMP45		|\
 												WPN_FLAGS_DISABLE_SMG_P90		|\
 												WPN_FLAGS_DISABLE_SMG_BIZON		|\
-												WPN_FLAGS_DISABLE_SMG_MP5SD
+												WPN_FLAGS_DISABLE_SMG_MP5NAVY
 
 #define WPN_FLAGS_DISABLE_RIFLE_GALILAR			(1<<0)
 #define WPN_FLAGS_DISABLE_RIFLE_FAMAS			(1<<1)

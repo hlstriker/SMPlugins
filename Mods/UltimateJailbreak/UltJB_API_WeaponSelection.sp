@@ -40,7 +40,6 @@ enum _:WeaponTeam
 #define ITEMDEF_M4A1_SILENCER	60
 #define ITEMDEF_USP_SILENCER	61
 #define ITEMDEF_HKP2000			32
-#define ITEMDEF_MP5SD			23
 
 #define SetWeaponAsFromLR(%1)	SetEntProp(%1, Prop_Data, "m_iPendingTeamNum", 1)
 #define IsWeaponFromLR(%1)		GetEntProp(%1, Prop_Data, "m_iPendingTeamNum")
@@ -208,7 +207,6 @@ public _UltJB_Weapons_GetItemDefIndexFromWeaponID(Handle:hPlugin, iNumParams)
 		case CSWeapon_M4A1_SILENCER: return ITEMDEF_M4A1_SILENCER;
 		case CSWeapon_USP_SILENCER: return ITEMDEF_USP_SILENCER;
 		case CSWeapon_HKP2000: return ITEMDEF_HKP2000;
-		case CSWeapon_MP5SD: return ITEMDEF_MP5SD;
 	}
 	
 	return 0;
@@ -261,7 +259,7 @@ public _UltJB_Weapons_GetEntNameFromWeaponID(Handle:hPlugin, iNumParams)
 		{
 			iCellsWritten = strcopy(szEntityName, sizeof(szEntityName), "weapon_revolver");
 		}
-		case CSWeapon_MP5SD:
+		case CSWeapon_MP5NAVY:
 		{
 			iCellsWritten = strcopy(szEntityName, sizeof(szEntityName), "weapon_mp5sd");
 		}
@@ -470,8 +468,8 @@ SelectRandomWeapon(iClient)
 		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_SMGS] & WPN_FLAGS_DISABLE_SMG_BIZON))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_BIZON;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_SMGS] & WPN_FLAGS_DISABLE_SMG_MP5SD))
-			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_MP5SD;
+		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_SMGS] & WPN_FLAGS_DISABLE_SMG_MP5NAVY))
+			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_MP5NAVY;
 	}
 	
 	if(g_iWeaponSelectionFlags[iClient][WPN_CAT_RIFLES] != WPN_FLAGS_DISABLE_RIFLES)
@@ -769,9 +767,9 @@ Handle:DisplayMenu_WeaponSelection(iClient, iCategory)
 				AddMenuItem(hMenu, szInfo, "PP-Bizon");
 			}
 			
-			if(!(g_iWeaponSelectionFlags[iClient][iCategory] & WPN_FLAGS_DISABLE_SMG_MP5SD))
+			if(!(g_iWeaponSelectionFlags[iClient][iCategory] & WPN_FLAGS_DISABLE_SMG_MP5NAVY))
 			{
-				IntToString(_:CSWeapon_MP5SD, szInfo, sizeof(szInfo));
+				IntToString(_:CSWeapon_MP5NAVY, szInfo, sizeof(szInfo));
 				AddMenuItem(hMenu, szInfo, "MP5-SD");
 			}
 		}
