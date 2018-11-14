@@ -18,7 +18,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Settings";
-new const String:PLUGIN_VERSION[] = "1.26";
+new const String:PLUGIN_VERSION[] = "1.27";
 
 public Plugin:myinfo =
 {
@@ -253,6 +253,9 @@ SetClipSize(iClient, iOldWeapon, iNewWeapon)
 		return;
 		
 	if(GetClientTeam(iClient) != TEAM_PRISONERS)
+		return;
+		
+	if(UltJB_CellDoors_HaveOpened())
 		return;
 		
 	if(iOldWeapon == INVALID_ENT_REFERENCE)
