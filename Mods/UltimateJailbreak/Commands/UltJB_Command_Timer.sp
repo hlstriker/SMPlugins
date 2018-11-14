@@ -23,6 +23,7 @@ public Plugin:myinfo =
 new g_iCountdown;
 new g_iTimerCountdown;
 new Handle:g_hTimer_Countdown;
+new g_iDeadWarden;
 
 new const String:SOUND_TIMER_COMPLETE[] = "sound/buttons/weapon_cant_buy.wav";
 
@@ -34,6 +35,7 @@ public OnPluginStart()
 	RegConsoleCmd("sm_stoptimer", OnStopTimer, "[Usage] sm_stoptimer - Stops the countdown timer.");
 	
 	HookEvent("round_end", Event_RoundEnd);
+	HookEvent("player_death", EventPlayerDeath_Post, EventHookMode_Post);
 }
 
 public OnMapStart()
@@ -46,6 +48,21 @@ public Action:Event_RoundEnd(Handle:event,const String:name[],bool:dontBroadcast
 {
 	StopTimer_Countdown();
 	return Plugin_Handled;
+}
+
+public UltJB_Warden_OnDeath(iWarden)
+{
+	g_iDeadWarden = iWarden;
+}
+
+public EventPlayerDeath_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
+{
+	new iClient = GetClientOfUserId(GetEventInt(hEvent, "userid"));
+	
+	if(iClient && iClient == g_iDeadWarden && g_hTimer_Countdown != INVALID_HANDLE)
+	{
+		StopTimer_Countdown();
+	}
 }
 
 public Action:OnTimer(iClient, iArgCount)
