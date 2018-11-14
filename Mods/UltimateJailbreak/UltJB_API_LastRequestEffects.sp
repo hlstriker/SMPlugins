@@ -540,10 +540,13 @@ public MenuHandle_EffectSelection(Handle:hMenu, MenuAction:action, iParam1, iPar
 
 SelectEffect(iClient, iEffectID)
 {
-	decl eEffect[Effect];
-	GetArrayArray(g_aEffects, g_iEffectIDToIndex[iEffectID], eEffect);
+	if(g_iEffectIDToIndex[iEffectID] != -1)
+	{
+		decl eEffect[Effect];
+		GetArrayArray(g_aEffects, g_iEffectIDToIndex[iEffectID], eEffect);
 	
-	CPrintToChatAll("{green}[{lightred}SM{green}] {lightred}%N {olive}selected effect: {purple}%s{olive}.", iClient, eEffect[Effect_Name]);
+		CPrintToChatAll("{green}[{lightred}SM{green}] {lightred}%N {olive}selected effect: {purple}%s{olive}.", iClient, eEffect[Effect_Name]);
+	}
 	
 	Forward_OnEffectSelectedSuccess(iClient, iEffectID);
 }
