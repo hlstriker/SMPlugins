@@ -1,10 +1,11 @@
 #include <sourcemod>
+#include <hls_color_chat>
 #include "Includes/ultjb_lr_effects"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Last Request Effects";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -539,6 +540,11 @@ public MenuHandle_EffectSelection(Handle:hMenu, MenuAction:action, iParam1, iPar
 
 SelectEffect(iClient, iEffectID)
 {
+	decl eEffect[Effect];
+	GetArrayArray(g_aEffects, g_iEffectIDToIndex[iEffectID], eEffect);
+	
+	CPrintToChatAll("{green}[{lightred}SM{green}] {lightred}%N {olive}selected effect: {purple}%s{olive}.", iClient, eEffect[Effect_Name]);
+	
 	Forward_OnEffectSelectedSuccess(iClient, iEffectID);
 }
 
