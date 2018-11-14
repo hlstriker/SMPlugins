@@ -4,6 +4,7 @@
 #include <dhooks>
 #include <basecomm>
 #include <sdktools_functions>
+#include <hls_color_chat>
 #include "Includes/ultjb_warden"
 #include "Includes/ultjb_last_request"
 
@@ -15,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Mute Manager";
-new const String:PLUGIN_VERSION[] = "1.20";
+new const String:PLUGIN_VERSION[] = "1.21";
 
 public Plugin:myinfo =
 {
@@ -38,6 +39,7 @@ new Float:g_fLastCheckTime[MAXPLAYERS+1];
 
 new bool:g_bIsWardenSpeaking;
 new bool:g_bArePlayersMuted;
+new bool:g_bWardenMuteActive;
 
 new Handle:g_hOnVoiceTransmit;
 new Handle:g_hTimer_MuteHUD;
@@ -62,6 +64,8 @@ public OnPluginStart()
 		SetFailState("Could not get offset for OnVoiceTransmit");
 	
 	g_hOnVoiceTransmit = DHookCreate(iOffset, HookType_Entity, ReturnType_Void, ThisPointer_CBaseEntity, OnVoiceTransmit);
+	
+	RegConsoleCmd("sm_wmute", OnWardenMute, "Toggle Warden mute powers.");
 	
 	HookEvent("player_death", Event_PlayerDeath_Post, EventHookMode_Post);
 	HookEvent("player_team", Event_PlayerTeam_Post, EventHookMode_Post);
@@ -101,6 +105,7 @@ public OnMapStart()
 {
 	g_hTimer_MuteHUD = INVALID_HANDLE;
 	g_fStoppedSpeakingTime = GetGameTime();
+	g_bWardenMuteActive = true;
 }
 
 public Event_PlayerTeam_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
@@ -244,7 +249,7 @@ public OnClientVoice(iClient)
 	// Return if the client speaking isn't the warden.
 	static iWarden;
 	iWarden = UltJB_Warden_GetWarden();
-	if(!iWarden || iWarden != iClient || !IsPlayerAlive(iWarden))
+	if(!iWarden || iWarden != iClient || !IsPlayerAlive(iWarden) || !g_bWardenMuteActive)
 		return;
 	
 	// Set the time to keep everyone muted after the warden unqueues his mic.
@@ -260,6 +265,31 @@ public OnClientVoice(iClient)
 	// Initialize the warden speaking.
 	SubtractFromSpeakTime();
 	WardenStartSpeaking(iWarden);
+}
+
+public Action:OnWardenMute(iClient, iArgNum)
+{
+	if(!iClient)
+		return Plugin_Handled;
+		
+	if(UltJB_Warden_GetWarden() != iClient)
+	{
+		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {red}You must be warden to use this command.");
+		return Plugin_Handled;
+	}
+	
+	if(g_bWardenMuteActive)
+	{
+		g_bWardenMuteActive = false;
+		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {yellow}Warden Mute Powers:{lightred} INACTIVE");
+	} 
+	else
+	{
+		g_bWardenMuteActive = true;
+		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {yellow}Warden Mute Powers:{lightgreen} ACTIVE");
+	}
+	
+	return Plugin_Handled;
 }
 
 AddToSpeakTime(iClient)
@@ -338,6 +368,12 @@ public UltJB_Warden_OnRemoved(iClient)
 {
 	g_fTotalSpeakTime = 0.0;
 	WardenStopSpeaking();
+	g_bWardenMuteActive = true;
+}
+
+public UltJB_Warden_OnDeath(iClient)
+{
+	g_bWardenMuteActive = true;
 }
 
 WardenStopSpeaking()
