@@ -615,7 +615,7 @@ public MenuHandle_ClientColorMenu(Handle:hMenu, MenuAction:action, iParam1, iPar
 
 DisplayMustBeWardenMessage(iClient)
 {
-	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {red}You must be warden to use this menu.");
+	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {red}You must be warden to use this command.");
 }
 
 SetPosition(iClient, iType, iRingIndex=0)
