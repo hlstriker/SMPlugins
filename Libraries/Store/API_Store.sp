@@ -720,7 +720,9 @@ AddToDownloadsTableAndPrecache()
 					eItem[ITEM_MAIN_FILE_INDEX] = iIndex;
 				}
 				
-				AddFileToDownloadsTable(eFile[ITEMFILE_PATH]);
+				if(IsStringInTable(eFile[ITEMFILE_PATH], "downloadables") == -1)
+					AddFileToDownloadsTable(eFile[ITEMFILE_PATH]);
+				
 				SetArrayArray(g_aItemFiles, iIndex, eFile);
 			}
 			else
@@ -731,6 +733,28 @@ AddToDownloadsTableAndPrecache()
 		
 		SetArrayArray(g_aInventoryItems, i, eItem);
 	}
+}
+
+IsStringInTable(const String:szString[], const String:szTable[])
+{
+	new iTable = FindStringTable(szTable);
+	if(iTable == INVALID_STRING_TABLE)
+		return -1;
+	
+	new iNumStrings = GetStringTableNumStrings(iTable);
+	
+	decl String:szTempString[PLATFORM_MAX_PATH], iBytes;
+	for(new i=0; i<iNumStrings; i++)
+	{
+		iBytes = ReadStringTable(iTable, i, szTempString, sizeof(szTempString));
+		if(!iBytes)
+			continue;
+		
+		if(StrEqual(szString, szTempString))
+			return i;
+	}
+	
+	return -1;
 }
 
 bool:IsFileDownloaded(const String:szFormat[], any:...)
@@ -802,15 +826,44 @@ PrecachePathByType(const String:szPath[], const iPrecacheType)
 {
 	switch(iPrecacheType)
 	{
-		case PRECACHE_TYPE_MODEL: return PrecacheModel(szPath, true);
-		case PRECACHE_TYPE_SOUND: return PrecacheSoundAny(szPath[6], true);
-		case PRECACHE_TYPE_DECAL: return PrecacheDecal(szPath[10], true);
+		case PRECACHE_TYPE_MODEL:
+		{
+			new iPrecacheID = IsStringInTable(szPath, "modelprecache");
+			if(iPrecacheID == -1)
+				iPrecacheID = PrecacheModel(szPath, true);
+			
+			return iPrecacheID;
+		}
+		case PRECACHE_TYPE_SOUND:
+		{
+			/*
+			new iPrecacheID = IsStringInTable(szPath[6], "soundprecache");
+			if(iPrecacheID == -1)
+				iPrecacheID = PrecacheSound(szPath[6], true);
+			
+			return iPrecacheID;
+			*/
+			
+			return PrecacheSoundAny(szPath[6], true);
+		}
+		case PRECACHE_TYPE_DECAL:
+		{
+			new iPrecacheID = IsStringInTable(szPath[10], "decalprecache");
+			if(iPrecacheID == -1)
+				iPrecacheID = PrecacheDecal(szPath[10], true);
+			
+			return iPrecacheID;
+		}
 		case PRECACHE_TYPE_PARTICLE_FILE:
 		{
 			if(g_bLibLoaded_ParticleManager)
 			{
 				#if defined _particle_manager_included
-				return PM_PrecacheParticleEffect(szPath);
+				new iPrecacheID = IsStringInTable(szPath, "genericprecache");
+				if(iPrecacheID == -1)
+					iPrecacheID = PM_PrecacheParticleEffect(szPath);
+				
+				return iPrecacheID;
 				#endif
 			}
 			

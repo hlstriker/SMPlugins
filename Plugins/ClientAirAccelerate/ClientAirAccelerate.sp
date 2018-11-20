@@ -20,8 +20,8 @@ new Float:g_fCustomAirAccelerate[MAXPLAYERS+1];
 new g_iLastSetTick[MAXPLAYERS+1];
 
 new Handle:cvar_airaccelerate;
+new Handle:cvar_airaccelerate_default;
 new Float:g_fDefaultAirAccelerate;
-new bool:g_bSkipChange;
 
 
 public OnPluginStart()
@@ -31,8 +31,14 @@ public OnPluginStart()
 	cvar_airaccelerate = FindConVar("sv_airaccelerate");
 	SetConVarFlags(cvar_airaccelerate, GetConVarFlags(cvar_airaccelerate) & ~FCVAR_REPLICATED & ~FCVAR_NOTIFY);
 	
-	g_fDefaultAirAccelerate = GetConVarFloat(cvar_airaccelerate);
-	HookConVarChange(cvar_airaccelerate, OnConVarChanged);
+	decl String:szDefault[12];
+	FloatToString(GetConVarFloat(cvar_airaccelerate), szDefault, sizeof(szDefault));
+	
+	if((cvar_airaccelerate_default = FindConVar("sv_airaccelerate_default")) == INVALID_HANDLE)
+		cvar_airaccelerate_default = CreateConVar("sv_airaccelerate_default", szDefault, "The default sv_airaccelerate to use.");
+	
+	g_fDefaultAirAccelerate = GetConVarFloat(cvar_airaccelerate_default);
+	HookConVarChange(cvar_airaccelerate_default, OnConVarChanged);
 }
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
@@ -80,9 +86,6 @@ public _ClientAirAccel_ClearCustomValue(Handle:hPlugin, iNumParams)
 
 public OnConVarChanged(Handle:hConVar, const String:szOldValue[], const String:szNewValue[])
 {
-	if(g_bSkipChange)
-		return;
-	
 	g_fDefaultAirAccelerate = StringToFloat(szNewValue);
 	
 	for(new iClient=1; iClient<=MaxClients; iClient++)
@@ -110,14 +113,10 @@ public OnClientPutInServer(iClient)
 
 public Action:OnPreThink(iClient)
 {
-	g_bSkipChange = true;
-	
 	if(g_bHasCustomAirAccelerate[iClient])
 		SetConVarFloat(cvar_airaccelerate, g_fCustomAirAccelerate[iClient]);
 	else
 		SetConVarFloat(cvar_airaccelerate, g_fDefaultAirAccelerate);
-	
-	g_bSkipChange = false;
 	
 	return Plugin_Continue;
 }
