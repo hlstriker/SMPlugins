@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Zone Manager";
-new const String:PLUGIN_VERSION[] = "1.17";
+new const String:PLUGIN_VERSION[] = "1.18";
 
 public Plugin:myinfo =
 {
@@ -330,6 +330,8 @@ public Event_RoundStart_Pre(Handle:hEvent, const String:szName[], bool:bDontBroa
 
 CreateZoneEnts()
 {
+	RebuildZoneIDToIndexArray();
+	
 	Call_StartForward(g_hFwd_CreateZoneEnts_Pre);
 	Call_Finish();
 	
