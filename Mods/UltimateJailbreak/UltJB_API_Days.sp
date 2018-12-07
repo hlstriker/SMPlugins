@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.12";
+new const String:PLUGIN_VERSION[] = "1.13";
 
 public Plugin:myinfo =
 {
@@ -114,6 +114,9 @@ public OnEntityCreated(iEnt, const String:szClassName[])
 		return;
 	
 	if(StrContains(szClassName, "weapon_") == -1)
+		return;
+	
+	if(StrContains(szClassName, "upgrade") != -1)
 		return;
 	
 	if(StrEqual(szClassName[7], "hegrenade")
