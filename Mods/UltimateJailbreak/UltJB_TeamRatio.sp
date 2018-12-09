@@ -338,6 +338,9 @@ public Action:OnGuardQueue(iClient, iArgNum)
 	if(!iClient)
 		return Plugin_Handled;
 	
+	if(!IsClientInGame(iClient))
+		return Plugin_Handled;
+	
 	if(GetClientTeam(iClient) == CS_TEAM_CT)
 	{
 		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}You are already a guard.");
