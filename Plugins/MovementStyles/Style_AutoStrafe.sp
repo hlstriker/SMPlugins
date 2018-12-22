@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: Auto Strafe";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -91,6 +91,9 @@ public OnDeactivated(iClient)
 public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVel[3], Float:fAngles[3], &iWeapon, &iSubType, &iCmdNum, &iTickCount, &iSeed, iMouse[2])
 {
 	if(!g_bActivated[iClient])
+		return Plugin_Continue;
+
+	if(!IsPlayerAlive(iClient))
 		return Plugin_Continue;
 		
 	if(GetEntityMoveType(iClient) == MOVETYPE_NOCLIP)
