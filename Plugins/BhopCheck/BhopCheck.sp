@@ -188,6 +188,8 @@ public OnPluginStart()
 {
 	LoadTranslations("common.phrases");
 	HookEvent("player_jump", Event_PlayerJump, EventHookMode_Post);
+	AddCommandListener(OnSay, "say");
+	AddCommandListener(OnSay, "say_team");
 	RegConsoleCmd("sm_bhopcheck", Command_BhopCheck);
 	RegConsoleCmd("sm_bhc", Command_BhopCheck);
 	//RegAdminCmd("sm_bhce", Command_BhopCheckExtended, ADMFLAG_SLAY);
@@ -216,9 +218,29 @@ public OnMapStart()
 	g_fWarnPerfs = GetConVarFloat(cvar_warn_perfs);
 }
 
+public Action:OnSay(iClient, const String:szCommand[], iArgCount)
+{
+	decl String:szMessage[128];
+	GetCmdArgString(szMessage, sizeof(szMessage));
+	StripQuotes(szMessage);
+	if (StrContains(szMessage, "!bhc", false) == 0 ||
+		StrContains(szMessage, "/bhc", false) == 0)
+	{
+		return Plugin_Handled;
+	}
+
+	return Plugin_Continue;
+}
+
 
 public Action:Command_BhopCheck(iClient, iArgs)
 {
+	if (GetCmdReplySource() == SM_REPLY_TO_CHAT)
+	{
+		ReplyToCommand(iClient, "[SM] Bhopcheck is a console only command.  Please use sm_bhc in console to see Bhopcheck stats.");
+		return Plugin_Handled;
+	}
+
 	if(iArgs < 1)
 	{
 		ReplyToCommand(iClient, "[SM] Usage: sm_bhc <#userid|name>");
@@ -239,6 +261,12 @@ public Action:Command_BhopCheck(iClient, iArgs)
 
 public Action:Command_BhopCheckExtended(iClient, iArgs)
 {
+	if (GetCmdReplySource() == SM_REPLY_TO_CHAT)
+	{
+		ReplyToCommand(iClient, "[SM] Bhopcheck is a console only command.  Please use sm_bhce in console to see extended Bhopcheck stats.");
+		return Plugin_Handled;
+	}
+
 	if(iArgs < 1)
 	{
 		ReplyToCommand(iClient, "[SM] Usage: sm_bhce <#userid|name>");
@@ -266,7 +294,7 @@ PrintBhopCheck(iClient, iTarget, bool:bExtended)
 	decl String:szMapName[PLATFORM_MAX_PATH];
 	GetCurrentMap(szMapName, sizeof(szMapName));
 
-	new iBhops = GetArraySize(g_hBhops[iClient]);
+	new iBhops = GetArraySize(g_hBhops[iTarget]);
 
 	PrintToConsole(iClient, "\n\t\tBhopCheck %s", PLUGIN_VERSION);
 	PrintToConsole(iClient, "\tName: %N\n\tSteam ID: %s\n\tMap: %s",
@@ -274,6 +302,10 @@ PrintBhopCheck(iClient, iTarget, bool:bExtended)
 							szAuthID,
 							szMapName
 							);
+
+	decl String:szTime[32];
+	FormatTime(szTime, sizeof(szTime), "\t%Y-%m-%d-%H:%M:%S", GetTime());
+	PrintToConsole(iClient, szTime);
 
 	if (!iBhops)
 	{
@@ -299,7 +331,7 @@ PrintBhopCheck(iClient, iTarget, bool:bExtended)
 			eBhop[Bhop_GroundTicks],
 			eBhop[Bhop_Speed],
 			eBhop[Bhop_DemoTick],
-			(eBhop[Bhop_InputTicks] <= 1) ? "N " : "A ",
+			(eBhop[Bhop_InputTicks] <= 2) ? "N " : "A ",
 			eBhop[Bhop_InputTicks]);
 		}
 	}
@@ -318,7 +350,7 @@ PrintBhopCheck(iClient, iTarget, bool:bExtended)
 			(eBhop[Bhop_GroundTicks] <= 1) ? "# " : "  ",
 			eBhop[Bhop_GroundTicks],
 			eBhop[Bhop_Speed],
-			(eBhop[Bhop_InputTicks] <= 1) ? "Normal " : "Auto ");
+			(eBhop[Bhop_InputTicks] <= 2) ? "Normal " : "Auto ");
 		}
 	}
 
