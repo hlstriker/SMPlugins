@@ -11,7 +11,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Zombie";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 new g_ZombieMsg;
 
@@ -27,8 +27,8 @@ public Plugin:myinfo =
 #define DAY_NAME	"Zombie"
 new const DayType:DAY_TYPE = DAY_TYPE_WARDAY;
 
-#define ZOMBIE_SPEED	0.7
-#define ZOMBIE_SPEEDCAP	1.2
+#define ZOMBIE_SPEED	1.2
+#define ZOMBIE_SPEEDCAP	0.5
 
 new Handle:g_hTimer_ZombieMsg;
 new Handle:g_hTimer_ZombieSpeed;
@@ -92,7 +92,7 @@ StartTimer_ZombieSpeed()
 {
 	g_fSpeed = ZOMBIE_SPEED;
 	StopTimer_ZombieSpeed();
-	g_hTimer_ZombieSpeed = CreateTimer(90.0, ZombieSpeed, _, TIMER_REPEAT);
+	g_hTimer_ZombieSpeed = CreateTimer(45.0, ZombieSpeed, _, TIMER_REPEAT);
 }
 
 StopTimer_ZombieSpeed()
@@ -125,12 +125,12 @@ public Action:ZombieMessage(Handle:hTimer)
 
 public Action:ZombieSpeed(Handle:hTimer)
 {
-	g_fSpeed += 0.15;
+	g_fSpeed -= 0.1;
 	
-	if(g_fSpeed > ZOMBIE_SPEEDCAP)
+	if(g_fSpeed < ZOMBIE_SPEEDCAP)
 		g_fSpeed = ZOMBIE_SPEEDCAP;
 	
-	CPrintToChatAll("{red}[{green}Zombie Warday{red}]{default}: {red}The remaining zombies are getting hungry.");
+	CPrintToChatAll("{red}[{green}Zombie Warday{red}]{default}: {red}The remaining zombies are getting tired.");
 	
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
@@ -214,7 +214,7 @@ public Action:OnTraceAttack(iVictim, &iAttacker, &iInflictor, &Float:fDamage, &i
 			szWeapon[12] = 0x00;
 			
 			if(StrEqual(szWeapon, "weapon_knife"))
-				fDamage = 250.0;
+				fDamage = 1337.0;
 			else
 				fDamage = 0.0;
 			
