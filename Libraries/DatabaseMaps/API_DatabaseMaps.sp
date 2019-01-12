@@ -1,11 +1,12 @@
 #include <sourcemod>
 #include "../DatabaseCore/database_core"
 #include "../DatabaseServers/database_servers"
+#include "database_maps"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Database Maps";
-new const String:PLUGIN_VERSION[] = "1.5";
+new const String:PLUGIN_VERSION[] = "1.6";
 
 public Plugin:myinfo =
 {
@@ -39,8 +40,37 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	
 	CreateNative("DBMaps_GetMapID", _DBMaps_GetMapID);
 	CreateNative("DBMaps_GetMapIDFromName", _DBMaps_GetMapIDFromName);
+	CreateNative("DBMaps_GetCurrentMapNameFormatted", _DBMaps_GetCurrentMapNameFormatted);
 	
 	return APLRes_Success;
+}
+
+public _DBMaps_GetCurrentMapNameFormatted(Handle:hPlugin, iNumParams)
+{
+	new iLen = GetNativeCell(2);
+	if(iLen < 1)
+		return false;
+	
+	decl String:szCurrentMap[iLen];
+	GetCurrentMap(szCurrentMap, iLen);
+	StringToLower(szCurrentMap, iLen);
+	
+	// Strip workshop part from map name.
+	decl String:szExplode[3][iLen];
+	new iNum = ExplodeString(szCurrentMap, "/", szExplode, sizeof(szExplode), iLen);
+	
+	if(iNum > 1)
+		SetNativeString(1, szExplode[iNum-1], iLen);
+	else
+		SetNativeString(1, szCurrentMap, iLen);
+	
+	return true;
+}
+
+StringToLower(String:szString[], iLength)
+{
+	for(new i=0; i<iLength; i++)
+		szString[i] = CharToLower(szString[i]);
 }
 
 public _DBMaps_GetMapID(Handle:hPlugin, iNumParams)
@@ -165,7 +195,9 @@ bool:Query_CreateMapsTable()
 bool:Query_GetMapID(iGameID)
 {
 	decl String:szMapName[MAX_MAP_NAME_LENGTH*2+1];
-	GetCurrentMap(szMapName, sizeof(szMapName));
+	//GetCurrentMap(szMapName, sizeof(szMapName));
+	DBMaps_GetCurrentMapNameFormatted(szMapName, sizeof(szMapName));
+	
 	DB_EscapeString(g_szDatabaseConfigName, szMapName, szMapName, sizeof(szMapName));
 	
 	new Handle:hQuery = DB_Query(g_szDatabaseConfigName, "SELECT map_id FROM gs_maps WHERE game_id=%i AND map_name='%s' LIMIT 1", iGameID, szMapName);
