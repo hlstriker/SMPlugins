@@ -23,7 +23,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Speed Runs: Core";
-new const String:PLUGIN_VERSION[] = "1.38";
+new const String:PLUGIN_VERSION[] = "1.39";
 
 public Plugin:myinfo =
 {
@@ -258,7 +258,7 @@ public Action:Command_SetTier(iClient, iArgs)
 	CPrintToChatAll("{lightgreen}-- {olive}The maps tier has been set to {lightred}%i{olive}.", g_iMapTier);
 	
 	decl String:szMapName[97];
-	GetCurrentMap(szMapName, sizeof(szMapName));
+	DBMaps_GetCurrentMapNameFormatted(szMapName, sizeof(szMapName));
 	if(DB_EscapeString(g_szDatabaseConfigName, szMapName, szMapName, sizeof(szMapName)))
 	{
 		DB_TQuery(g_szDatabaseConfigName, _, DBPrio_High, _, "\
@@ -2009,7 +2009,7 @@ public OnMapStart()
 public DBMaps_OnMapIDReady(iMapID)
 {
 	decl String:szMapName[97];
-	GetCurrentMap(szMapName, sizeof(szMapName));
+	DBMaps_GetCurrentMapNameFormatted(szMapName, sizeof(szMapName));
 	
 	if(DB_EscapeString(g_szDatabaseConfigName, szMapName, szMapName, sizeof(szMapName)))
 	{

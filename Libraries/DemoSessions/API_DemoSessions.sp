@@ -2,11 +2,12 @@
 #include <sourcetvmanager>
 #include "../DatabaseCore/database_core"
 #include "../DatabaseMapSessions/database_map_sessions"
+#include "../DatabaseMaps/database_maps"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Demo Sessions";
-new const String:PLUGIN_VERSION[] = "1.8";
+new const String:PLUGIN_VERSION[] = "1.9";
 
 public Plugin:myinfo =
 {
@@ -144,7 +145,7 @@ StartDemo()
 	
 	// Try to insert the new demo information in the database.
 	decl String:szDemoName[81], String:szSafeDemoName[161];
-	GetCurrentMap(szSafeDemoName, sizeof(szSafeDemoName));
+	DBMaps_GetCurrentMapNameFormatted(szSafeDemoName, sizeof(szSafeDemoName));
 	FormatTime(szDemoName, sizeof(szDemoName), "%Y%m%d-%H%M%S", GetTime());
 	
 	Format(szDemoName, sizeof(szDemoName), "swbs-%s-%s", szDemoName, szSafeDemoName);

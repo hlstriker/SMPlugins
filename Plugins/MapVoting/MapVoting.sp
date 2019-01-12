@@ -10,6 +10,7 @@
 #include <sdktools_stringtables>
 #include <sdktools_functions>
 #include "../../Libraries/DatabaseCore/database_core"
+#include "../../Libraries/DatabaseMaps/database_maps"
 #include "../../Libraries/DatabaseServers/database_servers"
 #include "map_voting"
 #include <hls_color_chat>
@@ -22,7 +23,7 @@
 #pragma dynamic 500000
 
 new const String:PLUGIN_NAME[] = "Map Voting";
-new const String:PLUGIN_VERSION[] = "1.17";
+new const String:PLUGIN_VERSION[] = "1.18";
 
 public Plugin:myinfo =
 {
@@ -1127,8 +1128,7 @@ bool:DisplayMenu_MapVote()
 	if(iNumMapsNeeded > 0)
 	{
 		decl String:szCurrentMap[MAX_MAP_NAME_LENGTH];
-		GetCurrentMap(szCurrentMap, sizeof(szCurrentMap));
-		StringToLower(szCurrentMap, sizeof(szCurrentMap));
+		DBMaps_GetCurrentMapNameFormatted(szCurrentMap, sizeof(szCurrentMap));
 		
 		new Handle:aAllowedMaps = CreateArray(MAX_MAP_NAME_LENGTH);
 		
@@ -1434,8 +1434,7 @@ NominateMap(iClient, iMapIndex)
 		return;
 	
 	decl String:szCurrentMap[MAX_MAP_NAME_LENGTH];
-	GetCurrentMap(szCurrentMap, sizeof(szCurrentMap));
-	StringToLower(szCurrentMap, sizeof(szCurrentMap));
+	DBMaps_GetCurrentMapNameFormatted(szCurrentMap, sizeof(szCurrentMap));
 	
 	if(StrEqual(szCurrentMap, eMap[Map_Name]))
 	{
@@ -1567,8 +1566,7 @@ DisplayMenu_NominateMapSelectAll(iClient, iStartIndex=0)
 	SetMenuTitle(hMenu, "All maps");
 	
 	decl String:szCurrentMap[MAX_MAP_NAME_LENGTH];
-	GetCurrentMap(szCurrentMap, sizeof(szCurrentMap));
-	StringToLower(szCurrentMap, sizeof(szCurrentMap));
+	DBMaps_GetCurrentMapNameFormatted(szCurrentMap, sizeof(szCurrentMap));
 	
 	decl eMap[Map], eCategory[Category], String:szInfo[12], String:szBuffer[256], iLen, bool:bDisabled;
 	for(new i=0; i<GetArraySize(g_aMaps); i++)
@@ -1651,8 +1649,7 @@ DisplayMenu_NominateMapSelect(iClient, iCategoryIndex)
 	SetMenuTitle(hMenu, szBuffer);
 	
 	decl String:szCurrentMap[MAX_MAP_NAME_LENGTH];
-	GetCurrentMap(szCurrentMap, sizeof(szCurrentMap));
-	StringToLower(szCurrentMap, sizeof(szCurrentMap));
+	DBMaps_GetCurrentMapNameFormatted(szCurrentMap, sizeof(szCurrentMap));
 	
 	new Handle:aNeedPlayersMapIndexes = CreateArray();
 	
@@ -2050,8 +2047,7 @@ OnMapsLoaded()
 SetCurrentMapsTimeConvars()
 {
 	decl String:szMapName[MAX_MAP_NAME_LENGTH];
-	GetCurrentMap(szMapName, sizeof(szMapName));
-	StringToLower(szMapName, sizeof(szMapName));
+	DBMaps_GetCurrentMapNameFormatted(szMapName, sizeof(szMapName));
 	
 	decl iMapIndex;
 	if(!GetTrieValue(g_aTrie_MapQuickIndex, szMapName, iMapIndex))
@@ -2290,8 +2286,7 @@ SetRandomNextmap()
 		return;
 	
 	decl String:szCurrentMap[MAX_MAP_NAME_LENGTH];
-	GetCurrentMap(szCurrentMap, sizeof(szCurrentMap));
-	StringToLower(szCurrentMap, sizeof(szCurrentMap));
+	DBMaps_GetCurrentMapNameFormatted(szCurrentMap, sizeof(szCurrentMap));
 	
 	decl eMap[Map];
 	new Handle:aMapIndexes = CreateArray();
@@ -2368,8 +2363,7 @@ public Action:Timer_EndMap(Handle:hTimer)
 GetCurrentMapsCategoryID()
 {
 	decl String:szMapName[MAX_MAP_NAME_LENGTH];
-	GetCurrentMap(szMapName, sizeof(szMapName));
-	StringToLower(szMapName, sizeof(szMapName));
+	DBMaps_GetCurrentMapNameFormatted(szMapName, sizeof(szMapName));
 	
 	decl iMapIndex;
 	if(!GetTrieValue(g_aTrie_MapQuickIndex, szMapName, iMapIndex))
