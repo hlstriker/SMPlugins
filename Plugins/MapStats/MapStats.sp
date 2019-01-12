@@ -1,11 +1,12 @@
 #include <sourcemod>
 #include "../../Libraries/DatabaseMapStats/database_map_stats"
+#include "../../Libraries/DatabaseMaps/database_maps"
 #include <hls_color_chat>
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Map Stats";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -46,7 +47,7 @@ public Action:OnMapTime(iClient, iArgNum)
 DisplayMapTimeText(iClient)
 {
 	decl String:szText[192], String:szTime[32];
-	GetCurrentMap(szText, sizeof(szText));
+	DBMaps_GetCurrentMapNameFormatted(szText, sizeof(szText));
 	
 	new iTimePlayed = DBMapStats_GetTotalTimePlayed() + DBMapStats_GetTimePlayed();
 	if(iTimePlayed > 3600)
