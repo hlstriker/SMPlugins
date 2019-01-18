@@ -6,7 +6,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Database Maps";
-new const String:PLUGIN_VERSION[] = "1.6";
+new const String:PLUGIN_VERSION[] = "1.7";
 
 public Plugin:myinfo =
 {
@@ -41,8 +41,31 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	CreateNative("DBMaps_GetMapID", _DBMaps_GetMapID);
 	CreateNative("DBMaps_GetMapIDFromName", _DBMaps_GetMapIDFromName);
 	CreateNative("DBMaps_GetCurrentMapNameFormatted", _DBMaps_GetCurrentMapNameFormatted);
+	CreateNative("DBMaps_GetMapNameFormatted", _DBMaps_GetMapNameFormatted);
 	
 	return APLRes_Success;
+}
+
+public _DBMaps_GetMapNameFormatted(Handle:hPlugin, iNumParams)
+{
+	new iLen = GetNativeCell(2);
+	if(iLen < 1)
+		return false;
+	
+	decl String:szMapName[MAX_MAP_NAME_LENGTH*2+1];
+	GetNativeString(1, szMapName, sizeof(szMapName));
+	StringToLower(szMapName, iLen);
+	
+	// Strip workshop part from map name.
+	decl String:szExplode[3][iLen];
+	new iNum = ExplodeString(szMapName, "/", szExplode, sizeof(szExplode), iLen);
+	
+	if(iNum > 1)
+		SetNativeString(1, szExplode[iNum-1], iLen);
+	else
+		SetNativeString(1, szMapName, iLen);
+	
+	return true;
 }
 
 public _DBMaps_GetCurrentMapNameFormatted(Handle:hPlugin, iNumParams)

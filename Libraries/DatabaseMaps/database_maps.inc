@@ -27,8 +27,11 @@ native DBMaps_GetMapID();
 /* Gets the map id for a specific map name */
 native bool:DBMaps_GetMapIDFromName(const String:map_name[], Callback_OnSelectedMapIDFromName:selected_callback, any:data=0);
 
-/* Gets the the current map name formatted. Lowercase and workshop/id/ stripped. */
+/* Gets the current map name formatted. Lowercase and workshop/id/ stripped. */
 native bool:DBMaps_GetCurrentMapNameFormatted(String:map_name[], maxlength);
+
+/* Formats a map name. Lowercase and workshop/id/ stripped. */
+native bool:DBMaps_GetMapNameFormatted(String:map_name[], maxlength);
 
 
 forward DBMaps_OnMapIDReady(map_id);
