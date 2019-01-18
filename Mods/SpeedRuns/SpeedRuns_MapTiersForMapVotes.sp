@@ -7,7 +7,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Map tiers for map votes";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -130,7 +130,7 @@ public Query_GetMapTiers(Handle:hDatabase, Handle:hQuery, any:iUniqueMapCounter)
 	g_bSeparateLinear = GetConVarBool(cvar_separate_linear);
 	
 	new Handle:aList = CreateArray(MAX_MAP_NAME_LEN);
-	MapVoting_GetMapList(aList);
+	MapVoting_GetMapList(aList, true);
 	
 	decl String:szMapName[MAX_MAP_NAME_LEN];
 	while(SQL_FetchRow(hQuery))

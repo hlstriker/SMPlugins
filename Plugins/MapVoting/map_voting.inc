@@ -29,7 +29,7 @@ forward MapVoting_OnVoteRocked(change_time_type);
 
 
 
-native bool:MapVoting_GetMapList(Handle:aList);
+native bool:MapVoting_GetMapList(Handle:aList, bool:formatNames=false);
 
 /* Returns the new category ID or -1 on failure */
 native MapVoting_AddCategory(const String:cat_name[], const String:cat_tag[]="", played_min=0, played_max=0);

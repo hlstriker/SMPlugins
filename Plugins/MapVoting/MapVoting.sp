@@ -17,13 +17,14 @@
 
 #undef REQUIRE_PLUGIN
 #include "../ForceMapEnd/force_map_end"
+#include "../../RandomIncludes/kztimer"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 #pragma dynamic 500000
 
 new const String:PLUGIN_NAME[] = "Map Voting";
-new const String:PLUGIN_VERSION[] = "1.18";
+new const String:PLUGIN_VERSION[] = "1.20";
 
 public Plugin:myinfo =
 {
@@ -81,6 +82,7 @@ new Handle:g_aMaps;
 enum _:Map
 {
 	String:Map_Name[MAX_MAP_NAME_LENGTH],
+	String:Map_NameFormatted[MAX_MAP_NAME_LENGTH],
 	Map_PlayersMin,
 	Map_PlayersMax,
 	Map_CategoryID,
@@ -173,6 +175,7 @@ new Handle:g_hFwd_OnVoteRocked;
 new g_iMapChangeTime;
 
 new bool:g_bLibLoaded_ForceMapEnd;
+new bool:g_bLibLoaded_KZTimer;
 
 
 public OnPluginStart()
@@ -312,13 +315,21 @@ public _MapVoting_GetMapList(Handle:hPlugin, iNumParams)
 	if(aList == INVALID_HANDLE)
 		return false;
 	
+	new bool:bFormatNames = false;
+	if(iNumParams > 1)
+		bFormatNames = bool:GetNativeCell(2);
+	
 	new iArraySize = GetArraySize(g_aMaps);
 	
 	decl eMap[Map];
 	for(new i=0; i<iArraySize; i++)
 	{
 		GetArrayArray(g_aMaps, i, eMap);
-		PushArrayString(aList, eMap[Map_Name]);
+		
+		if(bFormatNames)
+			PushArrayString(aList, eMap[Map_NameFormatted]);
+		else
+			PushArrayString(aList, eMap[Map_Name]);
 	}
 	
 	return true;
@@ -473,11 +484,12 @@ public Action:OnNominate(iClient, iArgNum)
 	if(!GetTrieValue(g_aTrie_MapQuickIndex, szMapName, iMapIndex))
 	{
 		new iDisplayIndex = FindMatchingMapName(szMapName);
-		if (iDisplayIndex == -1)
+		if(iDisplayIndex == -1)
 		{
 			DisplayMenu_NominateCategorySelect(iClient);
 			return Plugin_Handled;
 		}
+		
 		DisplayMenu_NominateMapSelectAll(iClient, iDisplayIndex);
 		return Plugin_Handled;
 	}
@@ -630,9 +642,16 @@ DisplayNextMapText(iClient, bool:bIsBeingAutoPrinted=false)
 	if(g_bWasNextMapSelected)
 	{
 		if(iClient)
-			CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}The next map will be {lightred}%s{olive}.", g_szNextMapSelected);
+		{
+			decl String:szMapNameFormatted[MAX_MAP_NAME_LENGTH];
+			strcopy(szMapNameFormatted, sizeof(szMapNameFormatted), g_szNextMapSelected);
+			DBMaps_GetMapNameFormatted(szMapNameFormatted, sizeof(szMapNameFormatted));
+			CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}The next map will be {lightred}%s{olive}.", szMapNameFormatted);
+		}
 		else
+		{
 			ReplyToCommand(iClient, g_szNextMapSelected);
+		}
 	}
 	else
 	{
@@ -970,7 +989,7 @@ public Action:Timer_MapVote(Handle:hTimer)
 				DisplayNextMapText(iClient, true);
 		}
 		
-		PrintHintTextToAll("<font color='#6FC41A'>The next map will be:</font>\n<font color='#DE2626'>%s</font>", eMap[Map_Name]);
+		PrintHintTextToAll("<font color='#6FC41A'>The next map will be:</font>\n<font color='#DE2626'>%s</font>", eMap[Map_NameFormatted]);
 	}
 	
 	MapVoteEnd();
@@ -1095,8 +1114,29 @@ GetMapsPlayerRequirementNeeds(const eMap[Map])
 	return 0;
 }
 
+CloseKZTimerMenuAll()
+{
+	for(new iClient=1; iClient<=MaxClients; iClient++)
+	{
+		if(IsClientInGame(iClient))
+			CloseKZTimerMenu(iClient);
+	}
+}
+
+CloseKZTimerMenu(iClient)
+{
+	if(g_bLibLoaded_KZTimer)
+	{
+		#if defined _KZTimer_included
+		KZTimer_StopUpdatingOfClimbersMenu(iClient);
+		#endif
+	}
+}
+
 bool:DisplayMenu_MapVote()
 {
+	CloseKZTimerMenuAll();
+	
 	if(g_hMenu_MapVote != INVALID_HANDLE)
 		return false;
 	
@@ -1139,13 +1179,13 @@ bool:DisplayMenu_MapVote()
 			if(eMap[Map_Disabled])
 				continue;
 			
-			if(StrEqual(szCurrentMap, eMap[Map_Name]))
+			if(StrEqual(szCurrentMap, eMap[Map_NameFormatted]))
 				continue;
 			
-			if(WasMapRecentlyPlayed(eMap[Map_Name]))
+			if(WasMapRecentlyPlayed(eMap[Map_NameFormatted]))
 				continue;
 			
-			if(FindStringInArray(g_aNominations, eMap[Map_Name]) != -1)
+			if(FindStringInArray(g_aNominations, eMap[Map_NameFormatted]) != -1)
 				continue;
 			
 			if(!CanCategoryBePlayed(eMap[Map_CategoryID]))
@@ -1154,13 +1194,13 @@ bool:DisplayMenu_MapVote()
 			if(GetMapsPlayerRequirementNeeds(eMap) != 0)
 				continue;
 
-			if(strncmp(eMap[Map_Name], "dr_", 3, false) == 0)
+			if(strncmp(eMap[Map_NameFormatted], "dr_", 3, false) == 0)
 				continue;
 			
-			if(strncmp(eMap[Map_Name], "deathrun_", 8, false) == 0)
+			if(strncmp(eMap[Map_NameFormatted], "deathrun_", 8, false) == 0)
 				continue;
 				
-			PushArrayString(aAllowedMaps, eMap[Map_Name]);
+			PushArrayString(aAllowedMaps, eMap[Map_NameFormatted]);
 		}
 		
 		decl iNum;
@@ -1232,13 +1272,13 @@ bool:DisplayMenu_MapVote()
 		if(!StrEqual(eCategory[Category_Tag], ""))
 			iLen += FormatEx(szBuffer[iLen], sizeof(szBuffer)-iLen, "[%s] ", eCategory[Category_Tag]);
 		
-		iLen += FormatEx(szBuffer[iLen], sizeof(szBuffer)-iLen, eMap[Map_Name]);
+		iLen += FormatEx(szBuffer[iLen], sizeof(szBuffer)-iLen, eMap[Map_NameFormatted]);
 		
 		IntToString(g_iNumVoteSelections, szInfo, sizeof(szInfo));
 		AddMenuItem(g_hMenu_MapVote, szInfo, szBuffer);
 		g_iVoteMapIndexes[g_iNumVoteSelections] = iMapIndex;
 		g_iVoteMapTally[g_iNumVoteSelections] = 0;
-		strcopy(g_szVoteMapNames[g_iNumVoteSelections], sizeof(g_szVoteMapNames[]), eMap[Map_Name]);
+		strcopy(g_szVoteMapNames[g_iNumVoteSelections], sizeof(g_szVoteMapNames[]), eMap[Map_NameFormatted]);
 		g_iNumVoteSelections++;
 	}
 	
@@ -1436,21 +1476,21 @@ NominateMap(iClient, iMapIndex)
 	decl String:szCurrentMap[MAX_MAP_NAME_LENGTH];
 	DBMaps_GetCurrentMapNameFormatted(szCurrentMap, sizeof(szCurrentMap));
 	
-	if(StrEqual(szCurrentMap, eMap[Map_Name]))
+	if(StrEqual(szCurrentMap, eMap[Map_NameFormatted]))
 	{
-		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {lightred}%s {olive}is the current map.", eMap[Map_Name]);
+		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {lightred}%s {olive}is the current map.", eMap[Map_NameFormatted]);
 		return;
 	}
 	
-	if(WasMapRecentlyPlayed(eMap[Map_Name]))
+	if(WasMapRecentlyPlayed(eMap[Map_NameFormatted]))
 	{
-		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {lightred}%s {olive}was recently played.", eMap[Map_Name]);
+		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {lightred}%s {olive}was recently played.", eMap[Map_NameFormatted]);
 		return;
 	}
 	
-	if(IsMapNominated(eMap[Map_Name]))
+	if(IsMapNominated(eMap[Map_NameFormatted]))
 	{
-		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {lightred}%s {olive}is already nominated.", eMap[Map_Name]);
+		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {lightred}%s {olive}is already nominated.", eMap[Map_NameFormatted]);
 		return;
 	}
 	
@@ -1476,21 +1516,23 @@ NominateMap(iClient, iMapIndex)
 		decl eOldMap[Map];
 		GetArrayArray(g_aMaps, g_iNominationMapIndex[iClient], eOldMap);
 		
-		new iIndex = FindStringInArray(g_aNominations, eOldMap[Map_Name]);
+		new iIndex = FindStringInArray(g_aNominations, eOldMap[Map_NameFormatted]);
 		if(iIndex != -1)
 			RemoveFromArray(g_aNominations, iIndex);
 		
-		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}Removed old nomination of {lightred}%s{olive}.", eOldMap[Map_Name]);
+		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}Removed old nomination of {lightred}%s{olive}.", eOldMap[Map_NameFormatted]);
 	}
 	
 	g_iNominationMapIndex[iClient] = iMapIndex;
-	PushArrayString(g_aNominations, eMap[Map_Name]);
+	PushArrayString(g_aNominations, eMap[Map_NameFormatted]);
 	
-	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}You have nominated {lightred}%s{olive}.", eMap[Map_Name]);
+	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}You have nominated {lightred}%s{olive}.", eMap[Map_NameFormatted]);
 }
 
 DisplayMenu_NominateCategorySelect(iClient)
 {
+	CloseKZTimerMenu(iClient);
+	
 	/*
 	if(g_bWasNextMapSelected)
 	{
@@ -1562,6 +1604,8 @@ public MenuHandle_NominateCategorySelect(Handle:hMenu, MenuAction:action, iParam
 
 DisplayMenu_NominateMapSelectAll(iClient, iStartIndex=0)
 {
+	CloseKZTimerMenu(iClient);
+	
 	new Handle:hMenu = CreateMenu(MenuHandle_NominateMapSelect);
 	SetMenuTitle(hMenu, "All maps");
 	
@@ -1582,9 +1626,9 @@ DisplayMenu_NominateMapSelectAll(iClient, iStartIndex=0)
 		if(!StrEqual(eCategory[Category_Tag], ""))
 			iLen += FormatEx(szBuffer[iLen], sizeof(szBuffer)-iLen, "[%s] ", eCategory[Category_Tag]);
 		
-		iLen += FormatEx(szBuffer[iLen], sizeof(szBuffer)-iLen, eMap[Map_Name]);
+		iLen += FormatEx(szBuffer[iLen], sizeof(szBuffer)-iLen, eMap[Map_NameFormatted]);
 		
-		bDisabled = TryAppendMapsDisabledStatus(szCurrentMap, eMap[Map_Name], szBuffer, iLen, sizeof(szBuffer));
+		bDisabled = TryAppendMapsDisabledStatus(szCurrentMap, eMap[Map_NameFormatted], szBuffer, iLen, sizeof(szBuffer));
 		
 		IntToString(i, szInfo, sizeof(szInfo));
 		AddMenuItem(hMenu, szInfo, szBuffer, bDisabled ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
@@ -1628,6 +1672,8 @@ bool:TryAppendMapsDisabledStatus(const String:szCurrentMap[], const String:szMap
 
 DisplayMenu_NominateMapSelect(iClient, iCategoryIndex)
 {
+	CloseKZTimerMenu(iClient);
+	
 	decl eCategory[Category];
 	GetArrayArray(g_aCategories, iCategoryIndex, eCategory);
 	
@@ -1667,9 +1713,9 @@ DisplayMenu_NominateMapSelect(iClient, iCategoryIndex)
 		//if(!StrEqual(eCategory[Category_Tag], ""))
 		//	iLen += FormatEx(szBuffer[iLen], sizeof(szBuffer)-iLen, "[%s] ", eCategory[Category_Tag]);
 		
-		iLen += FormatEx(szBuffer[iLen], sizeof(szBuffer)-iLen, eMap[Map_Name]);
+		iLen += FormatEx(szBuffer[iLen], sizeof(szBuffer)-iLen, eMap[Map_NameFormatted]);
 		
-		bDisabled = TryAppendMapsDisabledStatus(szCurrentMap, eMap[Map_Name], szBuffer, iLen, sizeof(szBuffer));
+		bDisabled = TryAppendMapsDisabledStatus(szCurrentMap, eMap[Map_NameFormatted], szBuffer, iLen, sizeof(szBuffer));
 		
 		if(!bDisabled && GetMapsPlayerRequirementNeeds(eMap) != 0)
 		{
@@ -1688,7 +1734,7 @@ DisplayMenu_NominateMapSelect(iClient, iCategoryIndex)
 		GetArrayArray(g_aMaps, iMapIndex, eMap);
 		
 		iLen = 0;
-		iLen += FormatEx(szBuffer[iLen], sizeof(szBuffer)-iLen, eMap[Map_Name]);
+		iLen += FormatEx(szBuffer[iLen], sizeof(szBuffer)-iLen, eMap[Map_NameFormatted]);
 		
 		iPlayersNeeded = GetMapsPlayerRequirementNeeds(eMap);
 		iLen += FormatEx(szBuffer[iLen], sizeof(szBuffer)-iLen, " *need %i players*", iPlayersNeeded);
@@ -1738,6 +1784,7 @@ public OnAllPluginsLoaded()
 {
 	cvar_database_servers_configname = FindConVar("sm_database_servers_configname");
 	g_bLibLoaded_ForceMapEnd = LibraryExists("force_map_end");
+	g_bLibLoaded_KZTimer = LibraryExists("KZTimer");
 }
 
 public OnLibraryAdded(const String:szName[])
@@ -1746,6 +1793,10 @@ public OnLibraryAdded(const String:szName[])
 	{
 		g_bLibLoaded_ForceMapEnd = true;
 	}
+	else if(StrEqual(szName, "KZTimer"))
+	{
+		g_bLibLoaded_KZTimer = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
@@ -1753,6 +1804,10 @@ public OnLibraryRemoved(const String:szName[])
 	if(StrEqual(szName, "force_map_end"))
 	{
 		g_bLibLoaded_ForceMapEnd = false;
+	}
+	else if(StrEqual(szName, "KZTimer"))
+	{
+		g_bLibLoaded_KZTimer = false;
 	}
 }
 
@@ -1982,14 +2037,53 @@ public Query_GetMaps(Handle:hDatabase, Handle:hQuery, any:iMapCount)
 		AddMap(SQL_FetchInt(hQuery, 0), szMapName, SQL_FetchInt(hQuery, 2), SQL_FetchInt(hQuery, 3), SQL_FetchFloat(hQuery, 4), SQL_FetchFloat(hQuery, 5));
 	}
 	
+	SortMapsByName();
 	OnMapsLoaded();
+}
+
+SortMapsByName()
+{
+	new iArraySize = GetArraySize(g_aMaps);
+	decl String:szName[MAX_MAP_NAME_LENGTH], eMap[Map], j, iIndex;
+	
+	for(new i=0; i<iArraySize; i++)
+	{
+		GetArrayArray(g_aMaps, i, eMap);
+		strcopy(szName, sizeof(szName), eMap[Map_NameFormatted]);
+		iIndex = 0;
+		
+		for(j=i+1; j<iArraySize; j++)
+		{
+			GetArrayArray(g_aMaps, j, eMap);
+			if(strcmp(szName, eMap[Map_NameFormatted], false) < 0)
+				continue;
+			
+			iIndex = j;
+			strcopy(szName, sizeof(szName), eMap[Map_NameFormatted]);
+		}
+		
+		if(!iIndex)
+			continue;
+		
+		SwapArrayItems(g_aMaps, i, iIndex);
+		
+		// We must reset the name to index map too.
+		GetArrayArray(g_aMaps, i, eMap);
+		SetTrieValue(g_aTrie_MapQuickIndex, eMap[Map_NameFormatted], i, true);
+		
+		GetArrayArray(g_aMaps, iIndex, eMap);
+		SetTrieValue(g_aTrie_MapQuickIndex, eMap[Map_NameFormatted], iIndex, true);
+	}
 }
 
 AddMap(iCatID, const String:szMapName[], iPlayersMin, iPlayersMax, Float:fMapTime, Float:fRoundTime)
 {
-	decl String:szMapNameLower[MAX_MAP_NAME_LENGTH];
+	decl String:szMapNameLower[MAX_MAP_NAME_LENGTH], String:szMapNameLowerFormatted[MAX_MAP_NAME_LENGTH];
 	strcopy(szMapNameLower, sizeof(szMapNameLower), szMapName);
 	StringToLower(szMapNameLower, strlen(szMapNameLower));
+	
+	strcopy(szMapNameLowerFormatted, sizeof(szMapNameLowerFormatted), szMapNameLower);
+	DBMaps_GetMapNameFormatted(szMapNameLowerFormatted, sizeof(szMapNameLowerFormatted));
 	
 	// Make sure the map actually exists on the server before adding it.
 	decl String:szMapPath[MAX_MAP_NAME_LENGTH+10];
@@ -1998,24 +2092,27 @@ AddMap(iCatID, const String:szMapName[], iPlayersMin, iPlayersMax, Float:fMapTim
 		return;
 	
 	// If the map is already in another category we need to remove it before adding it again.
-	decl eMap[Map], eCategory[Category], iIndex;
-	for(new i=0; i<GetArraySize(g_aMaps); i++)
+	decl eMap[Map], eCategory[Category], iMapIndex, iCatMapIndex;
+	
+	new iNumMaps = GetArraySize(g_aMaps);
+	for(iMapIndex=0; iMapIndex<iNumMaps; iMapIndex++)
 	{
-		GetArrayArray(g_aMaps, i, eMap);
-		if(!StrEqual(szMapNameLower, eMap[Map_Name]))
+		GetArrayArray(g_aMaps, iMapIndex, eMap);
+		if(!StrEqual(szMapNameLowerFormatted, eMap[Map_NameFormatted]))
 			continue;
 		
 		GetArrayArray(g_aCategories, g_iCategoryIDToIndex[eMap[Map_CategoryID]], eCategory);
 		
-		iIndex = FindValueInArray(eCategory[Category_MapIndexes], i);
-		if(iIndex != -1)
-			RemoveFromArray(eCategory[Category_MapIndexes], iIndex);
+		iCatMapIndex = FindValueInArray(eCategory[Category_MapIndexes], iMapIndex);
+		if(iCatMapIndex != -1)
+			RemoveFromArray(eCategory[Category_MapIndexes], iCatMapIndex);
 		
-		RemoveFromArray(g_aMaps, i);
 		break;
 	}
 	
 	strcopy(eMap[Map_Name], MAX_MAP_NAME_LENGTH, szMapNameLower);
+	strcopy(eMap[Map_NameFormatted], MAX_MAP_NAME_LENGTH, szMapNameLowerFormatted);
+	
 	eMap[Map_PlayersMin] = iPlayersMin;
 	eMap[Map_PlayersMax] = iPlayersMax;
 	eMap[Map_CategoryID] = iCatID;
@@ -2025,8 +2122,12 @@ AddMap(iCatID, const String:szMapName[], iPlayersMin, iPlayersMax, Float:fMapTim
 	
 	eMap[Map_Disabled] = false;
 	
-	iIndex = PushArrayArray(g_aMaps, eMap);
-	SetTrieValue(g_aTrie_MapQuickIndex, szMapNameLower, iIndex, true);
+	if(iMapIndex >= iNumMaps)
+		iMapIndex = PushArrayArray(g_aMaps, eMap);
+	else
+		SetArrayArray(g_aMaps, iMapIndex, eMap);
+	
+	SetTrieValue(g_aTrie_MapQuickIndex, szMapNameLowerFormatted, iMapIndex, true);
 }
 
 StringToLower(String:szString[], iLength)
@@ -2210,6 +2311,7 @@ BuildRecentlyPlayedArray()
 	{
 		GetMapHistory(i, szMapName, sizeof(szMapName), szReason, sizeof(szReason), iTime);
 		StringToLower(szMapName, sizeof(szMapName));
+		DBMaps_GetMapNameFormatted(szMapName, sizeof(szMapName));
 		PushArrayString(g_aRecentlyPlayedMaps, szMapName);
 	}
 }
@@ -2297,10 +2399,10 @@ SetRandomNextmap()
 		if(eMap[Map_Disabled])
 			continue;
 		
-		if(StrEqual(szCurrentMap, eMap[Map_Name]))
+		if(StrEqual(szCurrentMap, eMap[Map_NameFormatted]))
 			continue;
 		
-		if(WasMapRecentlyPlayed(eMap[Map_Name]))
+		if(WasMapRecentlyPlayed(eMap[Map_NameFormatted]))
 			continue;
 		
 		if(!CanCategoryBePlayed(eMap[Map_CategoryID]))
@@ -2435,26 +2537,27 @@ GetCategoriesPlayedCountForCycle(iCategoryID)
 	return iTimesPlayed;
 }
 
-FindMatchingMapName(String:szMapName[MAX_MAP_NAME_LENGTH])
+FindMatchingMapName(const String:szMapName[MAX_MAP_NAME_LENGTH])
 {
 	new iDisplayIndex = 0; // The index at which the map will appear in the menu
 	decl eMap[Map];
 	for (new i=0; i<GetArraySize(g_aMaps); i++)
 	{
 		GetArrayArray(g_aMaps, i, eMap);
-		if (eMap[Map_Disabled])
+		if(eMap[Map_Disabled])
 			continue;
-
-		if (StrContains(eMap[Map_Name], szMapName, false) != -1)
+		
+		if(StrContains(eMap[Map_NameFormatted], szMapName, false) != -1)
 		{
 			decl iMapIndex;
-			if(GetTrieValue(g_aTrie_MapQuickIndex, eMap[Map_Name], iMapIndex))
-			{
+			if(GetTrieValue(g_aTrie_MapQuickIndex, eMap[Map_NameFormatted], iMapIndex))
 				return iDisplayIndex;
-			}
+			
 			return -1;
 		}
+		
 		iDisplayIndex++;
 	}
+	
 	return -1;
 }
