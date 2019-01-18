@@ -3,10 +3,14 @@
 #include "../../Libraries/ModelSkinManager/model_skin_manager"
 #include <hls_color_chat>
 
+#undef REQUIRE_PLUGIN
+#include "../../RandomIncludes/kztimer"
+#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Gloves";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
@@ -41,6 +45,8 @@ new g_iGloveIndex_Paint[MAXPLAYERS+1];
 
 new Handle:g_hFwd_OnApply;
 
+new bool:g_bLibLoaded_KZTimer;
+
 
 public OnPluginStart()
 {
@@ -59,6 +65,27 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 {
 	RegPluginLibrary("unsafe_gloves");
 	return APLRes_Success;
+}
+
+public OnAllPluginsLoaded()
+{
+	g_bLibLoaded_KZTimer = LibraryExists("KZTimer");
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "KZTimer"))
+	{
+		g_bLibLoaded_KZTimer = true;
+	}
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "KZTimer"))
+	{
+		g_bLibLoaded_KZTimer = false;
+	}
 }
 
 BuildArray_Types()
@@ -235,8 +262,20 @@ public Action:OnGlovesSelect(iClient, iArgNum)
 	return Plugin_Handled;
 }
 
+CloseKZTimerMenu(iClient)
+{
+	if(g_bLibLoaded_KZTimer)
+	{
+		#if defined _KZTimer_included
+		KZTimer_StopUpdatingOfClimbersMenu(iClient);
+		#endif
+	}
+}
+
 DisplayMenu_CategorySelect(iClient)
 {
+	CloseKZTimerMenu(iClient);
+	
 	if(!ClientCookies_HaveCookiesLoaded(iClient))
 	{
 		CPrintToChat(iClient, "{red}Unavailable, try again in a few seconds.");
@@ -280,6 +319,8 @@ public MenuHandle_CategorySelect(Handle:hMenu, MenuAction:action, iParam1, iPara
 
 DisplayMenu_TypeSelect(iClient, iStartPos=0)
 {
+	CloseKZTimerMenu(iClient);
+	
 	new Handle:hMenu = CreateMenu(MenuHandle_TypeSelect);
 	SetMenuTitle(hMenu, "Select a glove type");
 	
@@ -370,6 +411,8 @@ public MenuHandle_TypeSelect(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 
 DisplayMenu_PaintSelect(iClient, iStartPos=0)
 {
+	CloseKZTimerMenu(iClient);
+	
 	new Handle:hMenu = CreateMenu(MenuHandle_PaintSelect);
 	SetMenuTitle(hMenu, "Select a glove skin");
 	

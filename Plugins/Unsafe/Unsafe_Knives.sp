@@ -5,10 +5,14 @@
 #include "../../Libraries/ClientCookies/client_cookies"
 #include <hls_color_chat>
 
+#undef REQUIRE_PLUGIN
+#include "../../RandomIncludes/kztimer"
+#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Knives";
-new const String:PLUGIN_VERSION[] = "2.1";
+new const String:PLUGIN_VERSION[] = "2.2";
 
 public Plugin:myinfo =
 {
@@ -114,6 +118,7 @@ new Handle:g_hForwardMenuBack[MAXPLAYERS+1];
 new Handle:g_hForwardMenuSelect[MAXPLAYERS+1];
 
 new bool:g_bLibLoaded_SkillServerWeapons;
+new bool:g_bLibLoaded_KZTimer;
 
 
 public OnPluginStart()
@@ -127,6 +132,7 @@ public OnPluginStart()
 public OnAllPluginsLoaded()
 {
 	g_bLibLoaded_SkillServerWeapons = LibraryExists("skill_server_weapons");
+	g_bLibLoaded_KZTimer = LibraryExists("KZTimer");
 }
 
 public OnLibraryAdded(const String:szName[])
@@ -135,6 +141,10 @@ public OnLibraryAdded(const String:szName[])
 	{
 		g_bLibLoaded_SkillServerWeapons = true;
 	}
+	else if(StrEqual(szName, "KZTimer"))
+	{
+		g_bLibLoaded_KZTimer = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
@@ -142,6 +152,10 @@ public OnLibraryRemoved(const String:szName[])
 	if(StrEqual(szName, "skill_server_weapons"))
 	{
 		g_bLibLoaded_SkillServerWeapons = false;
+	}
+	else if(StrEqual(szName, "KZTimer"))
+	{
+		g_bLibLoaded_KZTimer = false;
 	}
 }
 
@@ -229,8 +243,20 @@ public Action:OnKnifeSelect(iClient, iArgNum)
 	return Plugin_Handled;
 }
 
+CloseKZTimerMenu(iClient)
+{
+	if(g_bLibLoaded_KZTimer)
+	{
+		#if defined _KZTimer_included
+		KZTimer_StopUpdatingOfClimbersMenu(iClient);
+		#endif
+	}
+}
+
 DisplayMenu_KnifeSelect(iClient, iStartItem=0)
 {
+	CloseKZTimerMenu(iClient);
+	
 	if(!ClientCookies_HaveCookiesLoaded(iClient))
 	{
 		CPrintToChat(iClient, "{red}Unavailable, try again in a few seconds.");

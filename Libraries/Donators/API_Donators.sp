@@ -9,12 +9,13 @@
 #undef REQUIRE_PLUGIN
 #include "../../Libraries/ModelSkinManager/model_skin_manager"
 #include "../../Libraries/Store/store"
+#include "../../RandomIncludes/kztimer"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Donators";
-new const String:PLUGIN_VERSION[] = "2.9";
+new const String:PLUGIN_VERSION[] = "2.10";
 
 public Plugin:myinfo =
 {
@@ -57,6 +58,7 @@ new Float:g_fNextMessageDisplay[MAXPLAYERS+1];
 new bool:g_bLibLoaded_ModelSkinManager;
 new bool:g_bLibLoaded_UserPoints;
 new bool:g_bLibLoaded_Store;
+new bool:g_bLibLoaded_KZTimer;
 
 
 public OnPluginStart()
@@ -268,6 +270,7 @@ public OnAllPluginsLoaded()
 	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
 	g_bLibLoaded_UserPoints = LibraryExists("user_points");
 	g_bLibLoaded_Store = LibraryExists("store");
+	g_bLibLoaded_KZTimer = LibraryExists("KZTimer");
 }
 
 public OnLibraryAdded(const String:szName[])
@@ -284,6 +287,10 @@ public OnLibraryAdded(const String:szName[])
 	{
 		g_bLibLoaded_Store = true;
 	}
+	else if(StrEqual(szName, "KZTimer"))
+	{
+		g_bLibLoaded_KZTimer = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
@@ -299,6 +306,10 @@ public OnLibraryRemoved(const String:szName[])
 	else if(StrEqual(szName, "store"))
 	{
 		g_bLibLoaded_Store = false;
+	}
+	else if(StrEqual(szName, "KZTimer"))
+	{
+		g_bLibLoaded_KZTimer = false;
 	}
 }
 
@@ -574,8 +585,20 @@ public Action:OnOpenDonatorMenu_Store(iClient, iArgNum)
 	return Plugin_Handled;
 }
 
+CloseKZTimerMenu(iClient)
+{
+	if(g_bLibLoaded_KZTimer)
+	{
+		#if defined _KZTimer_included
+		KZTimer_StopUpdatingOfClimbersMenu(iClient);
+		#endif
+	}
+}
+
 DisplayMenu_NonDonator(iClient, iPosition=0)
 {
+	CloseKZTimerMenu(iClient);
+	
 	new Handle:hMenu = CreateMenu(MenuHandle_NonDonator);
 	SetMenuTitle(hMenu, "Donator Menu");
 	
@@ -627,6 +650,8 @@ public MenuHandle_NonDonator(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 
 DisplayMenu_Settings(iClient, iPosition=0)
 {
+	CloseKZTimerMenu(iClient);
+	
 	new Handle:hMenu = CreateMenu(MenuHandle_Settings);
 	SetMenuTitle(hMenu, "Donator Settings");
 	

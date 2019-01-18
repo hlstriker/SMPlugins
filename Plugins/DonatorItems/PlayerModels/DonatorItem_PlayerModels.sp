@@ -11,12 +11,13 @@
 #undef REQUIRE_PLUGIN
 #include "../../../Libraries/ModelSkinManager/model_skin_manager"
 #include "../../../Plugins/Unsafe/unsafe_gloves"
+#include "../../../RandomIncludes/kztimer"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Donator Item: Player Models";
-new const String:PLUGIN_VERSION[] = "1.6";
+new const String:PLUGIN_VERSION[] = "1.7";
 
 public Plugin:myinfo =
 {
@@ -37,6 +38,7 @@ new g_iItemBits[MAXPLAYERS+1];
 new bool:g_bUsingArmsModel[MAXPLAYERS+1];
 
 new bool:g_bLibLoaded_ModelSkinManager;
+new bool:g_bLibLoaded_KZTimer;
 
 new const String:g_szPlayerModelNames[][] =
 {
@@ -537,18 +539,31 @@ public OnPluginStart()
 public OnAllPluginsLoaded()
 {
 	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
+	g_bLibLoaded_KZTimer = LibraryExists("KZTimer");
 }
 
 public OnLibraryAdded(const String:szName[])
 {
 	if(StrEqual(szName, "model_skin_manager"))
+	{
 		g_bLibLoaded_ModelSkinManager = true;
+	}
+	else if(StrEqual(szName, "KZTimer"))
+	{
+		g_bLibLoaded_KZTimer = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
 {
 	if(StrEqual(szName, "model_skin_manager"))
+	{
 		g_bLibLoaded_ModelSkinManager = false;
+	}
+	else if(StrEqual(szName, "KZTimer"))
+	{
+		g_bLibLoaded_KZTimer = false;
+	}
 }
 
 public OnMapStart()
@@ -759,8 +774,20 @@ public OnSettingsMenu(iClient)
 	DisplayMenu_ToggleItems(iClient);
 }
 
+CloseKZTimerMenu(iClient)
+{
+	if(g_bLibLoaded_KZTimer)
+	{
+		#if defined _KZTimer_included
+		KZTimer_StopUpdatingOfClimbersMenu(iClient);
+		#endif
+	}
+}
+
 DisplayMenu_ToggleItems(iClient, iPosition=0)
 {
+	CloseKZTimerMenu(iClient);
+	
 	new Handle:hMenu = CreateMenu(MenuHandle_ToggleItems);
 	SetMenuTitle(hMenu, "Player Models");
 	

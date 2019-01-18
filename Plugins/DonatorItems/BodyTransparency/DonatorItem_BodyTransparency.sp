@@ -4,10 +4,14 @@
 #include "../../../Libraries/ClientCookies/client_cookies"
 #include <hls_color_chat>
 
+#undef REQUIRE_PLUGIN
+#include "../../../RandomIncludes/kztimer"
+#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Donator Item: Body Transparency";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -20,6 +24,8 @@ public Plugin:myinfo =
 
 new bool:g_bHasTransparency[MAXPLAYERS+1];
 
+new bool:g_bLibLoaded_KZTimer;
+
 
 public OnPluginStart()
 {
@@ -30,6 +36,27 @@ public OnPluginStart()
 	{
 		HookConVarChange(hConvar, OnConVarChanged);
 		SetConVarInt(hConvar, 1);
+	}
+}
+
+public OnAllPluginsLoaded()
+{
+	g_bLibLoaded_KZTimer = LibraryExists("KZTimer");
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "KZTimer"))
+	{
+		g_bLibLoaded_KZTimer = true;
+	}
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "KZTimer"))
+	{
+		g_bLibLoaded_KZTimer = false;
 	}
 }
 
@@ -97,8 +124,20 @@ public OnSettingsMenu(iClient)
 	DisplayMenu_ToggleItems(iClient);
 }
 
+CloseKZTimerMenu(iClient)
+{
+	if(g_bLibLoaded_KZTimer)
+	{
+		#if defined _KZTimer_included
+		KZTimer_StopUpdatingOfClimbersMenu(iClient);
+		#endif
+	}
+}
+
 DisplayMenu_ToggleItems(iClient, iPosition=0)
 {
+	CloseKZTimerMenu(iClient);
+	
 	new Handle:hMenu = CreateMenu(MenuHandle_ToggleItems);
 	SetMenuTitle(hMenu, "Body Transparency");
 	

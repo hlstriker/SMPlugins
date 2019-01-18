@@ -12,13 +12,14 @@
 
 #undef REQUIRE_PLUGIN
 #include "../../Libraries/ClientCookies/client_cookies"
+#include "../../RandomIncludes/kztimer"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 #pragma dynamic 9000000
 
 new const String:PLUGIN_NAME[] = "Weapon Skins";
-new const String:PLUGIN_VERSION[] = "0.9";
+new const String:PLUGIN_VERSION[] = "0.10";
 
 public Plugin:myinfo =
 {
@@ -133,6 +134,7 @@ new String:g_szDatabaseConfigName[64];
 new Handle:cvar_database_servers_configname;
 
 new bool:g_bLibLoaded_ClientCookies;
+new bool:g_bLibLoaded_KZTimer;
 
 
 public OnPluginStart()
@@ -182,20 +184,34 @@ public OnPluginStart()
 
 public OnAllPluginsLoaded()
 {
-	g_bLibLoaded_ClientCookies = LibraryExists("client_cookies");
 	cvar_database_servers_configname = FindConVar("sm_database_servers_configname");
+	
+	g_bLibLoaded_ClientCookies = LibraryExists("client_cookies");
+	g_bLibLoaded_KZTimer = LibraryExists("KZTimer");
 }
 
 public OnLibraryAdded(const String:szName[])
 {
 	if(StrEqual(szName, "client_cookies"))
+	{
 		g_bLibLoaded_ClientCookies = true;
+	}
+	else if(StrEqual(szName, "KZTimer"))
+	{
+		g_bLibLoaded_KZTimer = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
 {
 	if(StrEqual(szName, "client_cookies"))
+	{
 		g_bLibLoaded_ClientCookies = false;
+	}
+	else if(StrEqual(szName, "KZTimer"))
+	{
+		g_bLibLoaded_KZTimer = false;
+	}
 }
 
 public OnConfigsExecuted()
@@ -758,8 +774,20 @@ public Action:OnSkinSelect(iClient, iArgNum)
 	return Plugin_Handled;
 }
 
+CloseKZTimerMenu(iClient)
+{
+	if(g_bLibLoaded_KZTimer)
+	{
+		#if defined _KZTimer_included
+		KZTimer_StopUpdatingOfClimbersMenu(iClient);
+		#endif
+	}
+}
+
 DisplayMenu_CategorySelect(iClient)
 {
+	CloseKZTimerMenu(iClient);
+	
 	new Handle:hMenu = CreateMenu(MenuHandle_CategorySelect);
 	SetMenuTitle(hMenu, "Weapon skins");
 	
@@ -845,6 +873,8 @@ public MenuHandle_CategorySelect(Handle:hMenu, MenuAction:action, iParam1, iPara
 
 DisplayMenu_WeaponCategorySelect(iClient, iStartItem=0)
 {
+	CloseKZTimerMenu(iClient);
+	
 	new Handle:hMenu = CreateMenu(MenuHandle_WeaponCategorySelect);
 	SetMenuTitle(hMenu, "Select a weapon category");
 	
@@ -901,6 +931,8 @@ public MenuHandle_WeaponCategorySelect(Handle:hMenu, MenuAction:action, iParam1,
 
 DisplayMenu_WeaponSelect(iClient, iWeaponEntsIndex, iStartItem=0)
 {
+	CloseKZTimerMenu(iClient);
+	
 	g_iMenuPosition_WeaponSelect_Index[iClient] = iWeaponEntsIndex;
 	
 	new Handle:hMenu = CreateMenu(MenuHandle_WeaponSelect);
@@ -988,6 +1020,8 @@ public MenuHandle_WeaponSelect(Handle:hMenu, MenuAction:action, iParam1, iParam2
 
 DisplayMenu_WeaponOptions(iClient, const String:szWeaponEnt[])
 {
+	CloseKZTimerMenu(iClient);
+	
 	decl String:szBuffer[VDF_TOKEN_LEN];
 	GetLocalizedWeaponName(iClient, szWeaponEnt, szBuffer, sizeof(szBuffer));
 	
@@ -1080,6 +1114,8 @@ public MenuHandle_WeaponOptions(Handle:hMenu, MenuAction:action, iParam1, iParam
 
 DisplayMenu_PaintSelectShowUnused(iClient, const String:szWeaponEnt[], iStartItem=0)
 {
+	CloseKZTimerMenu(iClient);
+	
 	strcopy(g_szMenuPosition_PaintSelectWeaponEnt[iClient], VDF_TOKEN_LEN, szWeaponEnt);
 	
 	decl String:szBuffer[VDF_TOKEN_LEN];
@@ -1112,6 +1148,8 @@ DisplayMenu_PaintSelectShowUnused(iClient, const String:szWeaponEnt[], iStartIte
 
 DisplayMenu_PaintSelectShowAll(iClient, const String:szWeaponEnt[], iStartItem=0)
 {
+	CloseKZTimerMenu(iClient);
+	
 	strcopy(g_szMenuPosition_PaintSelectWeaponEnt[iClient], VDF_TOKEN_LEN, szWeaponEnt);
 	
 	decl String:szBuffer[VDF_TOKEN_LEN];
@@ -1150,6 +1188,8 @@ DisplayMenu_PaintSelectShowAll(iClient, const String:szWeaponEnt[], iStartItem=0
 
 DisplayMenu_PaintSelectWeaponEntSpecific(iClient, const String:szWeaponEnt[], iStartItem=0)
 {
+	CloseKZTimerMenu(iClient);
+	
 	strcopy(g_szMenuPosition_PaintSelectWeaponEnt[iClient], VDF_TOKEN_LEN, szWeaponEnt);
 	
 	decl iIndex;
