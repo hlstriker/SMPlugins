@@ -11,7 +11,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Zombie";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 new g_ZombieMsg;
 
@@ -189,6 +189,7 @@ PrepareClients()
 			}
 			case TEAM_PRISONERS:
 			{
+				SetEntProp(iClient, Prop_Send, "m_ArmorValue", 100);
 				UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_KNIFE_T);
 				SetEntPropFloat(iClient, Prop_Send, "m_flLaggedMovementValue", ZOMBIE_SPEED);
 			}
