@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Skill Server Weapons";
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
 {
@@ -40,6 +40,10 @@ public Plugin:myinfo =
 
 #define EF_NODRAW	32
 
+// Applying Viewmodel effects no longer works in CS:GO
+#define VIEWMODEL_EFFECTS
+#undef VIEWMODEL_EFFECTS
+
 #define CATEGORY_HIDE_WEAPONS			-1
 #define CATEGORY_ADMIN_TOGGLE_WEAPONS	-2
 
@@ -60,8 +64,10 @@ enum _:WeaponData
 	WeaponCategory:WEAPON_CATEGORY
 };
 
+new Handle:cvar_allow_dropped_weapon;
 
 new g_iDroppedWeaponRef[MAXPLAYERS+1][NUM_WEAPON_CATS];
+
 new bool:g_bIgnoreDropHook[MAXPLAYERS+1];
 
 new g_iNumKnives;
@@ -88,6 +94,9 @@ new bool:g_bLibLoaded_UnsafeWeaponSkins;
 public OnPluginStart()
 {
 	CreateConVar("skill_server_weapons_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
+
+	if((cvar_allow_dropped_weapon = FindConVar("weapons_allow_dropped_weapon")) == INVALID_HANDLE)
+		cvar_allow_dropped_weapon = CreateConVar("weapons_allow_dropped_weapon", "1", "Whether to allow clients to drop weapons (max 1 per player)");
 	
 	new Handle:cvar_mp_give_player_c4 = FindConVar("mp_give_player_c4");
 	if(cvar_mp_give_player_c4 != INVALID_HANDLE)
@@ -98,7 +107,7 @@ public OnPluginStart()
 	
 	g_aWeapons = CreateArray(WeaponData);
 	BuildWeaponsArray();
-	
+
 	RegConsoleCmd("sm_gun", OnWeaponSelect, "Opens the weapon selection menu.");
 	RegConsoleCmd("sm_guns", OnWeaponSelect, "Opens the weapon selection menu.");
 	RegConsoleCmd("sm_weapon", OnWeaponSelect, "Opens the weapon selection menu.");
@@ -210,6 +219,7 @@ DisplayMenu_CategorySelect(iClient)
 	IntToString(_:CATEGORY_PISTOLS, szInfo, sizeof(szInfo));
 	AddMenuItem(hMenu, szInfo, "Pistols");
 	
+	#if defined VIEWMODEL_EFFECTS
 	AddMenuItem(hMenu, "", "", ITEMDRAW_SPACER);
 	AddMenuItem(hMenu, "", "", ITEMDRAW_SPACER);
 	
@@ -218,7 +228,9 @@ DisplayMenu_CategorySelect(iClient)
 		AddMenuItem(hMenu, szInfo, "Unhide weapons");
 	else
 		AddMenuItem(hMenu, szInfo, "Hide weapons");
-	
+	#endif
+
+
 	if(g_bLibLoaded_MapCookies)
 	{
 		#if defined _map_cookies_included
@@ -269,7 +281,9 @@ public MenuHandle_CategorySelect(Handle:hMenu, MenuAction:action, iParam1, iPara
 		DisplayMenu_CategorySelect(iParam1);
 		return;
 	}
-	
+
+
+	#if defined VIEWMODEL_EFFECTS
 	if(iCategory == CATEGORY_HIDE_WEAPONS)
 	{
 		g_bShouldHideWeapons[iParam1] = !g_bShouldHideWeapons[iParam1];
@@ -280,6 +294,7 @@ public MenuHandle_CategorySelect(Handle:hMenu, MenuAction:action, iParam1, iPara
 		DisplayMenu_CategorySelect(iParam1);
 		return;
 	}
+	#endif
 	
 	if(g_bLibLoaded_UnsafeKnives && iCategory == _:CATEGORY_KNIFE)
 	{
@@ -540,9 +555,13 @@ public OnWeaponSwitchPost(iClient, iWeapon)
 	if(iWeapon < 1 || !IsValidEntity(iWeapon))
 		return;
 	
+	#if defined VIEWMODEL_EFFECTS
 	SetViewModelVisibility(iClient);
+	#endif
+	
 }
 
+#if defined VIEWMODEL_EFFECTS
 SetViewModelVisibility(iClient)
 {
 	static iViewModel;
@@ -555,6 +574,7 @@ SetViewModelVisibility(iClient)
 	else
 		SetEntProp(iViewModel, Prop_Send, "m_fEffects", 0);
 }
+#endif
 
 public ClientCookies_OnCookiesLoaded(iClient)
 {
@@ -657,25 +677,30 @@ public OnWeaponEquipPost(iClient, iWeapon)
 {
 	if(!IsValidEntity(iWeapon))
 		return;
-	
-	new iOwner = GetClientFromSerial(GetWeaponOwnerSerial(iWeapon));
-	if(1 <= iOwner < sizeof(g_iDroppedWeaponRef))
+
+	if (GetConVarBool(cvar_allow_dropped_weapon))
 	{
-		new WeaponCategory:iWeaponCategory = GetWeaponsCategory(iWeapon);
-		new iDroppedWeapon = EntRefToEntIndex(g_iDroppedWeaponRef[iOwner][iWeaponCategory]);
-		
-		if(iDroppedWeapon > 0)
+		new iOwner = GetClientFromSerial(GetWeaponOwnerSerial(iWeapon));
+		if(1 <= iOwner < sizeof(g_iDroppedWeaponRef))
 		{
-			if(iDroppedWeapon != iWeapon)
-				KillWeapon(iDroppedWeapon);
+			new WeaponCategory:iWeaponCategory = GetWeaponsCategory(iWeapon);
+			new iDroppedWeapon = EntRefToEntIndex(g_iDroppedWeaponRef[iOwner][iWeaponCategory]);
 			
-			g_iDroppedWeaponRef[iOwner][iWeaponCategory] = INVALID_ENT_REFERENCE;
+			if(iDroppedWeapon > 0)
+			{
+				if(iDroppedWeapon != iWeapon)
+					KillWeapon(iDroppedWeapon);
+				
+				g_iDroppedWeaponRef[iOwner][iWeaponCategory] = INVALID_ENT_REFERENCE;
+			}
 		}
 	}
 	
 	SetWeaponOwnerSerial(iWeapon, GetClientSerial(iClient));
-	
+
+	#if defined VIEWMODEL_EFFECTS
 	SetViewModelVisibility(iClient);
+	#endif
 }
 
 public OnWeaponDropPost(iClient, iWeapon)
@@ -685,14 +710,19 @@ public OnWeaponDropPost(iClient, iWeapon)
 	
 	if(!IsValidEntity(iWeapon))
 		return;
-	
-	new WeaponCategory:iWeaponCategory = GetWeaponsCategory(iWeapon);
-	new iDroppedWeapon = EntRefToEntIndex(g_iDroppedWeaponRef[iClient][iWeaponCategory]);
-	
-	if(iDroppedWeapon > 0)
-		KillWeapon(iDroppedWeapon);
-	
-	g_iDroppedWeaponRef[iClient][iWeaponCategory] = EntIndexToEntRef(iWeapon);
+
+	if(GetConVarBool(cvar_allow_dropped_weapon))
+	{
+		new WeaponCategory:iWeaponCategory = GetWeaponsCategory(iWeapon);
+		new iDroppedWeapon = EntRefToEntIndex(g_iDroppedWeaponRef[iClient][iWeaponCategory]);
+		
+		if(iDroppedWeapon > 0)
+			KillWeapon(iDroppedWeapon);
+		
+		g_iDroppedWeaponRef[iClient][iWeaponCategory] = EntIndexToEntRef(iWeapon);
+	}
+	else
+		KillWeapon(iWeapon);
 }
 
 StripClientWeaponsOfCategoryType(iClient, iCategory)
