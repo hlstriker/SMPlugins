@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Skill Server Weapons";
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
 {
@@ -40,6 +40,10 @@ public Plugin:myinfo =
 
 #define EF_NODRAW	32
 
+// Applying Viewmodel effects no longer works in CS:GO
+#define VIEWMODEL_EFFECTS
+#undef VIEWMODEL_EFFECTS
+
 #define CATEGORY_HIDE_WEAPONS			-1
 #define CATEGORY_ADMIN_TOGGLE_WEAPONS	-2
 
@@ -60,8 +64,10 @@ enum _:WeaponData
 	WeaponCategory:WEAPON_CATEGORY
 };
 
-
+#if defined VIEWMODEL_EFFECTS
 new g_iDroppedWeaponRef[MAXPLAYERS+1][NUM_WEAPON_CATS];
+#endif
+
 new bool:g_bIgnoreDropHook[MAXPLAYERS+1];
 
 new g_iNumKnives;
@@ -98,7 +104,7 @@ public OnPluginStart()
 	
 	g_aWeapons = CreateArray(WeaponData);
 	BuildWeaponsArray();
-	
+
 	RegConsoleCmd("sm_gun", OnWeaponSelect, "Opens the weapon selection menu.");
 	RegConsoleCmd("sm_guns", OnWeaponSelect, "Opens the weapon selection menu.");
 	RegConsoleCmd("sm_weapon", OnWeaponSelect, "Opens the weapon selection menu.");
@@ -210,6 +216,7 @@ DisplayMenu_CategorySelect(iClient)
 	IntToString(_:CATEGORY_PISTOLS, szInfo, sizeof(szInfo));
 	AddMenuItem(hMenu, szInfo, "Pistols");
 	
+	#if defined VIEWMODEL_EFFECTS
 	AddMenuItem(hMenu, "", "", ITEMDRAW_SPACER);
 	AddMenuItem(hMenu, "", "", ITEMDRAW_SPACER);
 	
@@ -218,7 +225,9 @@ DisplayMenu_CategorySelect(iClient)
 		AddMenuItem(hMenu, szInfo, "Unhide weapons");
 	else
 		AddMenuItem(hMenu, szInfo, "Hide weapons");
-	
+	#endif
+
+
 	if(g_bLibLoaded_MapCookies)
 	{
 		#if defined _map_cookies_included
@@ -269,7 +278,9 @@ public MenuHandle_CategorySelect(Handle:hMenu, MenuAction:action, iParam1, iPara
 		DisplayMenu_CategorySelect(iParam1);
 		return;
 	}
-	
+
+
+	#if defined VIEWMODEL_EFFECTS
 	if(iCategory == CATEGORY_HIDE_WEAPONS)
 	{
 		g_bShouldHideWeapons[iParam1] = !g_bShouldHideWeapons[iParam1];
@@ -280,6 +291,7 @@ public MenuHandle_CategorySelect(Handle:hMenu, MenuAction:action, iParam1, iPara
 		DisplayMenu_CategorySelect(iParam1);
 		return;
 	}
+	#endif
 	
 	if(g_bLibLoaded_UnsafeKnives && iCategory == _:CATEGORY_KNIFE)
 	{
@@ -540,9 +552,13 @@ public OnWeaponSwitchPost(iClient, iWeapon)
 	if(iWeapon < 1 || !IsValidEntity(iWeapon))
 		return;
 	
+	#if defined VIEWMODEL_EFFECTS
 	SetViewModelVisibility(iClient);
+	#endif
+	
 }
 
+#if defined VIEWMODEL_EFFECTS
 SetViewModelVisibility(iClient)
 {
 	static iViewModel;
@@ -555,6 +571,7 @@ SetViewModelVisibility(iClient)
 	else
 		SetEntProp(iViewModel, Prop_Send, "m_fEffects", 0);
 }
+#endif
 
 public ClientCookies_OnCookiesLoaded(iClient)
 {
@@ -658,24 +675,11 @@ public OnWeaponEquipPost(iClient, iWeapon)
 	if(!IsValidEntity(iWeapon))
 		return;
 	
-	new iOwner = GetClientFromSerial(GetWeaponOwnerSerial(iWeapon));
-	if(1 <= iOwner < sizeof(g_iDroppedWeaponRef))
-	{
-		new WeaponCategory:iWeaponCategory = GetWeaponsCategory(iWeapon);
-		new iDroppedWeapon = EntRefToEntIndex(g_iDroppedWeaponRef[iOwner][iWeaponCategory]);
-		
-		if(iDroppedWeapon > 0)
-		{
-			if(iDroppedWeapon != iWeapon)
-				KillWeapon(iDroppedWeapon);
-			
-			g_iDroppedWeaponRef[iOwner][iWeaponCategory] = INVALID_ENT_REFERENCE;
-		}
-	}
-	
 	SetWeaponOwnerSerial(iWeapon, GetClientSerial(iClient));
-	
+
+	#if defined VIEWMODEL_EFFECTS
 	SetViewModelVisibility(iClient);
+	#endif
 }
 
 public OnWeaponDropPost(iClient, iWeapon)
@@ -685,14 +689,8 @@ public OnWeaponDropPost(iClient, iWeapon)
 	
 	if(!IsValidEntity(iWeapon))
 		return;
-	
-	new WeaponCategory:iWeaponCategory = GetWeaponsCategory(iWeapon);
-	new iDroppedWeapon = EntRefToEntIndex(g_iDroppedWeaponRef[iClient][iWeaponCategory]);
-	
-	if(iDroppedWeapon > 0)
-		KillWeapon(iDroppedWeapon);
-	
-	g_iDroppedWeaponRef[iClient][iWeaponCategory] = EntIndexToEntRef(iWeapon);
+
+	KillWeapon(iWeapon);
 }
 
 StripClientWeaponsOfCategoryType(iClient, iCategory)
@@ -834,23 +832,4 @@ AddWeaponToArray(const String:szWeaponName[], const String:szWeaponEntName[], co
 	}
 	
 	return iIndex;
-}
-
-WeaponCategory:GetWeaponsCategory(iWeapon)
-{
-	decl String:szClassName[MAX_WEAPON_ENT_NAME_LEN];
-	if(!GetEntityClassname(iWeapon, szClassName, sizeof(szClassName)))
-		return CATEGORY_UNKNOWN;
-	
-	new iArraySize = GetArraySize(g_aWeapons);
-	
-	decl eWeaponData[WeaponData];
-	for(new i=0; i<iArraySize; i++)
-	{
-		GetArrayArray(g_aWeapons, i, eWeaponData);
-		if(StrEqual(szClassName, eWeaponData[WEAPON_ENT_NAME]))
-			return eWeaponData[WEAPON_CATEGORY];
-	}
-	
-	return CATEGORY_UNKNOWN;
 }
