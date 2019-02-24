@@ -64,9 +64,9 @@ enum _:WeaponData
 	WeaponCategory:WEAPON_CATEGORY
 };
 
-#if defined VIEWMODEL_EFFECTS
+new Handle:cvar_allow_dropped_weapon;
+
 new g_iDroppedWeaponRef[MAXPLAYERS+1][NUM_WEAPON_CATS];
-#endif
 
 new bool:g_bIgnoreDropHook[MAXPLAYERS+1];
 
@@ -94,6 +94,9 @@ new bool:g_bLibLoaded_UnsafeWeaponSkins;
 public OnPluginStart()
 {
 	CreateConVar("skill_server_weapons_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
+
+	if((cvar_allow_dropped_weapon = FindConVar("weapons_allow_dropped_weapon")) == INVALID_HANDLE)
+		cvar_allow_dropped_weapon = CreateConVar("weapons_allow_dropped_weapon", "1", "Whether to allow clients to drop weapons (max 1 per player)");
 	
 	new Handle:cvar_mp_give_player_c4 = FindConVar("mp_give_player_c4");
 	if(cvar_mp_give_player_c4 != INVALID_HANDLE)
@@ -674,6 +677,24 @@ public OnWeaponEquipPost(iClient, iWeapon)
 {
 	if(!IsValidEntity(iWeapon))
 		return;
+
+	if (GetConVarBool(cvar_allow_dropped_weapon))
+	{
+		new iOwner = GetClientFromSerial(GetWeaponOwnerSerial(iWeapon));
+		if(1 <= iOwner < sizeof(g_iDroppedWeaponRef))
+		{
+			new WeaponCategory:iWeaponCategory = GetWeaponsCategory(iWeapon);
+			new iDroppedWeapon = EntRefToEntIndex(g_iDroppedWeaponRef[iOwner][iWeaponCategory]);
+			
+			if(iDroppedWeapon > 0)
+			{
+				if(iDroppedWeapon != iWeapon)
+					KillWeapon(iDroppedWeapon);
+				
+				g_iDroppedWeaponRef[iOwner][iWeaponCategory] = INVALID_ENT_REFERENCE;
+			}
+		}
+	}
 	
 	SetWeaponOwnerSerial(iWeapon, GetClientSerial(iClient));
 
@@ -690,7 +711,18 @@ public OnWeaponDropPost(iClient, iWeapon)
 	if(!IsValidEntity(iWeapon))
 		return;
 
-	KillWeapon(iWeapon);
+	if(GetConVarBool(cvar_allow_dropped_weapon))
+	{
+		new WeaponCategory:iWeaponCategory = GetWeaponsCategory(iWeapon);
+		new iDroppedWeapon = EntRefToEntIndex(g_iDroppedWeaponRef[iClient][iWeaponCategory]);
+		
+		if(iDroppedWeapon > 0)
+			KillWeapon(iDroppedWeapon);
+		
+		g_iDroppedWeaponRef[iClient][iWeaponCategory] = EntIndexToEntRef(iWeapon);
+	}
+	else
+		KillWeapon(iWeapon);
 }
 
 StripClientWeaponsOfCategoryType(iClient, iCategory)
@@ -832,4 +864,23 @@ AddWeaponToArray(const String:szWeaponName[], const String:szWeaponEntName[], co
 	}
 	
 	return iIndex;
+}
+
+WeaponCategory:GetWeaponsCategory(iWeapon)
+{
+	decl String:szClassName[MAX_WEAPON_ENT_NAME_LEN];
+	if(!GetEntityClassname(iWeapon, szClassName, sizeof(szClassName)))
+		return CATEGORY_UNKNOWN;
+	
+	new iArraySize = GetArraySize(g_aWeapons);
+	
+	decl eWeaponData[WeaponData];
+	for(new i=0; i<iArraySize; i++)
+	{
+		GetArrayArray(g_aWeapons, i, eWeaponData);
+		if(StrEqual(szClassName, eWeaponData[WEAPON_ENT_NAME]))
+			return eWeaponData[WEAPON_CATEGORY];
+	}
+	
+	return CATEGORY_UNKNOWN;
 }
