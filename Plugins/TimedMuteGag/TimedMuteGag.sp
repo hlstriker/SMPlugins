@@ -1,11 +1,12 @@
 #include <sourcemod>
 #include <basecomm>
 #include "../../Libraries/TimedPunishments/timed_punishments"
+#include "../../Libraries/Admins/admins"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Timed mute and gag";
-new const String:PLUGIN_VERSION[] = "1.13";
+new const String:PLUGIN_VERSION[] = "1.14";
 
 public Plugin:myinfo =
 {
@@ -316,53 +317,14 @@ public Action:Command_TimedUnsilence(iClient, iArgs)
 
 GetAdminsMaxTime(iClient)
 {
-	new AdminId:iAdminID = GetUserAdmin(iClient);
-	if(iAdminID == INVALID_ADMIN_ID)
-		return -1;
+	new iLevel = Admins_GetLevel(iClient);
 	
-	new iGroupCount = GetAdminGroupCount(iAdminID);
-	if(!iGroupCount)
-		return -1;
-	
-	new iHighestLevel = 0;
-	
-	decl String:szGroupName[32], iLevel;
-	for(new i=0; i<iGroupCount; i++)
+	switch(iLevel)
 	{
-		if(GetAdminGroup(iAdminID, i, szGroupName, sizeof(szGroupName)) == INVALID_GROUP_ID)
-			continue;
-		
-		if(StrEqual(szGroupName, "Junior"))
-		{
-			iLevel = 1;
-		}
-		else if(StrEqual(szGroupName, "Senior"))
-		{
-			iLevel = 2;
-		}
-		else if(StrEqual(szGroupName, "Reputable"))
-		{
-			iLevel = 3;
-		}
-		else if(StrEqual(szGroupName, "Lead"))
-		{
-			iLevel = 4;
-		}
-		else
-		{
-			continue;
-		}
-		
-		if(iLevel > iHighestLevel)
-			iHighestLevel = iLevel;
-	}
-	
-	switch(iHighestLevel)
-	{
-		case 1: return -1;		// Cannot timed punish
-		case 2: return 259200;	// 3 days
-		case 3: return 604800;	// 7 days
-		case 4: return 0;		// Permanent
+		case AdminLevel_Junior:		return -1;		// Cannot timed punish
+		case AdminLevel_Senior:		return 259200;	// 3 days
+		case AdminLevel_Reputable:	return 604800;	// 7 days
+		case AdminLevel_Lead:		return 0;		// Permanent
 	}
 	
 	return -1;

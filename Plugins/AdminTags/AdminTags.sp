@@ -1,11 +1,12 @@
 #include <sourcemod>
 #include "../../Libraries/ClientSettings/client_settings"
 #include "../../Libraries/ClientCookies/client_cookies"
+#include "../../Libraries/Admins/admins"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Admin tags";
-new const String:PLUGIN_VERSION[] = "2.3";
+new const String:PLUGIN_VERSION[] = "2.4";
 
 public Plugin:myinfo =
 {
@@ -64,16 +65,8 @@ public Action:Command_AdminTag(iClient, iArgs)
 
 SetAdminTagIfNeeded(iClient)
 {
-	if(IsUserAdmin(iClient))
+	if(Admins_GetLevel(iClient) > AdminLevel_None)
 		ClientSettings_SetFakeClanTag(iClient, SZ_ADMIN_TAG);
-}
-
-bool:IsUserAdmin(iClient)
-{
-	if(!CheckCommandAccess(iClient, "sm_say", ADMFLAG_CHAT, false))
-		return false;
-	
-	return true;
 }
 
 public OnClientPutInServer(iClient)

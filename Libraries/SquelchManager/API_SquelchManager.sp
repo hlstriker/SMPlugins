@@ -7,13 +7,14 @@
 #include "../DatabaseServers/database_servers"
 #include "../DatabaseUsers/database_users"
 #include "../WebPageViewer/web_page_viewer"
+#include "../Admins/admins"
 #include "squelch_manager"
 #include <hls_color_chat>
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Squelch Manager";
-new const String:PLUGIN_VERSION[] = "1.11";
+new const String:PLUGIN_VERSION[] = "1.12";
 
 public Plugin:myinfo =
 {
@@ -1465,14 +1466,6 @@ DisplaySpamHintMessage(iClient)
 	CPrintToChat(iClient, "{lightgreen}- {olive}You can also use {lightred}!ms {olive}to {lightred}mute everyone speaking {olive}.");
 }
 
-bool:IsUserAdmin(iClient)
-{
-	if(!CheckCommandAccess(iClient, "sm_say", ADMFLAG_CHAT, false))
-		return false;
-	
-	return true;
-}
-
 DisplayMenu_Time(iClient, iTarget, SquelchType:iSquelchType, bool:bWasPreSquelched=false, iAdminSerial=0, const String:szAdminName[]="")
 {
 	new iLen;
@@ -1513,7 +1506,7 @@ DisplayMenu_Time(iClient, iTarget, SquelchType:iSquelchType, bool:bWasPreSquelch
 	AddMenuItem(hMenu, szInfo, "Map End");
 	
 	// Only allow squelching longer than the map duration if the cvar allows it, and the client is not an admin.
-	if(!GetConVarBool(cvar_squelchmanager_limit_duration_to_map) && !IsUserAdmin(iClient))
+	if(!GetConVarBool(cvar_squelchmanager_limit_duration_to_map) && Admins_GetLevel(iClient) == AdminLevel_None)
 	{
 		FormatEx(szInfo, sizeof(szInfo), "%i/%i/%i", iSquelchType, iTargetSerial, 3600);
 		AddMenuItem(hMenu, szInfo, "1 Hour");
