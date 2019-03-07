@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Log admin activity";
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
 {
@@ -71,6 +71,8 @@ bool:Query_CreateAdminActivityTable()
 		demo_tick_sent		INT UNSIGNED		NOT NULL,\
 		client_user_id		INT UNSIGNED		NOT NULL,\
 		target_user_id		INT UNSIGNED		NOT NULL,\
+		client_admin_level	SMALLINT UNSIGNED	NOT NULL,\
+		target_admin_level	SMALLINT UNSIGNED	NOT NULL,\
 		is_client_server	BIT( 1 )			NOT NULL,\
 		is_target_bot		BIT( 1 )			NOT NULL,\
 		command_text		VARCHAR( 45 )		NOT NULL,\
@@ -205,7 +207,7 @@ LogCommandToDatabase(iClientUserID, iClientAdminLevel, bool:bClientIsServer, iTa
 	
 	DB_TQuery(g_szDatabaseConfigName, _, DBPrio_Low, _, "\
 		INSERT INTO gs_admin_activity \
-		(server_id, map_sess_id, demo_sess_id, demo_tick_sent, client_user_id, target_user_id, client_admin_id, target_admin_id, is_client_server, is_target_bot, command_text, command_info, activity_utime) \
+		(server_id, map_sess_id, demo_sess_id, demo_tick_sent, client_user_id, target_user_id, client_admin_level, target_admin_level, is_client_server, is_target_bot, command_text, command_info, activity_utime) \
 		VALUES \
 		(%i, %i, %i, %i, %i, %i, %i, %i, '%s', '%s', UNIX_TIMESTAMP())",
 		DBServers_GetServerID(), DBMapSessions_GetSessionID(), DemoSessions_GetID(), DemoSessions_GetCurrentTick(), iClientUserID, iTargetUserID, iClientAdminLevel, iTargetAdminLevel, bClientIsServer, bTargetIsBot, szCommandTextSafe, szCommandInfoSafe);
