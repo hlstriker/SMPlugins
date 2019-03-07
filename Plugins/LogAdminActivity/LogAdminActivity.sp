@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Log admin activity";
-new const String:PLUGIN_VERSION[] = "1.8";
+new const String:PLUGIN_VERSION[] = "1.9";
 
 public Plugin:myinfo =
 {
@@ -160,7 +160,7 @@ public Action:OnLogAction(Handle:hSource, Identity:ident, iClient, iTarget, cons
 	new iClientUserID, iClientAdminLevel, bool:bClientIsServer; // A client user_id of 0 is either unknown or the server.
 	if(1 <= iClient <= MaxClients)
 	{
-		iClientAdminLevel = DBUsers_GetUserID(iClient);
+		iClientUserID = DBUsers_GetUserID(iClient);
 		iClientAdminLevel = _:GetAdminsLevel(iClient);
 	}
 	else if(iClient == 0)
