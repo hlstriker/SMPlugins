@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Log admin activity";
-new const String:PLUGIN_VERSION[] = "1.9";
+new const String:PLUGIN_VERSION[] = "1.10";
 
 public Plugin:myinfo =
 {
@@ -209,7 +209,7 @@ LogCommandToDatabase(iClientUserID, iClientAdminLevel, bool:bClientIsServer, iTa
 		INSERT INTO gs_admin_activity \
 		(server_id, map_sess_id, demo_sess_id, demo_tick_sent, client_user_id, target_user_id, client_admin_level, target_admin_level, is_client_server, is_target_bot, command_text, command_info, activity_utime) \
 		VALUES \
-		(%i, %i, %i, %i, %i, %i, %i, %i, '%s', '%s', UNIX_TIMESTAMP())",
+		(%i, %i, %i, %i, %i, %i, %i, %i, %i, %i, '%s', '%s', UNIX_TIMESTAMP())",
 		DBServers_GetServerID(), DBMapSessions_GetSessionID(), DemoSessions_GetID(), DemoSessions_GetCurrentTick(), iClientUserID, iTargetUserID, iClientAdminLevel, iTargetAdminLevel, bClientIsServer, bTargetIsBot, szCommandTextSafe, szCommandInfoSafe);
 }
 

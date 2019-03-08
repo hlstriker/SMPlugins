@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Admins";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -39,7 +39,7 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 
 public _Admins_GetLevel(Handle:hPlugin, iNumParams)
 {
-	if(iNumParams != 2)
+	if(iNumParams != 1)
 	{
 		LogError("Invalid number of parameters.");
 		return _:AdminLevel_None;
