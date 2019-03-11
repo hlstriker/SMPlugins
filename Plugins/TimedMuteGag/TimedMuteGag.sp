@@ -6,7 +6,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Timed mute and gag";
-new const String:PLUGIN_VERSION[] = "1.14";
+new const String:PLUGIN_VERSION[] = "1.15";
 
 public Plugin:myinfo =
 {
@@ -317,7 +317,7 @@ public Action:Command_TimedUnsilence(iClient, iArgs)
 
 GetAdminsMaxTime(iClient)
 {
-	new iLevel = Admins_GetLevel(iClient);
+	new AdminLevel:iLevel = Admins_GetLevel(iClient);
 	
 	switch(iLevel)
 	{
