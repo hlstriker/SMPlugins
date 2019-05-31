@@ -16,10 +16,10 @@
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
-#pragma dynamic 9000000
+#pragma dynamic 13000000
 
 new const String:PLUGIN_NAME[] = "Weapon Skins";
-new const String:PLUGIN_VERSION[] = "0.10";
+new const String:PLUGIN_VERSION[] = "0.11";
 
 public Plugin:myinfo =
 {
@@ -282,12 +282,35 @@ bool:LoadData_LanguageFiles()
 		return false;
 	}
 	
+	static iNumLoaded = 0;
+	if(iNumLoaded >= GetLanguageCount())
+		return false;
+	
 	decl String:szLangName[64], String:szLangCode[LANG_CODE_LEN];
-	for(new i=0; i<GetLanguageCount(); i++)
+	
+	// TODO: Fix this properly and delete this block.
 	{
-		GetLanguageInfo(i, szLangCode, sizeof(szLangCode), szLangName, sizeof(szLangName));
-		LoadData_LanguageFile(i, szLangName, szLangCode, szEncodingURL);
+		// Skip all languages except english. It's crashing if it tries to do multiple languages. Maybe file downloader has a bug? Figure it out later.
+		iNumLoaded = 9999999999999;
+		for(new i=0; i<GetLanguageCount(); i++)
+		{
+			GetLanguageInfo(i, szLangCode, sizeof(szLangCode), szLangName, sizeof(szLangName));
+			
+			if(!StrEqual(szLangCode, "en"))
+				continue;
+			
+			LoadData_LanguageFile(i, szLangName, szLangCode, szEncodingURL);
+			return true;
+		}
+		
+		return false;
 	}
+	
+	// Load one at a time.
+	iNumLoaded++; // Increment before calling LoadData_LanguageFile so it doesn't get stuck in an infinite recursive loop.
+	GetLanguageInfo(iNumLoaded-1, szLangCode, sizeof(szLangCode), szLangName, sizeof(szLangName));
+	
+	LoadData_LanguageFile(iNumLoaded-1, szLangName, szLangCode, szEncodingURL);
 	
 	return true;
 }
@@ -295,11 +318,17 @@ bool:LoadData_LanguageFiles()
 bool:LoadData_LanguageFile(iLangNumber, const String:szLangName[], const String:szLangCode[], const String:szEncodingURL[])
 {
 	if(!szLangName[0] || !szLangCode[0])
+	{
+		LoadData_LanguageFiles();
 		return false;
+	}
 	
 	// If the language files are up to date and we can load the cache go ahead and return.
 	if(!DoesLanguageNeedUpdated(szLangCode) && LoadData_LanguageFileCache(iLangNumber))
+	{
+		LoadData_LanguageFiles();
 		return true;
+	}
 	
 	// Pass the real language file to the web script to have its encoding changed to UTF-8 so we can actually parse it.
 	decl String:szFilePath[PLATFORM_MAX_PATH];
@@ -307,7 +336,10 @@ bool:LoadData_LanguageFile(iLangNumber, const String:szLangName[], const String:
 	
 	new Handle:fp = OpenFile(szFilePath, "rb");
 	if(fp == INVALID_HANDLE)
+	{
+		LoadData_LanguageFiles();
 		return false;
+	}
 	
 	PrintToServer("\"%s\" loading...", szFilePath);
 	
@@ -320,6 +352,7 @@ bool:LoadData_LanguageFile(iLangNumber, const String:szLangName[], const String:
 	if(iBytes == -1)
 	{
 		LogError("Could not read real language file \"%s\".", szFilePath);
+		LoadData_LanguageFiles();
 		return false;
 	}
 	
@@ -463,6 +496,8 @@ public OnDownloadFailed(const String:szFileSavePath[], any:hPack)
 {
 	CloseHandle(hPack);
 	LogError("Language file \"%s\" failed to download from encoding web script.", szFileSavePath);
+	
+	LoadData_LanguageFiles();
 }
 
 AddLanguageFileToParseQueue(const String:szLangCode[], const String:szLanguageFile[])
@@ -505,6 +540,8 @@ public OnParseLanguageFile(any:data)
 	
 	if(GetArraySize(g_aLanguageParseQueue))
 		RequestFrame(OnParseLanguageFile);
+	else
+		LoadData_LanguageFiles(); // Try to load the next language file after the parse queue is completely empty. One at a time.
 }
 
 bool:LoadData_LanguageFileParse(iLangNumber, const String:szLanguageFile[])
