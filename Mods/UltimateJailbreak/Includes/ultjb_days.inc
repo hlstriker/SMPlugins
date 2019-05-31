@@ -24,12 +24,15 @@ enum DayType
 	DAY_TYPE_WARDAY
 };
 
-#define DAY_FLAG_ALLOW_WEAPON_PICKUPS		(1<<0)
-#define DAY_FLAG_ALLOW_WEAPON_DROPS			(1<<1)
-#define DAY_FLAG_STRIP_GUARDS_WEAPONS		(1<<2)	// Note: This flag is for wardays only.
-#define DAY_FLAG_GIVE_GUARDS_INFINITE_AMMO	(1<<3)	// Note: This flag is for wardays only.
-#define DAY_FLAG_KEEP_PRISONERS_WEAPONS		(1<<4)	// Note: This flag is for wardays only.
-#define DAY_FLAG_KILL_WEAPON_EQUIPS			(1<<5)	// Note: This flag is for wardays only.
+#define DAY_FLAG_ALLOW_WEAPON_PICKUPS			(1<<0)
+#define DAY_FLAG_ALLOW_WEAPON_DROPS				(1<<1)
+#define DAY_FLAG_STRIP_GUARDS_WEAPONS			(1<<2)
+#define DAY_FLAG_GIVE_GUARDS_INFINITE_AMMO		(1<<3)
+#define DAY_FLAG_STRIP_PRISONERS_WEAPONS		(1<<4)
+#define DAY_FLAG_KILL_WEAPON_EQUIPS				(1<<5)
+#define DAY_FLAG_GIVE_PRISONERS_INFINITE_AMMO	(1<<6)
+#define DAY_FLAG_DISABLE_PRISONERS_RADAR		(1<<7)
+#define DAY_FLAG_DISABLE_GUARDS_RADAR			(1<<8)
 
 
 #define DAY_MAX_NAME_LENGTH		48
@@ -82,7 +85,15 @@ native UltJB_Day_RegisterDay(const String:day_name[], DayType:day_type, flags=0,
  * @noparam
  * @return				True if day is in progress, false otherwise.
  */
-native UltJB_Day_IsInProgress();
+native bool:UltJB_Day_IsInProgress();
+
+/**
+ * Gets the current day ID.
+ *
+ * @noparam
+ * @return				The day ID.
+ */
+native UltJB_Day_GetCurrentDayID();
 
 /**
  * Gets the current day type.
@@ -100,6 +111,22 @@ native DayType:UltJB_Day_GetCurrentDayType();
  * @return				True if set, false otherwise.
  */
 native UltJB_Day_SetFreezeTime(day_id, time);
+
+/**
+ * Force ends any freeze time in progress.
+ *
+ * @noparam
+ * @noreturn
+ */
+native UltJB_Day_FreezeTimeForceEnd();
+
+/**
+ * Gets the freeze time remaining for wardays.
+ *
+ * @noparam
+ * @return				The freeze time remaining in seconds.
+ */
+native UltJB_Day_GetFreezeTimeRemaining();
 
 
 

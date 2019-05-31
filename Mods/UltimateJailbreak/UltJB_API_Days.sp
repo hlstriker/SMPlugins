@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.13";
+new const String:PLUGIN_VERSION[] = "1.15";
 
 public Plugin:myinfo =
 {
@@ -48,8 +48,8 @@ new Handle:g_hFwd_OnStart;
 new Handle:g_hFwd_OnWardayStart;
 new Handle:g_hFwd_OnWardayFreezeEnd;
 
-new g_iCurrentDayID;
-new DayType:g_iCurrentDayType;
+new g_iCurrentDayID = 0;
+new DayType:g_iCurrentDayType = DAY_TYPE_NONE;
 
 new g_iWardenCountForRound;
 new Float:g_fWardenSelectedTime;
@@ -72,6 +72,9 @@ new g_iSpawnedTick[MAXPLAYERS+1];
 
 new bool:g_bInDaysSpawnPostForward[MAXPLAYERS+1];
 new bool:g_bIsDayAllowed[MAX_DAYS+1] = {true, ...};
+
+new g_iOffset_CCSPlayer_m_bSpotted = -1;
+
 
 public OnPluginStart()
 {
@@ -100,6 +103,8 @@ public OnPluginStart()
 	RegConsoleCmd("sm_day", OnDaysMenu, "Opens the days menu.");
 	RegAdminCmd("sm_de", OnDaysEdit, ADMFLAG_UNBAN, "Edits the day configuration for the current map.");
 	RegAdminCmd("sm_daysedit", OnDaysEdit, ADMFLAG_UNBAN, "Edits the day configuration for the current map.");
+	
+	g_iOffset_CCSPlayer_m_bSpotted = FindSendPropInfo("CCSPlayer", "m_bSpotted");
 }
 
 public OnClientPutInServer(iClient)
@@ -143,17 +148,23 @@ public OnWeaponReload(iWeapon, bool:bSuccess)
 	decl eDay[Day];
 	GetArrayArray(g_aDays, g_iDayIDToIndex[g_iCurrentDayID], eDay);
 	
-	if(!(eDay[Day_Flags] & DAY_FLAG_GIVE_GUARDS_INFINITE_AMMO))
-		return;
-	
 	new iClient = GetEntPropEnt(iWeapon, Prop_Data, "m_hOwnerEntity");
 	if(!(1 <= iClient <= MaxClients))
 		return;
 	
-	if(GetClientTeam(iClient) != TEAM_GUARDS)
-		return;
-	
-	GivePlayerAmmo(iClient, 500, GetEntProp(iWeapon, Prop_Data, "m_iPrimaryAmmoType"), true);
+	switch(GetClientTeam(iClient))
+	{
+		case TEAM_GUARDS:
+		{
+			if(eDay[Day_Flags] & DAY_FLAG_GIVE_GUARDS_INFINITE_AMMO)
+				GivePlayerAmmo(iClient, 500, GetEntProp(iWeapon, Prop_Data, "m_iPrimaryAmmoType"), true);
+		}
+		case TEAM_PRISONERS:
+		{
+			if(eDay[Day_Flags] & DAY_FLAG_GIVE_PRISONERS_INFINITE_AMMO)
+				GivePlayerAmmo(iClient, 500, GetEntProp(iWeapon, Prop_Data, "m_iPrimaryAmmoType"), true);
+		}
+	}
 }
 
 public OnSpawn(iClient)
@@ -163,29 +174,32 @@ public OnSpawn(iClient)
 
 public UltJB_Settings_OnSpawnPost(iClient)
 {
-	if(g_iCurrentDayType == DAY_TYPE_WARDAY)
+	if(g_iCurrentDayType == DAY_TYPE_NONE)
+		return;
+	
+	if(ShouldHookPostThinkPost())
+		SDKHook(iClient, SDKHook_PostThinkPost, OnPostThinkPost);
+	
+	switch(GetClientTeam(iClient))
 	{
-		switch(GetClientTeam(iClient))
+		case TEAM_PRISONERS:
 		{
-			case TEAM_PRISONERS:
-			{
-				decl eDay[Day];
-				GetArrayArray(g_aDays, g_iDayIDToIndex[g_iCurrentDayID], eDay);
-				
-				if(!(eDay[Day_Flags] & DAY_FLAG_KEEP_PRISONERS_WEAPONS))
-					UltJB_LR_StripClientsWeapons(iClient);
-				
-				if(g_hTimer_WardayFreeze != INVALID_HANDLE)
-					SetEntityMoveType(iClient, MOVETYPE_NONE);
-			}
-			case TEAM_GUARDS:
-			{
-				decl eDay[Day];
-				GetArrayArray(g_aDays, g_iDayIDToIndex[g_iCurrentDayID], eDay);
-				
-				if(eDay[Day_Flags] & DAY_FLAG_STRIP_GUARDS_WEAPONS)
-					UltJB_LR_StripClientsWeapons(iClient);
-			}
+			decl eDay[Day];
+			GetArrayArray(g_aDays, g_iDayIDToIndex[g_iCurrentDayID], eDay);
+			
+			if(eDay[Day_Flags] & DAY_FLAG_STRIP_PRISONERS_WEAPONS)
+				UltJB_LR_StripClientsWeapons(iClient);
+			
+			if(g_hTimer_WardayFreeze != INVALID_HANDLE)
+				SetEntityMoveType(iClient, MOVETYPE_NONE);
+		}
+		case TEAM_GUARDS:
+		{
+			decl eDay[Day];
+			GetArrayArray(g_aDays, g_iDayIDToIndex[g_iCurrentDayID], eDay);
+			
+			if(eDay[Day_Flags] & DAY_FLAG_STRIP_GUARDS_WEAPONS)
+				UltJB_LR_StripClientsWeapons(iClient);
 		}
 	}
 	
@@ -378,7 +392,10 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	CreateNative("UltJB_Day_RegisterDay", _UltJB_Day_RegisterDay);
 	CreateNative("UltJB_Day_IsInProgress", _UltJB_Day_IsInProgress);
 	CreateNative("UltJB_Day_SetFreezeTime", _UltJB_Day_SetFreezeTime);
+	CreateNative("UltJB_Day_FreezeTimeForceEnd", _UltJB_Day_FreezeTimeForceEnd);
+	CreateNative("UltJB_Day_GetFreezeTimeRemaining", _UltJB_Day_GetFreezeTimeRemaining);
 	CreateNative("UltJB_Day_GetCurrentDayType", _UltJB_Day_GetCurrentDayType);
+	CreateNative("UltJB_Day_GetCurrentDayID", _UltJB_Day_GetCurrentDayID);
 	
 	return APLRes_Success;
 }
@@ -489,6 +506,11 @@ public _UltJB_Day_IsInProgress(Handle:hPlugin, iNumParams)
 		return true;
 	
 	return false;
+}
+
+public _UltJB_Day_GetCurrentDayID(Handle:hPlugin, iNumParams)
+{
+	return g_iCurrentDayID;
 }
 
 public _UltJB_Day_GetCurrentDayType(Handle:hPlugin, iNumParams)
@@ -615,18 +637,7 @@ bool:StartDay(iClient, iDayID)
 	Forward_OnStart(iClient, eDay[Day_Type]);
 	
 	decl String:szDayType[8];
-	switch(eDay[Day_Type])
-	{
-		case DAY_TYPE_FREEDAY:
-		{
-			strcopy(szDayType, sizeof(szDayType), "Freeday");
-		}
-		case DAY_TYPE_WARDAY:
-		{
-			strcopy(szDayType, sizeof(szDayType), "Warday");
-			InitWarday(iClient, eDay[Day_Flags], eDay[Day_FreezeTime], eDay[Day_ForwardFreezeEnd]);
-		}
-	}
+	InitDayType(iClient, eDay, szDayType, sizeof(szDayType));
 	
 	CPrintToChatAll("{green}[{lightred}SM{green}] {lightred}%N {olive}has started {lightred}%s {olive}- {lightred}%s{olive}.", iClient, szDayType, eDay[Day_Name]);
 	
@@ -636,24 +647,110 @@ bool:StartDay(iClient, iDayID)
 	Format(szMessage, sizeof(szMessage), "%N has started %s - %s.", iClient, szDayType, eDay[Day_Name]);
 	UltJB_Logger_LogEvent(szMessage, iClient, 0, LOGTYPE_ANY);
 	
+	if(ShouldHookPostThinkPost())
+	{
+		for(new iPlayer=1; iPlayer<=MaxClients; iPlayer++)
+		{
+			if(!IsClientInGame(iPlayer))
+				continue;
+			
+			SDKHook(iPlayer, SDKHook_PostThinkPost, OnPostThinkPost);
+		}
+	}
+	
 	return true;
 }
 
-InitWarday(iClient, iFlags, iFreezeTime, Handle:hForwardFreezeEnd)
+bool:ShouldHookPostThinkPost()
 {
-	if(!(iFlags & DAY_FLAG_KEEP_PRISONERS_WEAPONS))
-		StripTeamsWeapons(TEAM_PRISONERS);
+	if(!IsDayInProgress())
+		return false;
 	
-	if(iFlags & DAY_FLAG_STRIP_GUARDS_WEAPONS)
-		StripTeamsWeapons(TEAM_GUARDS);
+	decl eDay[Day];
+	GetArrayArray(g_aDays, g_iDayIDToIndex[g_iCurrentDayID], eDay);
 	
-	if(iFlags & DAY_FLAG_KILL_WEAPON_EQUIPS)
+	if(eDay[Day_Flags] & DAY_FLAG_DISABLE_PRISONERS_RADAR)
+		return true;
+	
+	if(eDay[Day_Flags] & DAY_FLAG_DISABLE_GUARDS_RADAR)
+		return true;
+	
+	return false;
+}
+
+public OnPostThinkPost(iClient)
+{
+	if(!IsDayInProgress())
+		return;
+	
+	decl eDay[Day];
+	GetArrayArray(g_aDays, g_iDayIDToIndex[g_iCurrentDayID], eDay);
+	
+	switch(GetClientTeam(iClient))
+	{
+		case TEAM_GUARDS:
+		{
+			if(eDay[Day_Flags] & DAY_FLAG_DISABLE_PRISONERS_RADAR)
+			{
+				SetEntProp(iClient, Prop_Send, "m_bSpotted", 0);
+				SetEntProp(iClient, Prop_Send, "m_bSpottedByMask", 0, 4, 0);
+				SetEntProp(iClient, Prop_Send, "m_bSpottedByMask", 0, 4, 1);
+				
+				if(g_iOffset_CCSPlayer_m_bSpotted > 0)
+					SetEntData(iClient, g_iOffset_CCSPlayer_m_bSpotted - 4, 0); // m_bCanBeSpotted address = m_bSpotted - 4
+			}
+		}
+		case TEAM_PRISONERS:
+		{
+			if(eDay[Day_Flags] & DAY_FLAG_DISABLE_GUARDS_RADAR)
+			{
+				SetEntProp(iClient, Prop_Send, "m_bSpotted", 0);
+				SetEntProp(iClient, Prop_Send, "m_bSpottedByMask", 0, 4, 0);
+				SetEntProp(iClient, Prop_Send, "m_bSpottedByMask", 0, 4, 1);
+				
+				if(g_iOffset_CCSPlayer_m_bSpotted > 0)
+					SetEntData(iClient, g_iOffset_CCSPlayer_m_bSpotted - 4, 0); // m_bCanBeSpotted address = m_bSpotted - 4
+			}
+		}
+	}
+}
+
+InitDayType(iClient, const eDay[Day], String:szDayType[], iMaxLen)
+{
+	if(eDay[Day_Flags] & DAY_FLAG_KILL_WEAPON_EQUIPS)
 		KillWeaponEqiuips();
 	
+	if(eDay[Day_Flags] & DAY_FLAG_STRIP_PRISONERS_WEAPONS)
+		StripTeamsWeapons(TEAM_PRISONERS);
+	
+	if(eDay[Day_Flags] & DAY_FLAG_STRIP_GUARDS_WEAPONS)
+		StripTeamsWeapons(TEAM_GUARDS);
+	
+	switch(eDay[Day_Type])
+	{
+		case DAY_TYPE_FREEDAY:
+		{
+			strcopy(szDayType, iMaxLen, "Freeday");
+		}
+		case DAY_TYPE_WARDAY:
+		{
+			strcopy(szDayType, iMaxLen, "Warday");
+			InitWarday(iClient, eDay[Day_FreezeTime], eDay[Day_ForwardFreezeEnd]);
+		}
+		default:
+		{
+			strcopy(szDayType, iMaxLen, "ErrorDay");
+		}
+	}
+}
+
+InitWarday(iClient, iFreezeTime, Handle:hForwardFreezeEnd)
+{
 	if(!UltJB_CellDoors_HaveOpened())
 		UltJB_CellDoors_ForceOpen();
 	
 	g_iWardayFreezeTime = iFreezeTime;
+	g_iTimerCountdown = 0;
 	
 	if(iFreezeTime > 0)
 	{
@@ -701,6 +798,11 @@ StartTimer_WardayFreeze()
 	g_hTimer_WardayFreeze = CreateTimer(1.0, Timer_WardayFreeze, _, TIMER_REPEAT);
 }
 
+public _UltJB_Day_GetFreezeTimeRemaining(Handle:hPlugin, iNumParams)
+{
+	return (g_iWardayFreezeTime - g_iTimerCountdown);
+}
+
 ShowCountdown_Unfreeze()
 {
 	PrintHintTextToAll("<font color='#6FC41A'>Unfreezing prisoners in:</font>\n<font color='#DE2626'>%i</font> <font color='#6FC41A'>seconds.</font>", g_iWardayFreezeTime - g_iTimerCountdown);
@@ -708,6 +810,8 @@ ShowCountdown_Unfreeze()
 
 StopTimer_WardayFreeze()
 {
+	g_iTimerCountdown = 0;
+	
 	if(g_hTimer_WardayFreeze == INVALID_HANDLE)
 		return;
 	
@@ -724,23 +828,40 @@ public Action:Timer_WardayFreeze(Handle:hTimer)
 		return Plugin_Continue;
 	}
 	
-	g_hTimer_WardayFreeze = INVALID_HANDLE;
+	EndFreezeTimer(true);
+	return Plugin_Stop;
+}
+
+public _UltJB_Day_FreezeTimeForceEnd(Handle:hPlugin, iNumParams)
+{
+	EndFreezeTimer(false);
+}
+
+EndFreezeTimer(bool:bFromTimerFunc)
+{
+	g_iTimerCountdown = 0;
+	
+	if(g_hTimer_WardayFreeze == INVALID_HANDLE)
+		return;
+	
+	if(bFromTimerFunc)
+		g_hTimer_WardayFreeze = INVALID_HANDLE;
+	else
+		StopTimer_WardayFreeze();
 	
 	FreezeAllPrisoners(false);
 	
 	if(!IsDayInProgress())
-		return Plugin_Stop;
+		return;
 	
 	if(g_iDayIDToIndex[g_iCurrentDayID] == INVALID_DAY_INDEX)
-		return Plugin_Stop;
+		return;
 	
 	decl eDay[Day];
 	GetArrayArray(g_aDays, g_iDayIDToIndex[g_iCurrentDayID], eDay);
 	Forward_FreezeEnd(eDay[Day_ForwardFreezeEnd]);
 	
 	PrintHintTextToAll("<font color='#6FC41A'>Prisoners have been unfrozen!</font>");
-	
-	return Plugin_Stop;
 }
 
 Forward_FreezeEnd(Handle:hForwardFreezeEnd)
@@ -800,6 +921,7 @@ bool:EndDay(iClient=0)
 	if(g_iDayIDToIndex[g_iCurrentDayID] == INVALID_DAY_INDEX)
 		return false;
 	
+	g_iWardayFreezeTime = 0;
 	FreezeAllPrisoners(false);
 	StopTimer_WardayFreeze();
 	
@@ -822,6 +944,17 @@ bool:EndDay(iClient=0)
 	
 	g_iCurrentDayID = 0;
 	g_iCurrentDayType = DAY_TYPE_NONE;
+	
+	for(new iPlayer=1; iPlayer<=MaxClients; iPlayer++)
+	{
+		if(!IsClientInGame(iPlayer))
+			continue;
+		
+		SDKUnhook(iPlayer, SDKHook_PostThinkPost, OnPostThinkPost);
+		
+		if(g_iOffset_CCSPlayer_m_bSpotted > 0)
+			SetEntData(iPlayer, g_iOffset_CCSPlayer_m_bSpotted - 4, 1); // m_bCanBeSpotted address = m_bSpotted - 4
+	}
 	
 	return true;
 }
