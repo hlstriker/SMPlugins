@@ -24,7 +24,7 @@
 #pragma dynamic 500000
 
 new const String:PLUGIN_NAME[] = "Map Voting";
-new const String:PLUGIN_VERSION[] = "1.20";
+new const String:PLUGIN_VERSION[] = "1.21";
 
 public Plugin:myinfo =
 {
@@ -2445,11 +2445,11 @@ public Event_Intermission_Post(Handle:hEvent, const String:szName[], bool:bDontB
 	
 	new Float:fIntermissionTotalTime = GetConVarFloat(cvar_mp_endmatch_votenextleveltime);
 	
-	// Clamp the minimum votenextleveltime to 3 since that's what it seems to be in CS:GO.
-	if(fIntermissionTotalTime < 3.0)
-		fIntermissionTotalTime = 3.0;
+	// Clamp the minimum votenextleveltime to 11 since that's what it seems to be in CS:GO.
+	if(fIntermissionTotalTime < 11.0)
+		fIntermissionTotalTime = 11.0;
 	
-	fIntermissionTotalTime += 10.0; // Add the time it takes from intermission starting to the time the next map countdown begins.
+	fIntermissionTotalTime += 2.0; // Add the time it takes from intermission starting to the time the next map countdown begins.
 	
 	CreateTimer(fIntermissionTotalTime, Timer_EndMap, _, TIMER_FLAG_NO_MAPCHANGE);
 }
@@ -2457,9 +2457,30 @@ public Event_Intermission_Post(Handle:hEvent, const String:szName[], bool:bDontB
 public Action:Timer_EndMap(Handle:hTimer)
 {
 	if(g_bWasNextMapSelected)
-		ForceChangeLevel(g_szNextMapSelected, "End map");
+	{
+		// TODO: Remove this clientcommand loop when csgo devs decide to actually fix their shit. Client's will crash a lot of times without it.
+		{
+			for(new iClient=1; iClient<=MaxClients; iClient++)
+			{
+				if(!IsClientInGame(iClient) || IsFakeClient(iClient))
+					continue;
+				
+				ClientCommand(iClient, "retry");
+			}
+			
+			RequestFrame(OnNextFrame_EndMap);
+		}
+		
+		//ForceChangeLevel(g_szNextMapSelected, "End map");
+	}
 	
 	return Plugin_Stop;
+}
+
+public OnNextFrame_EndMap(any:hPack)
+{
+	if(g_bWasNextMapSelected)
+		ForceChangeLevel(g_szNextMapSelected, "End map");
 }
 
 GetCurrentMapsCategoryID()
