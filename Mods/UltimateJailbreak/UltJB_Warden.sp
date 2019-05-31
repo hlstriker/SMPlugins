@@ -24,7 +24,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warden";
-new const String:PLUGIN_VERSION[] = "1.38";
+new const String:PLUGIN_VERSION[] = "1.39";
 
 public Plugin:myinfo =
 {
@@ -52,6 +52,8 @@ new const String:PLAYER_MODEL_WARDEN[] = "models/player/custom_player/legacy/ctm
 new String:g_szPlayerOriginalModel[MAXPLAYERS+1][PLATFORM_MAX_PATH];
 
 new const String:WARDENDEATH_SOUND[] = "sound/music/revenge.wav";
+
+new const String:SZ_SOUND_KISS[] = "sound/swoobles/ultimate_jailbreak/kiss.mp3";
 
 new const String:SZ_BEAM_MATERIAL[] = "materials/sprites/laserbeam.vmt";
 new const String:SZ_BEAM_MATERIAL_NOWALL[] = "materials/swoobles/ultimate_jailbreak/wall_beam.vmt";
@@ -124,6 +126,8 @@ new bool:g_bLibLoaded_ModelSkinManager;
 
 new bool:g_bRoundStarted;
 
+new g_iLastForceRemovedWardenSerial;
+
 
 public OnPluginStart()
 {
@@ -152,6 +156,9 @@ public OnPluginStart()
 	RegConsoleCmd("sm_warden", OnWardenQueue, "Adds you to the warden queue.");
 	RegConsoleCmd("sm_uw", OnUnwarden, "Allows the warden to unwarden themselves.");
 	RegConsoleCmd("sm_wwho", OnWardenWho, "Displays the current warden.");
+	
+	RegConsoleCmd("sm_kiss", OnWardenKiss, "Kisses the player you're looking at.");
+	RegConsoleCmd("sm_smooch", OnWardenKiss, "Kisses the player you're looking at.");
 	
 	RegAdminCmd("sm_rw", Command_RemoveWarden, ADMFLAG_KICK, "sm_rw - Removes the current warden.");
 	RegAdminCmd("sm_sw", Command_SetWarden, ADMFLAG_ROOT, "Sets the current warden.");
@@ -244,6 +251,7 @@ public Action:Command_RemoveWarden(iClient, iArgs)
 		return Plugin_Handled;
 	}
 	
+	g_iLastForceRemovedWardenSerial = GetClientSerial(iWarden);
 	PrintToChatAll("[SM] %N has been removed from warden.", iWarden);
 	
 	return Plugin_Handled;
@@ -298,6 +306,47 @@ public Action:Command_SetWarden(iClient, iArgs)
 	return Plugin_Handled;
 }
 
+public Action:OnWardenKiss(iClient, iArgs)
+{
+	if(!iClient || !IsClientInGame(iClient))
+		return Plugin_Handled;
+	
+	new iWarden = GetClientFromSerial(g_iWardenSerial);
+	
+	if(!iWarden)
+		return Plugin_Handled;
+	
+	if(iWarden != iClient)
+		return Plugin_Handled;
+	
+	static Float:fNextTime = 0.0;
+	new Float:fCurTime = GetEngineTime();
+	
+	if(fCurTime < fNextTime)
+		return Plugin_Handled;
+	
+	fNextTime = fCurTime + 5.0;
+	
+	decl Float:fEyePos[3], Float:fVector[3];
+	GetClientEyePosition(iClient, fEyePos);
+	GetClientEyeAngles(iClient, fVector);
+	
+	TR_TraceRayFilter(fEyePos, fVector, MASK_SHOT, RayType_Infinite, TraceFilter_OnlyHitPlayersIgnoreSelf, iClient);
+	
+	new iHit = TR_GetEntityIndex();
+	if(!(1 <= iHit <= MaxClients))
+		return Plugin_Handled;
+	
+	if(GetRandomInt(0, 1))
+		CPrintToChatAll("{purple}%N {olive}smooches %s%N{olive}!", iClient, (GetClientTeam(iHit) == TEAM_GUARDS) ? "{blue}" : "{lightred}", iHit);
+	else
+		CPrintToChatAll("{purple}%N {olive}blows %s%N {olive}a big kiss!", iClient, (GetClientTeam(iHit) == TEAM_GUARDS) ? "{blue}" : "{lightred}", iHit);
+	
+	EmitSoundToAllAny(SZ_SOUND_KISS[6], iClient, SNDCHAN_ITEM, SNDLEVEL_NORMAL);
+	
+	return Plugin_Handled;
+}
+
 public Action:OnWardenWho(iClient, iArgs)
 {
 	if(!iClient || !IsClientInGame(iClient))
@@ -315,9 +364,8 @@ public Action:OnWardenWho(iClient, iArgs)
 		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}There is no warden.");
 		PrintToConsole(iClient, "[SM] There is no warden.");
 	}
-
+	
 	return Plugin_Handled;
-
 }
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
@@ -347,6 +395,9 @@ public OnMapStart()
 	AddFileToDownloadsTable(WARDENDEATH_SOUND);
 	PrecacheSoundAny(WARDENDEATH_SOUND[6]);
 
+	AddFileToDownloadsTable(SZ_SOUND_KISS);
+	PrecacheSoundAny(SZ_SOUND_KISS[6]);
+	
 	g_iBeamIndex = PrecacheModel(SZ_BEAM_MATERIAL, true);
 	g_iBeamIndex_NoWall = PrecacheModel(SZ_BEAM_MATERIAL_NOWALL, true);
 	PrecacheModel(SZ_MODEL_END_ENT, true);
@@ -620,6 +671,17 @@ TE_SetupBeamEnts(iStartEnt, iEndEnt, iModelIndex, iHaloIndex, iStartFrame, iFram
 	TE_WriteNum("m_nEndEntity", iEndEnt);
 }
 
+public bool:TraceFilter_OnlyHitPlayersIgnoreSelf(iEnt, iMask, any:iSelf)
+{
+	if(iEnt == iSelf)
+		return false;
+	
+	if(1 <= iEnt <= MaxClients)
+		return true;
+	
+	return false;
+}
+
 public bool:TraceFilter_DontHitPlayers(iEnt, iMask, any:iData)
 {
 	if(1 <= iEnt <= MaxClients)
@@ -673,6 +735,8 @@ RoundEndCleanup()
 	new iWarden = GetClientFromSerial(g_iWardenSerial);
 	if(iWarden)
 		RemoveWarden(iWarden);
+	
+	g_iLastForceRemovedWardenSerial = 0;
 	
 	StopWardenTimer();
 	StopTimer_DrawBeamLine();
@@ -798,6 +862,8 @@ public Action:Timer_SelectWarden(Handle:hTimer)
 	if(!iWarden)
 		iWarden = GetSecondaryWarden();
 	
+	g_iLastForceRemovedWardenSerial = 0;
+	
 	if(!iWarden)
 	{
 		PrintHintTextToNeeded("<font color='#6FC41A'>A warden could</font> <font color='#DE2626'>not</font> <font color='#6FC41A'>be found.</font>");
@@ -886,6 +952,13 @@ public Action:OnWardenQueue(iClient, iArgNum)
 	{
 		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}The current warden is: {lightred}%N{olive}.", iWarden);
 		PrintToConsole(iClient, "[SM] The current warden is: %N.", iWarden);
+	}
+	
+	if(iClient == GetClientFromSerial(g_iLastForceRemovedWardenSerial))
+	{
+		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}You cannot join the queue after being force removed.");
+		PrintToConsole(iClient, "[SM] You cannot join the queue after being force removed.");
+		return Plugin_Handled;
 	}
 	
 	if(!AddPlayerToQueue(iClient, g_aQueuePrimary))
@@ -1162,6 +1235,9 @@ GetSecondaryWarden()
 	if(!iArraySize)
 		return 0;
 	
+	new iForceRemovedWarden = GetClientFromSerial(g_iLastForceRemovedWardenSerial);
+	new iForceRemovedQueueIndex = -1;
+	
 	decl iClient, iIndex;
 	for(iIndex=0; iIndex<iArraySize; iIndex++)
 	{
@@ -1172,11 +1248,22 @@ GetSecondaryWarden()
 		if(GetClientTeam(iClient) != TEAM_GUARDS)
 			continue;
 		
+		if(iForceRemovedWarden == iClient)
+		{
+			iForceRemovedQueueIndex = iIndex;
+			continue;
+		}
+		
 		break;
 	}
 	
 	if(iIndex >= iArraySize)
-		return 0;
+	{
+		if(iForceRemovedQueueIndex == -1)
+			return 0;
+		
+		iClient = GetArrayCell(g_aQueueSecondary, iForceRemovedQueueIndex);
+	}
 	
 	// Move the found warden to the end of the queue.
 	RemovePlayerFromQueue(iClient, g_aQueueSecondary);
