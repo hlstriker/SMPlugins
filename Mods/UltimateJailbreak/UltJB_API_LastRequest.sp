@@ -10,7 +10,7 @@
 #include <sdktools_voice>
 #include <hls_color_chat>
 #include "Includes/ultjb_last_request"
-#include "Includes/ultjb_lr_effects"
+#include "Includes/ultjb_effects"
 #include "Includes/ultjb_weapon_selection"
 #include "Includes/ultjb_warden"
 #include "Includes/ultjb_days"
@@ -27,7 +27,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Last Request API";
-new const String:PLUGIN_VERSION[] = "1.41";
+new const String:PLUGIN_VERSION[] = "1.42";
 
 public Plugin:myinfo =
 {
@@ -66,6 +66,7 @@ new Handle:cvar_select_last_request_time;
 new Handle:cvar_select_opponent_time;
 new Handle:cvar_guards_needed_for_rebel;
 new Handle:cvar_disable_freeday_lr_time;
+new Handle:cvar_lr_ignore_player_count;
 
 new g_iDisconnectTeam[MAXPLAYERS+1];
 
@@ -88,6 +89,7 @@ new g_iCategoryMenuPosition[MAXPLAYERS+1];
 new Handle:g_hTimer_SelectLastRequest[MAXPLAYERS+1];
 new Handle:g_hTimer_OpponentSelection[MAXPLAYERS+1];
 new Handle:g_hTimer_SlayTimer[MAXPLAYERS+1] = {INVALID_HANDLE, ...};
+new Handle:g_hTimer_SlayTimer_ForwardFinished[MAXPLAYERS+1] = {INVALID_HANDLE, ...};
 new Handle:g_hTimer_SlayClient[MAXPLAYERS+1];
 new Handle:g_hTimer_CancelFreeday[MAXPLAYERS+1];
 new Handle:g_hTimer_TempInvincibility[MAXPLAYERS+1];
@@ -188,6 +190,7 @@ public OnPluginStart()
 	cvar_select_opponent_time = CreateConVar("ultjb_lr_select_opponent_time", "15", "The number of seconds a prisoner has to select their opponent.", _, true, 1.0);
 	cvar_guards_needed_for_rebel = CreateConVar("ultjb_lr_guards_needed_for_rebel", "3", "The number of guards needed before rebel LRs are allowed.", _, true, 1.0);
 	cvar_disable_freeday_lr_time = CreateConVar("ultjb_lr_disable_freeday_lr_time", "150", "Disable freeday last requests this many seconds before the map change.", _, true, 0.0);
+	cvar_lr_ignore_player_count = CreateConVar("ultjb_lr_ignore_player_count", "0", "Ignore the amount of player count for LR.", _, true, 0.0, true, 1.0);
 	
 	g_aLastRequests = CreateArray(LastRequest);
 	g_aCategories = CreateArray(Category);
@@ -756,7 +759,7 @@ public _UltJB_LR_StopSlayTimer(Handle:hPlugin, iNumParams)
 
 public _UltJB_LR_StartSlayTimer(Handle:hPlugin, iNumParams)
 {
-	if(iNumParams != 3)
+	if(iNumParams < 3 || iNumParams > 4)
 	{
 		LogError("Invalid number of parameters.");
 		return false;
@@ -766,7 +769,26 @@ public _UltJB_LR_StartSlayTimer(Handle:hPlugin, iNumParams)
 	if(!HasStartedLastRequest(iClient))
 		return false;
 	
-	if(!StartSlayTimer(iClient, GetNativeCell(2), GetNativeCell(3)))
+	decl Handle:hForwardFinished;
+	if(iNumParams >= 4)
+	{
+		new Function:finished_callback = GetNativeCell(4);
+		if(finished_callback != INVALID_FUNCTION)
+		{
+			hForwardFinished = CreateForward(ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
+			AddToForward(hForwardFinished, hPlugin, finished_callback);
+		}
+		else
+		{
+			hForwardFinished = INVALID_HANDLE;
+		}
+	}
+	else
+	{
+		hForwardFinished = INVALID_HANDLE;
+	}
+	
+	if(!StartSlayTimer(iClient, GetNativeCell(2), GetNativeCell(3), hForwardFinished))
 		return false;
 	
 	return true;
@@ -815,15 +837,18 @@ bool:CanLastRequest(&iNumPrisonersAlive, iPrisonersAlive[MAXPLAYERS])
 	if(iNumGuards < 1)
 		return false;
 	
-	new iNumPrisonersCanUseLastRequest = g_iAvailableLastRequestSlotCount + iNumPrisonersInFreeday;
-	
-	if(iNumPrisonersAlive > iNumPrisonersCanUseLastRequest)
-		return false;
+	if(!GetConVarBool(cvar_lr_ignore_player_count))
+	{
+		new iNumPrisonersCanUseLastRequest = g_iAvailableLastRequestSlotCount + iNumPrisonersInFreeday;
+		
+		if(iNumPrisonersAlive > iNumPrisonersCanUseLastRequest)
+			return false;
+	}
 	
 	return true;
 }
 
-bool:StartSlayTimer(iClient, iTimeBeforeSlay, iSlayFlags)
+bool:StartSlayTimer(iClient, iTimeBeforeSlay, iSlayFlags, Handle:hForwardFinished)
 {
 	decl iPrisoner;
 	switch(GetClientTeam(iClient))
@@ -832,17 +857,32 @@ bool:StartSlayTimer(iClient, iTimeBeforeSlay, iSlayFlags)
 		case TEAM_GUARDS:
 		{
 			if(!(iPrisoner = GetGuardsLastRequestClient(iClient)))
+			{
+				if(hForwardFinished != INVALID_HANDLE)
+					CloseHandle(hForwardFinished);
+				
 				return false;
+			}
 		}
 		default:
+		{
+			if(hForwardFinished != INVALID_HANDLE)
+				CloseHandle(hForwardFinished);
+			
 			return false;
+		}
 	}
 	
 	StopTimer_SlayTimer(iPrisoner);
 	
 	new iOpponent = UltJB_LR_GetLastRequestOpponent(iPrisoner);
 	if(!iOpponent)
+	{
+		if(hForwardFinished != INVALID_HANDLE)
+			CloseHandle(hForwardFinished);
+		
 		return false;
+	}
 	
 	new Handle:hPack = CreateDataPack();
 	WritePackCell(hPack, 0);
@@ -853,6 +893,7 @@ bool:StartSlayTimer(iClient, iTimeBeforeSlay, iSlayFlags)
 	ShowSlayTimerCountdown(iPrisoner, iTimeBeforeSlay, iSlayFlags);
 	ShowSlayTimerCountdown(iOpponent, iTimeBeforeSlay, iSlayFlags);
 	
+	g_hTimer_SlayTimer_ForwardFinished[iPrisoner] = hForwardFinished;
 	g_hTimer_SlayTimer[iPrisoner] = CreateTimer(1.0, Timer_CheckSlayTimer, hPack, TIMER_REPEAT);
 	
 	return true;
@@ -871,20 +912,33 @@ public Action:Timer_CheckSlayTimer(Handle:hTimer, any:hPack)
 	{
 		PrintHintText(iPrisoner, "");
 		
-		CloseHandle(hPack);
 		g_hTimer_SlayTimer[iPrisoner] = INVALID_HANDLE;
+		CloseHandle(hPack);
+		
+		if(g_hTimer_SlayTimer_ForwardFinished[iPrisoner] != INVALID_HANDLE)
+		{
+			Call_StartForward(g_hTimer_SlayTimer_ForwardFinished[iPrisoner]);
+			Call_PushCell(iPrisoner);
+			Call_PushCell(iOpponent);
+			Call_PushCell(LR_SLAYTIMER_SLAYED_NONE);
+			Call_Finish();
+			
+			CloseHandle(g_hTimer_SlayTimer_ForwardFinished[iPrisoner]);
+			g_hTimer_SlayTimer_ForwardFinished[iPrisoner] = INVALID_HANDLE;
+		}
+		
 		return Plugin_Stop;
 	}
 	
 	if(iTimerTick >= iTimeBeforeSlay)
 	{
-		CloseHandle(hPack);
-		g_hTimer_SlayTimer[iPrisoner] = INVALID_HANDLE;
+		new iSlayedIndex = LR_SLAYTIMER_SLAYED_NONE;
 		
 		if(iSlayFlags & LR_SLAYTIMER_FLAG_PRISONER)
 		{
 			ShowSlayHint(iPrisoner);
-			ForcePlayerSuicide(iPrisoner);
+			
+			iSlayedIndex = iPrisoner;
 		}
 		else
 			PrintHintText(iPrisoner, "");
@@ -892,10 +946,37 @@ public Action:Timer_CheckSlayTimer(Handle:hTimer, any:hPack)
 		if(iSlayFlags & LR_SLAYTIMER_FLAG_GUARD)
 		{
 			ShowSlayHint(iOpponent);
-			ForcePlayerSuicide(iOpponent);
+			
+			if(iSlayedIndex == LR_SLAYTIMER_SLAYED_NONE)
+				iSlayedIndex = iOpponent;
+			else
+				iSlayedIndex = LR_SLAYTIMER_SLAYED_BOTH;
 		}
 		else
 			PrintHintText(iOpponent, "");
+		
+		// Make sure we close all handles before forcing suicide.
+		g_hTimer_SlayTimer[iPrisoner] = INVALID_HANDLE;
+		CloseHandle(hPack);
+		
+		if(g_hTimer_SlayTimer_ForwardFinished[iPrisoner] != INVALID_HANDLE)
+		{
+			Call_StartForward(g_hTimer_SlayTimer_ForwardFinished[iPrisoner]);
+			Call_PushCell(iPrisoner);
+			Call_PushCell(iOpponent);
+			Call_PushCell(iSlayedIndex);
+			Call_Finish();
+			
+			CloseHandle(g_hTimer_SlayTimer_ForwardFinished[iPrisoner]);
+			g_hTimer_SlayTimer_ForwardFinished[iPrisoner] = INVALID_HANDLE;
+		}
+		
+		// Now force suicide.
+		if(iSlayFlags & LR_SLAYTIMER_FLAG_PRISONER)
+			ForcePlayerSuicide(iPrisoner);
+
+		if(iSlayFlags & LR_SLAYTIMER_FLAG_GUARD)
+			ForcePlayerSuicide(iOpponent);
 		
 		return Plugin_Stop;
 	}
@@ -911,19 +992,22 @@ public Action:Timer_CheckSlayTimer(Handle:hTimer, any:hPack)
 
 ShowSlayTimerCountdown(iClient, iTimeLeft, iSlayFlags)
 {
-	decl String:szWho[10];
+	decl String:szWho[10], String:szColor[7];
 	if((iSlayFlags & LR_SLAYTIMER_FLAG_PRISONER)
 	&& (iSlayFlags & LR_SLAYTIMER_FLAG_GUARD))
 	{
 		strcopy(szWho, sizeof(szWho), "both");
+		strcopy(szColor, sizeof(szColor), "DE2626");
 	}
 	else if(iSlayFlags & LR_SLAYTIMER_FLAG_PRISONER)
 	{
 		strcopy(szWho, sizeof(szWho), "prisoner");
+		strcopy(szColor, sizeof(szColor), "ddaf25");
 	}
 	else if(iSlayFlags & LR_SLAYTIMER_FLAG_GUARD)
 	{
 		strcopy(szWho, sizeof(szWho), "guard");
+		strcopy(szColor, sizeof(szColor), "257edd");
 	}
 	else
 	{
@@ -931,7 +1015,7 @@ ShowSlayTimerCountdown(iClient, iTimeLeft, iSlayFlags)
 		return;
 	}
 	
-	PrintHintText(iClient, "<font color='#6FC41A'>Slaying <font color='#DE2626'>%s</font> <font color='#6FC41A'>in:</font>\n<font color='#DE2626'>%i</font> <font color='#6FC41A'>seconds.</font>", szWho, iTimeLeft);
+	PrintHintText(iClient, "<font color='#6FC41A'>Slaying <font color='#%s'>%s</font> <font color='#6FC41A'>in:</font>\n<font color='#DE2626'>%i</font> <font color='#6FC41A'>seconds.</font>", szColor, szWho, iTimeLeft);
 }
 
 ShowSlayHint(iClient)
@@ -941,6 +1025,12 @@ ShowSlayHint(iClient)
 
 StopTimer_SlayTimer(iClient)
 {
+	if(g_hTimer_SlayTimer_ForwardFinished[iClient] != INVALID_HANDLE)
+	{
+		CloseHandle(g_hTimer_SlayTimer_ForwardFinished[iClient]);
+		g_hTimer_SlayTimer_ForwardFinished[iClient] = INVALID_HANDLE;
+	}
+	
 	if(g_hTimer_SlayTimer[iClient] == INVALID_HANDLE)
 		return;
 	

@@ -45,6 +45,8 @@ public SharedPlugin:__pl_ultjb_last_request =
 
 #define LR_SLAYTIMER_FLAG_GUARD			(1<<0)
 #define LR_SLAYTIMER_FLAG_PRISONER		(1<<1)
+#define LR_SLAYTIMER_SLAYED_NONE	0
+#define LR_SLAYTIMER_SLAYED_BOTH	-1
 
 
 
@@ -90,6 +92,16 @@ functag public Callback_OnOpponentSelectedSuccess(client, opponent);
  * @noreturn
  */
 functag public Callback_OnOpponentSelectedFailed(client);
+
+/**
+ * The prototype for the slay timer finished callback.
+ *
+ * @param client			The client index who started the timer.
+ * @param opponent			The client's opponent index.
+ * @param slayed_index		The client who got slayed. 0 for none. -1 for both.
+ * @noreturn
+ */
+functag public Callback_SlayTimerFinished(client, opponent, slayed_index);
 
 
 
@@ -216,7 +228,7 @@ native UltJB_LR_GetRoundNumber();
  * @param slay_flags			The slay flags. This determines which players to slay.
  * @return						True if the timer started, false on failure.
  */
-native bool:UltJB_LR_StartSlayTimer(client, time_before_slay=45, slay_flags=LR_SLAYTIMER_FLAG_PRISONER | LR_SLAYTIMER_FLAG_GUARD);
+native bool:UltJB_LR_StartSlayTimer(client, time_before_slay=45, slay_flags=LR_SLAYTIMER_FLAG_PRISONER | LR_SLAYTIMER_FLAG_GUARD, Callback_SlayTimerFinished:finished_callback=INVALID_FUNCTION);
 
 /**
  * Stops a timer to slay the prisoner and/or guard.
