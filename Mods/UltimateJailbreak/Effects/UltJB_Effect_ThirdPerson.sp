@@ -1,18 +1,18 @@
 #include <sourcemod>
 #include <sdkhooks>
 #include <sdktools_functions>
-#include "../Includes/ultjb_lr_effects"
+#include "../Includes/ultjb_effects"
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "[UltJB] LR Effect: Third Person";
+new const String:PLUGIN_NAME[] = "[UltJB] Effect: Third Person";
 new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
 	name = PLUGIN_NAME,
 	author = "hlstriker",
-	description = "LR Effect: Third Person.",
+	description = "Effect: Third Person.",
 	version = PLUGIN_VERSION,
 	url = "www.swoobles.com"
 }
@@ -28,7 +28,7 @@ new Handle:cvar_sv_allow_thirdperson;
 
 public OnPluginStart()
 {
-	CreateConVar("lr_effect_third_person_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
+	CreateConVar("ultjb_effect_third_person_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	
 	if((cvar_sv_allow_thirdperson = FindConVar("sv_allow_thirdperson")) == INVALID_HANDLE)
 		SetFailState("Could not find cvar sv_allow_thirdperson");

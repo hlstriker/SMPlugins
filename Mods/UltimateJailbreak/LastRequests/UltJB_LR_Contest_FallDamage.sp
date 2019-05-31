@@ -1,12 +1,12 @@
 #include <sourcemod>
 #include <sdkhooks>
 #include "../Includes/ultjb_last_request"
-#include "../Includes/ultjb_lr_effects"
+#include "../Includes/ultjb_effects"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] LR: Contest - Fall Damage";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
@@ -17,7 +17,7 @@ public Plugin:myinfo =
 	url = "www.swoobles.com"
 }
 
-#define LR_NAME			"Most Fall Damage"
+#define LR_NAME			"Fall Damage"
 #define LR_CATEGORY		"Contest"
 #define LR_DESCRIPTION	""
 
@@ -100,14 +100,17 @@ PrepareClients(iClient)
 
 public Action:OnTakeDamage(iVictim, &iAttacker, &iInflictor, &Float:fDamage, &iDamageType)
 {
-	if(!(iDamageType & DMG_FALL))
-		return Plugin_Continue;
-	
 	new iOpponent = UltJB_LR_GetLastRequestOpponent(iVictim);
 	if(!iOpponent)
 	{
 		UltJB_LR_EndLastRequest(iVictim);
 		return Plugin_Continue;
+	}
+	
+	if(!(iDamageType & DMG_FALL))
+	{
+		fDamage = 0.0;
+		return Plugin_Changed;
 	}
 	
 	// Don't let the victim take any fall damage again.

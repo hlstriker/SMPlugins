@@ -1,18 +1,18 @@
 #include <sourcemod>
 #include <sdkhooks>
 #include <sdktools_functions>
-#include "../Includes/ultjb_lr_effects"
+#include "../Includes/ultjb_effects"
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "[UltJB] LR Effect: Headshots Only";
+new const String:PLUGIN_NAME[] = "[UltJB] Effect: Headshots Only";
 new const String:PLUGIN_VERSION[] = "1.0";
 
 public Plugin:myinfo =
 {
 	name = PLUGIN_NAME,
 	author = "hlstriker",
-	description = "LR Effect: Headshots Only.",
+	description = "Effect: Headshots Only.",
 	version = PLUGIN_VERSION,
 	url = "www.swoobles.com"
 }
@@ -22,7 +22,7 @@ public Plugin:myinfo =
 
 public OnPluginStart()
 {
-	CreateConVar("lr_effect_headshots_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
+	CreateConVar("ultjb_effect_headshots_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 }
 
 public UltJB_Effects_OnRegisterReady()

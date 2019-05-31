@@ -2,7 +2,7 @@
 #include <sdktools_functions>
 #include "../Includes/ultjb_last_request"
 #include "../Includes/ultjb_weapon_selection"
-#include "../Includes/ultjb_lr_effects"
+#include "../Includes/ultjb_effects"
 
 #pragma semicolon 1
 

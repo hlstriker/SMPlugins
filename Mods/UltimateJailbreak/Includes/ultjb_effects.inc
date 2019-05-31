@@ -1,13 +1,13 @@
-#if defined _ultjb_lr_effects_included
+#if defined _ultjb_effects_included
  #endinput
 #endif
-#define _ultjb_lr_effects_included
+#define _ultjb_effects_included
 
 
-public SharedPlugin:__pl_ultjb_lr_effects = 
+public SharedPlugin:__pl_ultjb_effects = 
 {
-	name = "ultjb_lr_effects",
-	file = "UltJB_API_LastRequestEffects.smx",
+	name = "ultjb_effects",
+	file = "UltJB_API_Effects.smx",
 #if defined REQUIRE_PLUGIN
 	required = 1,
 #else
@@ -40,21 +40,21 @@ functag public Callback_OnEffectSelectedSuccess(client, effect_id);
 functag public Callback_OnEffectSelectedFailed(client);
 
 /**
- * The prototype for the start last request effect callback.
+ * The prototype for the start effect callback.
  *
  * @param client			The client index who the effect should be started for.
  * @param data				The data sent when starting the effect.
  * @noreturn
  */
-functag public Callback_StartLastRequestEffect(client, Float:data);
+functag public Callback_StartEffect(client, Float:data);
 
 /**
- * The prototype for the stop last request effect callback.
+ * The prototype for the stop effect callback.
  *
  * @param client			The client index who the effect should be stopped for.
  * @noreturn
  */
-functag public Callback_StopLastRequestEffect(client);
+functag public Callback_StopEffect(client);
 
 
 
@@ -68,7 +68,7 @@ functag public Callback_StopLastRequestEffect(client);
  * @param default_data			The default value for the data sent to the start callback.
  * @return						The effect ID.
  */
-native UltJB_Effects_RegisterEffect(const String:effect_name[], Callback_StartLastRequestEffect:start_callback, Callback_StopLastRequestEffect:stop_callback, Float:default_data=0.0);
+native UltJB_Effects_RegisterEffect(const String:effect_name[], Callback_StartEffect:start_callback, Callback_StopEffect:stop_callback, Float:default_data=0.0);
 
 /**
  * Displays the effect selection menu to the specified client.
@@ -76,9 +76,10 @@ native UltJB_Effects_RegisterEffect(const String:effect_name[], Callback_StartLa
  * @param client				The client to display the menu to.
  * @param success_callback		The callback function when an effect is successfully selected.
  * @param failed_callback		The callback function when an effect could not be selected.
+ * @param select_time_override	An override to the default amount of time the select menu will stay up.
  * @return						True if the menu was displayed, false otherwise.
  */
-native bool:UltJB_Effects_DisplaySelectionMenu(client, Callback_OnEffectSelectedSuccess:success_callback, Callback_OnEffectSelectedFailed:failed_callback);
+native bool:UltJB_Effects_DisplaySelectionMenu(client, Callback_OnEffectSelectedSuccess:success_callback, Callback_OnEffectSelectedFailed:failed_callback, select_time_override=0);
 
 /**
  * Cancels any effect selection menu in progress for the specified client.

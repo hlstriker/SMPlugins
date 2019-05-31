@@ -1,7 +1,7 @@
 #include <sourcemod>
 #include <sdkhooks>
 #include "../Includes/ultjb_last_request"
-#include "../Includes/ultjb_lr_effects"
+#include "../Includes/ultjb_effects"
 
 #pragma semicolon 1
 

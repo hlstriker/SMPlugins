@@ -1,17 +1,17 @@
 #include <sourcemod>
 #include <hls_color_chat>
-#include "Includes/ultjb_lr_effects"
+#include "Includes/ultjb_effects"
 
 #pragma semicolon 1
 
-new const String:PLUGIN_NAME[] = "[UltJB] Last Request Effects";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_NAME[] = "[UltJB] Effects";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
 	name = PLUGIN_NAME,
 	author = "hlstriker",
-	description = "The LR effects plugin for Ultimate Jailbreak.",
+	description = "The effects plugin for Ultimate Jailbreak.",
 	version = PLUGIN_VERSION,
 	url = "www.swoobles.com"
 }
@@ -45,7 +45,7 @@ new Handle:cvar_select_effect_time;
 
 public OnPluginStart()
 {
-	CreateConVar("ultjb_lr_effects_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
+	CreateConVar("ultjb_effects_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	
 	cvar_select_effect_time = CreateConVar("ultjb_select_effect_time", "15", "The number of seconds a player has to select their effect.", _, true, 1.0);
 	
@@ -131,7 +131,7 @@ SortEffectsByName()
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
 {
-	RegPluginLibrary("ultjb_lr_effects");
+	RegPluginLibrary("ultjb_effects");
 	
 	CreateNative("UltJB_Effects_StartEffect", _UltJB_Effects_StartEffect);
 	CreateNative("UltJB_Effects_StopEffect", _UltJB_Effects_StopEffect);
@@ -328,7 +328,7 @@ public _UltJB_Effects_RegisterEffect(Handle:hPlugin, iNumParams)
 		
 		if(StrEqual(szName, eEffect[Effect_Name], false))
 		{
-			LogError("Last request effect [%s] is already registered.", szName);
+			LogError("Effect [%s] is already registered.", szName);
 			return 0;
 		}
 	}
@@ -373,7 +373,7 @@ public _UltJB_Effects_RegisterEffect(Handle:hPlugin, iNumParams)
 
 public _UltJB_Effects_DisplaySelectionMenu(Handle:hPlugin, iNumParams)
 {
-	if(iNumParams != 3)
+	if(iNumParams != 4)
 	{
 		LogError("Invalid number of parameters.");
 		return false;
@@ -416,8 +416,12 @@ public _UltJB_Effects_DisplaySelectionMenu(Handle:hPlugin, iNumParams)
 		return false;
 	}
 	
+	new Float:fSelectTime = float(GetNativeCell(4));
+	if(fSelectTime < 1.0)
+		fSelectTime = GetConVarFloat(cvar_select_effect_time);
+	
 	StopTimer_EffectSelection(iClient);
-	g_hTimer_EffectSelection[iClient] = CreateTimer(GetConVarFloat(cvar_select_effect_time), Timer_EffectSelection, GetClientSerial(iClient));
+	g_hTimer_EffectSelection[iClient] = CreateTimer(fSelectTime, Timer_EffectSelection, GetClientSerial(iClient));
 	
 	return true;
 }

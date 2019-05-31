@@ -3,7 +3,7 @@
 #include <cstrike>
 #include <sdkhooks>
 #include "../Includes/ultjb_last_request"
-#include "../Includes/ultjb_lr_effects"
+#include "../Includes/ultjb_effects"
 #include "../Includes/ultjb_weapon_selection"
 
 #pragma semicolon 1
