@@ -16,7 +16,7 @@ public Plugin:myinfo =
 	url = "www.swoobles.com"
 }
 
-#define THIS_STYLE_BIT			STYLE_BIT_BACKWARDS
+#define THIS_STYLE_BIT			STYLE_BIT_ONE_STRAFE_ONLY
 #define THIS_STYLE_NAME			"A only / D only"
 #define THIS_STYLE_NAME_AUTO	"A only / D only + Auto Bhop"
 #define THIS_STYLE_ORDER		66
