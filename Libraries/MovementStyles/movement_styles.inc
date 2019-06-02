@@ -35,6 +35,7 @@ public SharedPlugin:__pl_movement_styles =
 #define STYLE_BIT_PARKOUR				(1<<12)
 #define STYLE_BIT_AUTO_STRAFE				(1<<13)
 #define STYLE_BIT_HIGH_FOV				(1<<15)
+#define STYLE_BIT_BACKWARDS				(1<<16)
 
 functag public Callback_OnActivated(client);
 functag public Callback_OnDeactivated(client);
