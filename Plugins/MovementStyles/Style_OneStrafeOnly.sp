@@ -33,7 +33,7 @@ new g_iStrafeChoice[MAXPLAYERS+1];
 public OnPluginStart()
 {
 	CreateConVar("style_one_strafe_only_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
-	
+
 	cvar_add_autobhop = CreateConVar("style_one_strafe_only_add_autobhop", "0", "Add an additional auto-bhop style for this style too.", _, true, 0.0, true, 1.0);
 	cvar_force_autobhop = CreateConVar("style_one_strafe_only_force_autobhop", "0", "Force auto-bhop on this style.", _, true, 0.0, true, 1.0);
 }
@@ -54,7 +54,7 @@ public MovementStyles_OnBitsChanged(iClient, iOldBits, &iNewBits)
 	// Do not compare using bitwise operators. The bit should be an exact equal.
 	if(iNewBits != THIS_STYLE_BIT)
 		return;
-	
+
 	iNewBits = TryForceAutoBhopBits(iNewBits);
 }
 
@@ -63,7 +63,7 @@ public Action:MovementStyles_OnMenuBitsChanged(iClient, iBitsBeingToggled, bool:
 	// Do not compare using bitwise operators. The bit should be an exact equal.
 	if(!bBeingToggledOn || iBitsBeingToggled != THIS_STYLE_BIT)
 		return;
-	
+
 	iExtraBitsToForceOn = TryForceAutoBhopBits(iExtraBitsToForceOn);
 }
 
@@ -71,7 +71,7 @@ TryForceAutoBhopBits(iBits)
 {
 	if(!GetConVarBool(cvar_force_autobhop))
 		return iBits;
-	
+
 	return (iBits | STYLE_BIT_AUTO_BHOP);
 }
 
@@ -91,17 +91,25 @@ public OnDeactivated(iClient)
 	g_bActivated[iClient] = false;
 }
 
+public MovementStyles_OnSpawnPostForwardsSent(iClient)
+{
+	if(!g_bActivated[iClient])
+		return;
+
+	g_iStrafeChoice[iClient] = 0;
+}
+
 public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVel[3], Float:fAngles[3], &iWeapon, &iSubType, &iCmdNum, &iTickCount, &iSeed, iMouse[2])
 {
 	if(!g_bActivated[iClient])
 		return Plugin_Continue;
-	
+
 	if(!IsPlayerAlive(iClient))
 		return Plugin_Continue;
 
 	new bool:bNewGrounded = false;
 	if (GetEntityFlags(iClient) & FL_ONGROUND) bNewGrounded = true;
-	
+
 	if(g_bGrounded[iClient] && bNewGrounded) return Plugin_Continue;
 
 	g_bGrounded[iClient] = bNewGrounded;
