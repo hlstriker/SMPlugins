@@ -7,7 +7,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Zone Type: Teleport";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -72,7 +72,7 @@ public OnStartTouch(iZone, iOther)
 	TryToTeleport(iZoneID, iOther, false);
 }
 
-bool:TryToTeleport(iZoneID, iClient, bool:bZoneIsDest)
+bool:TryToTeleport(iZoneID, iEntToTele, bool:bZoneIsDest)
 {
 	new iDestZoneID;
 	
@@ -85,7 +85,9 @@ bool:TryToTeleport(iZoneID, iClient, bool:bZoneIsDest)
 		static String:szTarget[MAX_ZONE_DATA_STRING_LENGTH];
 		if(!ZoneManager_GetDataString(iZoneID, 1, szTarget, sizeof(szTarget)) || !szTarget[0])
 		{
-			CPrintToChat(iClient, "{red}Teleport's destination not set.");
+			if(IsPlayer(iEntToTele))
+				CPrintToChat(iEntToTele, "{red}Teleport's destination not set.");
+			
 			return false;
 		}
 		
@@ -113,7 +115,9 @@ bool:TryToTeleport(iZoneID, iClient, bool:bZoneIsDest)
 	
 	if(!iDestZoneID)
 	{
-		CPrintToChat(iClient, "{red}Teleport's destination doesn't exist.");
+		if(IsPlayer(iEntToTele))
+			CPrintToChat(iEntToTele, "{red}Teleport's destination doesn't exist.");
+		
 		return false;
 	}
 	
@@ -127,21 +131,42 @@ bool:TryToTeleport(iZoneID, iClient, bool:bZoneIsDest)
 	fDestOrigin[1] = fDestOrigin[1] + ((fMins[1] + fMaxs[1]) * 0.5);
 	fDestOrigin[2] += fMins[2];
 	
-	if(!CanTeleportToOrigin(fDestOrigin))
+	if(!CanTeleportToOrigin(iEntToTele, fDestOrigin))
 	{
-		CPrintToChat(iClient, "{red}Teleporting to the destination would get you stuck.");
+		if(IsPlayer(iEntToTele))
+			CPrintToChat(iEntToTele, "{red}Teleporting to the destination would get you stuck.");
+		
 		return false;
 	}
 	
 	decl Float:fAngles[3];
 	ZoneManager_GetZoneAngles(iDestZoneID, fAngles);
-	TeleportEntity(iClient, fDestOrigin, fAngles, Float:{0.0, 0.0, 0.0});
+	
+	// Don't modify pitch and roll if it's not a player.
+	if(!IsPlayer(iEntToTele))
+	{
+		fAngles[0] = 0.0;
+		fAngles[2] = 0.0;
+	}
+	
+	TeleportEntity(iEntToTele, fDestOrigin, fAngles, Float:{0.0, 0.0, 0.0});
 	
 	return true;
 }
 
-bool:CanTeleportToOrigin(Float:fOrigin[3])
+bool:IsPlayer(iEnt)
 {
+	if(1 <= iEnt <= MaxClients)
+		return true;
+	
+	return false;
+}
+
+bool:CanTeleportToOrigin(const iEntToTele, const Float:fOrigin[3])
+{
+	if(!IsPlayer(iEntToTele))
+		return true;
+	
 	TR_TraceHullFilter(fOrigin, fOrigin, HULL_STANDING_MINS_CSGO, HULL_STANDING_MAXS_CSGO, MASK_PLAYERSOLID, TraceFilter_DontHitPlayers);
 	if(TR_DidHit())
 		return false;
