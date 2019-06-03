@@ -9,6 +9,7 @@
 #include "Includes/ultjb_weapon_selection"
 #include "Includes/ultjb_cell_doors"
 #include "Includes/ultjb_days"
+#include "Includes/ultjb_settings"
 
 #undef REQUIRE_PLUGIN
 #include "../../Libraries/ModelSkinManager/model_skin_manager"
@@ -18,7 +19,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Settings";
-new const String:PLUGIN_VERSION[] = "1.27";
+new const String:PLUGIN_VERSION[] = "1.28";
 
 public Plugin:myinfo =
 {
@@ -41,6 +42,7 @@ new Handle:cvar_mp_teamname_1;
 new Handle:cvar_mp_teamname_2;
 new Handle:cvar_healthshot_health;
 new Handle:cvar_mp_death_drop_gun;
+new Handle:cvar_mp_ignore_round_win_conditions;
 new Handle:cvar_sv_disable_immunity_alpha;
 
 new g_iModelIndex_Healthshot;
@@ -61,7 +63,21 @@ new Handle:g_hTimer_AutoRespawn;
 new Float:g_fTimeStartedAutoRespawn;
 new bool:g_bShouldDenyAutoRespawn[MAXPLAYERS+1];
 
-new Handle:cvar_max_auto_respawn_seconds;
+new g_iAutoRespawnSeconds;
+new g_iAllowedAutoRespawnTeam;
+new bool:g_bDisableAutoRespawnOnDeath;
+new bool:g_bDisableAutoRespawnOnTeamChange;
+
+new g_iNumAllowedAutoRespawnsPerClient;
+new g_iNumAutoRespawnsUsed[MAXPLAYERS+1];
+
+#define DEFAULT_AUTORESPAWN_DELAY	0.3
+new Float:g_fAutoRespawnDelay_Prisoners;
+new Float:g_fAutoRespawnDelay_Guards;
+
+new Handle:cvar_cells_closed_auto_respawn_seconds;
+
+new Float:g_fTimeOfDeath[MAXPLAYERS+1];
 
 new g_iOriginalTeam[MAXPLAYERS+1];
 new Float:g_fOriginalOrigin[MAXPLAYERS+1][3];
@@ -80,12 +96,15 @@ new Handle:g_hFwd_OnSpawnPost;
 new bool:g_bLibLoaded_ModelSkinManager;
 new bool:g_bPluginLoaded_SkinsForMapWeapons;
 
+new bool:g_bUseNextRoundEndReason;
+new CSRoundEndReason:g_nextRoundEndReason;
+
 
 public OnPluginStart()
 {
 	CreateConVar("ultjb_settings_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	
-	cvar_max_auto_respawn_seconds = CreateConVar("ultjb_max_auto_respawn_seconds", "60", "The number of seconds to wait before disabling auto-respawn.", _, true, 0.0);
+	cvar_cells_closed_auto_respawn_seconds = CreateConVar("ultjb_cells_closed_auto_respawn_seconds", "60", "The number of seconds to wait before disabling auto-respawn while cells are closed.", _, true, 0.0);
 	
 	g_aInCellWeapons = CreateArray();
 	
@@ -94,6 +113,7 @@ public OnPluginStart()
 	
 	g_hFwd_OnSpawnPost = CreateGlobalForward("UltJB_Settings_OnSpawnPost", ET_Ignore, Param_Cell);
 	
+	HookEvent("round_start", EventRoundStart_Pre, EventHookMode_Pre);
 	HookEvent("round_start", EventRoundStart_Post, EventHookMode_PostNoCopy);
 	HookEvent("round_end", EventRoundEnd_Pre, EventHookMode_Pre);
 	HookEvent("player_death", EventPlayerDeath_Post, EventHookMode_Post);
@@ -135,13 +155,74 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 {
 	RegPluginLibrary("ultjb_settings");
 	CreateNative("UltJB_Settings_StripWeaponFromOwner", _UltJB_Settings_StripWeaponFromOwner);
+	CreateNative("UltJB_Settings_StartAutoRespawning", _UltJB_Settings_StartAutoRespawning);
+	CreateNative("UltJB_Settings_StopAutoRespawning", _UltJB_Settings_StopAutoRespawning);
+	CreateNative("UltJB_Settings_SetAutoRespawnDelay", _UltJB_Settings_SetAutoRespawnDelay);
+	CreateNative("UltJB_Settings_SetWeaponDroppingOnDeath", _UltJB_Settings_SetWeaponDroppingOnDeath);
+	CreateNative("UltJB_Settings_BlockTerminateRound", _UltJB_Settings_BlockTerminateRound);
+	CreateNative("UltJB_Settings_SetNextRoundEndReason", _UltJB_Settings_SetNextRoundEndReason);
 	
 	return APLRes_Success;
+}
+
+public _UltJB_Settings_SetNextRoundEndReason(Handle:hPlugin, iNumParams)
+{
+	g_bUseNextRoundEndReason = GetNativeCell(1);
+	g_nextRoundEndReason = GetNativeCell(2);
+}
+
+public _UltJB_Settings_BlockTerminateRound(Handle:hPlugin, iNumParams)
+{
+	BlockTerminateRound(GetNativeCell(1));
+}
+
+BlockTerminateRound(bool:bShouldBlock)
+{
+	if(cvar_mp_ignore_round_win_conditions != INVALID_HANDLE)
+		SetConVarInt(cvar_mp_ignore_round_win_conditions, bShouldBlock ? 1 : 0);
+}
+
+public _UltJB_Settings_StartAutoRespawning(Handle:hPlugin, iNumParams)
+{
+	g_fAutoRespawnDelay_Prisoners = DEFAULT_AUTORESPAWN_DELAY;
+	g_fAutoRespawnDelay_Guards = DEFAULT_AUTORESPAWN_DELAY;
+	
+	StartAutoRespawning(GetNativeCell(1), GetNativeCell(2), GetNativeCell(3), GetNativeCell(4), GetNativeCell(5), GetNativeCell(6));
+}
+
+public _UltJB_Settings_StopAutoRespawning(Handle:hPlugin, iNumParams)
+{
+	StopTimer_AutoRespawn();
+}
+
+public _UltJB_Settings_SetAutoRespawnDelay(Handle:hPlugin, iNumParams)
+{
+	new Float:fDelay = GetNativeCell(1);
+	new iTeam = GetNativeCell(2);
+	
+	if(fDelay < 0.1)
+		fDelay = 0.1;
+	
+	switch(iTeam)
+	{
+		case ART_PRISONERS: g_fAutoRespawnDelay_Prisoners = fDelay;
+		case ART_GUARDS: g_fAutoRespawnDelay_Guards = fDelay;
+		case ART_BOTH:
+		{
+			g_fAutoRespawnDelay_Prisoners = fDelay;
+			g_fAutoRespawnDelay_Guards = fDelay;
+		}
+	}
 }
 
 public _UltJB_Settings_StripWeaponFromOwner(Handle:hPlugin, iNumParams)
 {
 	StripWeaponFromOwner(GetNativeCell(1));
+}
+
+public _UltJB_Settings_SetWeaponDroppingOnDeath(Handle:hPlugin, iNumParams)
+{
+	AllowWeaponDroppingOnDeath(GetNativeCell(1));
 }
 
 StripWeaponFromOwner(iWeapon)
@@ -174,10 +255,10 @@ public EventPlayerTeam_Post(Handle:hEvent, const String:szName[], bool:bDontBroa
 {
 	new iClient = GetClientOfUserId(GetEventInt(hEvent, "userid"));
 	
-	if(GetEventInt(hEvent, "team") == TEAM_PRISONERS
-	&& g_iOriginalTeam[iClient] == TEAM_GUARDS)
+	if(g_hTimer_AutoRespawn != INVALID_HANDLE)
 	{
-		g_bShouldDenyAutoRespawn[iClient] = true;
+		if(g_bDisableAutoRespawnOnTeamChange)
+			g_bShouldDenyAutoRespawn[iClient] = true;
 	}
 }
 
@@ -238,7 +319,7 @@ public OnWeaponEquipPost(iClient, iWeapon)
 	new iEntRef = EntIndexToEntRef(iWeapon);
 	if(iEntRef == INVALID_ENT_REFERENCE)
 		return;
-		
+	
 	SetClipSize(iClient, iEntRef, -1);
 }
 
@@ -251,16 +332,16 @@ SetClipSize(iClient, iOldWeapon, iNewWeapon)
 {
 	if(GetEngineTime() > g_fRoundStartTime + MODIFYING_WEAPON_EQUIP_TIME)
 		return;
-		
+	
 	if(GetClientTeam(iClient) != TEAM_PRISONERS)
 		return;
-		
+	
 	if(UltJB_CellDoors_HaveOpened())
 		return;
-		
+	
 	if(iOldWeapon == INVALID_ENT_REFERENCE)
 		return;
-		
+	
 	new iIndex = FindValueInArray(g_aInCellWeapons, iOldWeapon);
 	if(iIndex == -1)
 		return;
@@ -314,6 +395,12 @@ public OnMapStart()
 	OnRoundStart();
 }
 
+public OnMapEnd()
+{
+	StopTimer_AutoRespawn();
+	BlockTerminateRound(false);
+}
+
 SetupConVars()
 {
 	if((cvar_mp_teamname_1 = FindConVar("mp_teamname_1")) != INVALID_HANDLE)
@@ -340,7 +427,10 @@ SetupConVars()
 		SetConVarInt(cvar_sv_disable_immunity_alpha, 1);
 	}
 	
-	cvar_mp_death_drop_gun = FindConVar("cvar_mp_death_drop_gun");
+	cvar_mp_death_drop_gun = FindConVar("mp_death_drop_gun");
+	cvar_mp_ignore_round_win_conditions = FindConVar("mp_ignore_round_win_conditions");
+	
+	BlockTerminateRound(false);
 }
 
 AllowWeaponDroppingOnDeath(bool:bShouldAllow)
@@ -378,6 +468,9 @@ public Action:EventRoundEnd_Pre(Handle:hEvent, const String:szName[], bool:bDont
 
 public Action:CS_OnTerminateRound(&Float:fDelay, &CSRoundEndReason:reason)
 {
+	if(g_bUseNextRoundEndReason)
+		reason = g_nextRoundEndReason;
+	
 	switch(reason)
 	{
 		case CSRoundEnd_CTWin, CSRoundEnd_TargetSaved, CSRoundEnd_VIPEscaped, CSRoundEnd_CTStoppedEscape, CSRoundEnd_TerroristsStopped, CSRoundEnd_BombDefused, CSRoundEnd_HostagesRescued, CSRoundEnd_TerroristsNotEscaped, CSRoundEnd_TerroristsSurrender:
@@ -395,6 +488,8 @@ public Action:CS_OnTerminateRound(&Float:fDelay, &CSRoundEndReason:reason)
 			EmitSoundToAll(SZ_SOUND_ROUND_DRAW[6], _, _, SNDLEVEL_NONE);
 		}
 	}
+	
+	return g_bUseNextRoundEndReason ? Plugin_Changed : Plugin_Continue;
 }
 
 ShowOverlayToAll(const String:szOverlayPath[])
@@ -408,6 +503,12 @@ ShowOverlayToAll(const String:szOverlayPath[])
 	}
 }
 
+public Action:EventRoundStart_Pre(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
+{
+	g_bUseNextRoundEndReason = false;
+	return Plugin_Continue;
+}
+
 public Action:EventRoundStart_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
 {
 	ShowOverlayToAll("");
@@ -418,7 +519,16 @@ OnRoundStart()
 {
 	g_fRoundStartTime = GetEngineTime();
 	
-	StartAutoRespawning();
+	if(UltJB_CellDoors_DoExist())
+	{
+		AllowWeaponDroppingOnDeath(false);
+		StartAutoRespawning(true, 1, GetConVarInt(cvar_cells_closed_auto_respawn_seconds), ART_PRISONERS, true, true);
+	}
+	else
+	{
+		AllowWeaponDroppingOnDeath(true);
+	}
+	
 	RemoveReserveAmmoFromCellWeapons();
 	
 	for(new iClient=1; iClient<=MaxClients; iClient++)
@@ -492,6 +602,8 @@ public OnSpawnPost(iClient)
 	SetEntityHealth(iClient, 100);
 	SetEntProp(iClient, Prop_Data, "m_iMaxHealth", 100);
 	
+	SetEntProp(iClient, Prop_Send, "m_bHasDefuser", 0);
+	
 	Forward_OnSpawnPost(iClient);
 }
 
@@ -503,23 +615,30 @@ Forward_OnSpawnPost(iClient)
 	Call_Finish(result);
 }
 
-StartAutoRespawning(bool:bClearDenyList=true)
+ResetAllClientsAutoRespawnLimits()
 {
-	if(bClearDenyList)
-	{
-		for(new iClient=1; iClient<=MaxClients; iClient++)
-			g_bShouldDenyAutoRespawn[iClient] = false;
-	}
+	for(new iClient=1; iClient<=MaxClients; iClient++)
+		ResetClientsAutoRespawnLimits(iClient);
+}
+
+ResetClientsAutoRespawnLimits(iClient)
+{
+	g_bShouldDenyAutoRespawn[iClient] = false;
+	g_iNumAutoRespawnsUsed[iClient] = 0;
+}
+
+StartAutoRespawning(bool:bResetClientsRespawnLimits=false, iNumAllowedRespawnsPerClient=0, iSecondsToRespawnFor=0, iTeamAllowedToRespawn=ART_BOTH, bool:bDisableRespawnOnDeath=false, bool:bDisableRespawnOnTeamChange=true)
+{
+	g_iNumAllowedAutoRespawnsPerClient = iNumAllowedRespawnsPerClient;
+	g_iAutoRespawnSeconds = iSecondsToRespawnFor;
+	g_iAllowedAutoRespawnTeam = iTeamAllowedToRespawn;
+	g_bDisableAutoRespawnOnDeath = bDisableRespawnOnDeath;
+	g_bDisableAutoRespawnOnTeamChange = bDisableRespawnOnTeamChange;
 	
-	if(UltJB_CellDoors_DoExist())
-	{
-		AllowWeaponDroppingOnDeath(false);
-		StartTimer_AutoRespawn();
-	}
-	else
-	{
-		AllowWeaponDroppingOnDeath(true);
-	}
+	if(bResetClientsRespawnLimits)
+		ResetAllClientsAutoRespawnLimits();
+	
+	StartTimer_AutoRespawn();
 }
 
 StartTimer_AutoRespawn()
@@ -532,48 +651,63 @@ StartTimer_AutoRespawn()
 
 StopTimer_AutoRespawn()
 {
-	AllowWeaponDroppingOnDeath(true);
-	
 	if(g_hTimer_AutoRespawn == INVALID_HANDLE)
 		return;
-		
+	
 	KillTimer(g_hTimer_AutoRespawn);
 	g_hTimer_AutoRespawn = INVALID_HANDLE;
 }
 
-public OnMapEnd()
-{
-	StopTimer_AutoRespawn();
-}
-
 public Action:Timer_AutoRespawn(Handle:hTimer)
 {
+	static Float:fCurTime;
+	fCurTime = GetEngineTime();
+	
 	static iClient, iTeam;
 	for(iClient=1; iClient<=MaxClients; iClient++)
 	{
 		if(!IsClientInGame(iClient))
 			continue;
 		
-		if(g_bShouldDenyAutoRespawn[iClient])
-			continue;
-		
 		if(IsPlayerAlive(iClient))
 			continue;
 		
-		iTeam = GetClientTeam(iClient);
-		if(iTeam != TEAM_PRISONERS)
+		if(g_bShouldDenyAutoRespawn[iClient])
 			continue;
 		
-		g_bShouldDenyAutoRespawn[iClient] = true;
+		iTeam = GetClientTeam(iClient);
+		if(iTeam < TEAM_PRISONERS || g_iAllowedAutoRespawnTeam == ART_NONE)
+			continue;
+		
+		if(g_iAllowedAutoRespawnTeam != ART_BOTH)
+		{
+			if(g_iAllowedAutoRespawnTeam == ART_PRISONERS && iTeam != TEAM_PRISONERS)
+				continue;
+			
+			if(g_iAllowedAutoRespawnTeam == ART_GUARDS && iTeam != TEAM_GUARDS)
+				continue;
+		}
+		
+		if(iTeam == TEAM_PRISONERS && fCurTime < (g_fTimeOfDeath[iClient] + g_fAutoRespawnDelay_Prisoners))
+			continue;
+		
+		if(iTeam == TEAM_GUARDS && fCurTime < (g_fTimeOfDeath[iClient] + g_fAutoRespawnDelay_Guards))
+			continue;
+		
 		CS_RespawnPlayer(iClient);
+		g_iNumAutoRespawnsUsed[iClient]++;
+		
+		if(g_iNumAllowedAutoRespawnsPerClient > 0 && g_iNumAutoRespawnsUsed[iClient] >= g_iNumAllowedAutoRespawnsPerClient)
+			g_bShouldDenyAutoRespawn[iClient] = true;
 	}
 	
-	if(GetEngineTime() >= (g_fTimeStartedAutoRespawn + GetConVarFloat(cvar_max_auto_respawn_seconds)))
+	if(g_iAutoRespawnSeconds > 0)
 	{
-		AllowWeaponDroppingOnDeath(true);
-		g_hTimer_AutoRespawn = INVALID_HANDLE;
-		
-		return Plugin_Stop;
+		if(fCurTime >= (g_fTimeStartedAutoRespawn + g_iAutoRespawnSeconds))
+		{
+			g_hTimer_AutoRespawn = INVALID_HANDLE;
+			return Plugin_Stop;
+		}
 	}
 	
 	return Plugin_Continue;
@@ -582,16 +716,22 @@ public Action:Timer_AutoRespawn(Handle:hTimer)
 public UltJB_CellDoors_OnOpened()
 {
 	StopTimer_AutoRespawn();
+	AllowWeaponDroppingOnDeath(true);
 }
 
 public UltJB_Day_OnWardayStart(iClient)
 {
-	StartAutoRespawning(false);
-}
-
-public UltJB_Day_OnWardayFreezeEnd()
-{
-	StopTimer_AutoRespawn();
+	// Respawn all players if a warday starts.
+	for(new iPlayer=1; iPlayer<=MaxClients; iPlayer++)
+	{
+		if(!IsClientInGame(iPlayer))
+			continue;
+		
+		if(IsPlayerAlive(iPlayer))
+			continue;
+		
+		CS_RespawnPlayer(iPlayer);
+	}
 }
 
 public OnWeaponDropPost(iClient, iWeapon)
@@ -615,6 +755,8 @@ public EventPlayerDeath_Pre(Handle:hEvent, const String:szName[], bool:bDontBroa
 	if(!iClient)
 		return;
 	
+	g_fTimeOfDeath[iClient] = GetEngineTime();
+	
 	if(g_iWeaponDropTick[iClient] != GetGameTickCount())
 		return;
 	
@@ -624,6 +766,7 @@ public EventPlayerDeath_Pre(Handle:hEvent, const String:szName[], bool:bDontBroa
 	if(GetClientTeam(iClient) != TEAM_GUARDS)
 		return;
 	
+	// Kill all guards weapons if they suicide.
 	decl iWeapon;
 	for(new i=0; i<GetArraySize(g_aWeaponDropRefs[iClient]); i++)
 	{
@@ -639,12 +782,11 @@ public EventPlayerDeath_Post(Handle:hEvent, const String:szName[], bool:bDontBro
 	if(!(1 <= iVictim <= MaxClients))
 		return;
 	
-	// Suicide
-	//new iAttacker = GetClientOfUserId(GetEventInt(hEvent, "attacker"));
-	//if(iAttacker == iVictim)
-		//return;
-	
-	g_bShouldDenyAutoRespawn[iVictim] = true;
+	if(g_hTimer_AutoRespawn != INVALID_HANDLE)
+	{
+		if(g_bDisableAutoRespawnOnDeath)
+			g_bShouldDenyAutoRespawn[iVictim] = true;
+	}
 }
 
 public Action:OnWeaponDrop(iClient, const String:szCommand[], iArgCount)
