@@ -1,0 +1,5 @@
+"VertexLitGeneric"
+{
+	$basetexture	"swoobles/ultimate_jailbreak/capture_point/block"
+	$model		1
+}
