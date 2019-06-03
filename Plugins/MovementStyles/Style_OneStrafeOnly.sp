@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: One Strafe Only";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -105,6 +105,11 @@ public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVel[3], Float
 		return Plugin_Continue;
 
 	if(!IsPlayerAlive(iClient))
+		return Plugin_Continue;
+
+	new MoveType:iMoveType = GetEntityMoveType(iClient);
+
+	if(iMoveType == MOVETYPE_NOCLIP)
 		return Plugin_Continue;
 
 	new bool:bNewGrounded = false;
