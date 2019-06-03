@@ -80,6 +80,24 @@ functag public Callback_WardayFreezeEnd();
 native UltJB_Day_RegisterDay(const String:day_name[], DayType:day_type, flags=0, Callback_StartDay:start_callback, Callback_EndDay:end_callback=INVALID_FUNCTION, Callback_WardayFreezeEnd:freeze_end_callback=INVALID_FUNCTION);
 
 /**
+ * Sets the enabled state on the day. This will enable or disable the day in the days menu.
+ *
+ * @param day_id		The days ID.
+ * @param enabled		The enabled state.
+ * @return				True if day found, false otherwise.
+ */
+native bool:UltJB_Day_SetEnabled(day_id, bool:enabled);
+
+/**
+ * Modify the day flags.
+ *
+ * @param day_id		The days ID.
+ * @param time			The flags to use.
+ * @return				True if set, false otherwise.
+ */
+native bool:UltJB_Day_SetFlags(day_id, flags);
+
+/**
  * Checks to see if a day is in progress.
  *
  * @noparam
@@ -110,7 +128,7 @@ native DayType:UltJB_Day_GetCurrentDayType();
  * @param time			The freezetime to use.
  * @return				True if set, false otherwise.
  */
-native UltJB_Day_SetFreezeTime(day_id, time);
+native bool:UltJB_Day_SetFreezeTime(day_id, time);
 
 /**
  * Force ends any freeze time in progress.

@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.15";
+new const String:PLUGIN_VERSION[] = "1.16";
 
 public Plugin:myinfo =
 {
@@ -40,7 +40,8 @@ enum _:Day
 	Handle:Day_ForwardFreezeEnd,
 	Day_Flags,
 	DayType:Day_Type,
-	Day_FreezeTime
+	Day_FreezeTime,
+	bool:Day_Enabled
 };
 
 new Handle:g_hFwd_OnRegisterReady;
@@ -71,7 +72,6 @@ new Handle:g_hFwd_OnSpawnPost;
 new g_iSpawnedTick[MAXPLAYERS+1];
 
 new bool:g_bInDaysSpawnPostForward[MAXPLAYERS+1];
-new bool:g_bIsDayAllowed[MAX_DAYS+1] = {true, ...};
 
 new g_iOffset_CCSPlayer_m_bSpotted = -1;
 
@@ -309,7 +309,7 @@ public Event_PlayerDeath_Post(Handle:event, const String:name[], bool:bDontBroad
 		iNumPrisoners++;
 	}
 	
-	// Return if no prisoner is in a freeday or if there are still prisoners remaining outside of a freeday.
+	// Return if no prisoner is in a freeday LR or if there are still prisoners remaining outside of a freeday LR.
 	if(!iNumFreedays || iNumFreedays < iNumPrisoners)
 		return;
 	
@@ -390,7 +390,9 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	RegPluginLibrary("ultjb_days");
 	
 	CreateNative("UltJB_Day_RegisterDay", _UltJB_Day_RegisterDay);
+	CreateNative("UltJB_Day_SetEnabled", _UltJB_Day_SetEnabled);
 	CreateNative("UltJB_Day_IsInProgress", _UltJB_Day_IsInProgress);
+	CreateNative("UltJB_Day_SetFlags", _UltJB_Day_SetFlags);
 	CreateNative("UltJB_Day_SetFreezeTime", _UltJB_Day_SetFreezeTime);
 	CreateNative("UltJB_Day_FreezeTimeForceEnd", _UltJB_Day_FreezeTimeForceEnd);
 	CreateNative("UltJB_Day_GetFreezeTimeRemaining", _UltJB_Day_GetFreezeTimeRemaining);
@@ -472,6 +474,34 @@ SortDaysByName()
 	}
 }
 
+public _UltJB_Day_SetFlags(Handle:hPlugin, iNumParams)
+{
+	if(iNumParams != 2)
+	{
+		LogError("Invalid number of parameters.");
+		return false;
+	}
+	
+	new iDayID = GetNativeCell(1);
+	new iFlags = GetNativeCell(2);
+	
+	decl eDay[Day];
+	for(new i=0; i<GetArraySize(g_aDays); i++)
+	{
+		GetArrayArray(g_aDays, i, eDay);
+		
+		if(eDay[Day_ID] != iDayID)
+			continue;
+		
+		eDay[Day_Flags] = iFlags;
+		SetArrayArray(g_aDays, i, eDay);
+		
+		return true;
+	}
+	
+	return false;
+}
+
 public _UltJB_Day_SetFreezeTime(Handle:hPlugin, iNumParams)
 {
 	if(iNumParams != 2)
@@ -516,6 +546,24 @@ public _UltJB_Day_GetCurrentDayID(Handle:hPlugin, iNumParams)
 public _UltJB_Day_GetCurrentDayType(Handle:hPlugin, iNumParams)
 {
 	return _:g_iCurrentDayType;
+}
+
+public _UltJB_Day_SetEnabled(Handle:hPlugin, iNumParams)
+{
+	if(iNumParams != 2)
+	{
+		LogError("Invalid number of parameters.");
+		return false;
+	}
+	
+	new iDayID = GetNativeCell(1);
+	
+	decl eDay[Day];
+	GetArrayArray(g_aDays, g_iDayIDToIndex[iDayID], eDay);
+	eDay[Day_Enabled] = GetNativeCell(2);
+	SetArrayArray(g_aDays, g_iDayIDToIndex[iDayID], eDay);
+	
+	return true;
 }
 
 public _UltJB_Day_RegisterDay(Handle:hPlugin, iNumParams)
@@ -594,6 +642,7 @@ public _UltJB_Day_RegisterDay(Handle:hPlugin, iNumParams)
 	eDay[Day_Type] = iDayType;
 	eDay[Day_Flags] = GetNativeCell(3);
 	eDay[Day_FreezeTime] = GetConVarInt(cvar_warday_freeze_time);
+	eDay[Day_Enabled] = true;
 	
 	g_iDayIDToIndex[eDay[Day_ID]] = PushArrayArray(g_aDays, eDay);
 	
@@ -810,8 +859,6 @@ ShowCountdown_Unfreeze()
 
 StopTimer_WardayFreeze()
 {
-	g_iTimerCountdown = 0;
-	
 	if(g_hTimer_WardayFreeze == INVALID_HANDLE)
 		return;
 	
@@ -839,7 +886,7 @@ public _UltJB_Day_FreezeTimeForceEnd(Handle:hPlugin, iNumParams)
 
 EndFreezeTimer(bool:bFromTimerFunc)
 {
-	g_iTimerCountdown = 0;
+	g_iTimerCountdown = g_iWardayFreezeTime;
 	
 	if(g_hTimer_WardayFreeze == INVALID_HANDLE)
 		return;
@@ -1123,7 +1170,7 @@ DisplayMenu_DaySelect(iClient, DayType:iDayType)
 		
 		IntToString(eDay[Day_ID], szInfo, sizeof(szInfo));
 		
-		if(g_bIsDayAllowed[eDay[Day_ID]])
+		if(eDay[Day_Enabled])
 			AddMenuItem(hMenu, szInfo, eDay[Day_Name]);
 		else
 			AddMenuItem(hMenu, szInfo, eDay[Day_Name], ITEMDRAW_DISABLED);
@@ -1211,7 +1258,7 @@ DisplayMenu_EditDay(iClient, DayType:iDayType)
 			continue;
 		
 		IntToString(eDay[Day_ID], szInfo, sizeof(szInfo));
-		Format(szLine, sizeof(szLine), "[%s] %s", (g_bIsDayAllowed[eDay[Day_ID]] ? "Y" : "N"), eDay[Day_Name]);
+		Format(szLine, sizeof(szLine), "[%s] %s", (eDay[Day_Enabled] ? "Y" : "N"), eDay[Day_Name]);
 		AddMenuItem(hMenu, szInfo, szLine);
 	}
 	
@@ -1281,10 +1328,11 @@ public MenuHandle_DayEdit(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 	
 	decl eDay[Day];
 	GetArrayArray(g_aDays, g_iDayIDToIndex[StringToInt(szInfo)], eDay);
+	eDay[Day_Enabled] = eDay[Day_Enabled] ? false : true;
+	SetArrayArray(g_aDays, g_iDayIDToIndex[StringToInt(szInfo)], eDay);
 	
-	g_bIsDayAllowed[eDay[Day_ID]] = !g_bIsDayAllowed[eDay[Day_ID]];
 	new String:szMessage[512];
-	Format(szMessage, sizeof(szMessage), "[SM] %s %s.", eDay[Day_Name], (g_bIsDayAllowed[eDay[Day_ID]] ? "enabled" : "disabled"));
+	Format(szMessage, sizeof(szMessage), "[SM] %s %s.", eDay[Day_Name], (eDay[Day_Enabled] ? "enabled" : "disabled"));
 	PrintToChat(iParam1, szMessage);
 	SaveDayConfig(iParam1);
 	DisplayMenu_EditDay(iParam1, eDay[Day_Type]);
@@ -1315,10 +1363,10 @@ SaveDayConfig(iClient)
 	
 	for(new i=0; i<=MAX_DAYS; i++)
 	{
-		if(g_bIsDayAllowed[i])
-			continue;
-		
 		GetArrayArray(g_aDays, g_iDayIDToIndex[i], eDay);
+		
+		if(eDay[Day_Enabled])
+			continue;
 		
 		Format(szBuffer, sizeof(szBuffer), "%d-%s", eDay[Day_Type], eDay[Day_Name]);
 		WriteFileLine(fp, szBuffer);
@@ -1331,9 +1379,6 @@ SaveDayConfig(iClient)
 
 LoadDayConfig()
 {
-	for(new iDay=0;iDay<=MAX_DAYS;iDay++)
-		g_bIsDayAllowed[iDay] = true;
-
 	new Handle:aNames = CreateArray(DAY_MAX_NAME_LENGTH);
 	
 	decl String:szBuffer[PLATFORM_MAX_PATH];
@@ -1384,9 +1429,9 @@ LoadDayConfig()
 			continue;
 		
 		PrintToServer("--- Disabling day");
-		g_bIsDayAllowed[eDay[Day_ID]] = false;
+		eDay[Day_Enabled] = false;
+		SetArrayArray(g_aDays, i, eDay);
 	}
-	
 }
 
 GetLowercaseMapName(String:szMapName[], iMaxLength)
