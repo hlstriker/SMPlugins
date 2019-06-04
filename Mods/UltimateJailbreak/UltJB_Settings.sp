@@ -19,7 +19,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Settings";
-new const String:PLUGIN_VERSION[] = "1.28";
+new const String:PLUGIN_VERSION[] = "1.29";
 
 public Plugin:myinfo =
 {
@@ -728,6 +728,9 @@ public UltJB_Day_OnWardayStart(iClient)
 			continue;
 		
 		if(IsPlayerAlive(iPlayer))
+			continue;
+		
+		if(GetClientTeam(iPlayer) < TEAM_PRISONERS)
 			continue;
 		
 		CS_RespawnPlayer(iPlayer);
