@@ -93,13 +93,20 @@ enum
 #define RESPAWN_DELAY_PRISONERS	2.5
 #define RESPAWN_DELAY_GUARDS	1.7
 
+#define HEALTH_PER_CLIENT_TEAM_DIFFERENCE	50
+
 new bool:g_bEventHooked_PlayerDeath;
 
 new g_iInitialDayFlags = DAY_FLAG_STRIP_GUARDS_WEAPONS | DAY_FLAG_STRIP_PRISONERS_WEAPONS;
 
 new Handle:cvar_mp_roundtime;
+new Handle:cvar_mp_respawn_immunitytime;
+
 new Float:g_fRoundTime;
 new Float:g_fRoundTimeStarted;
+
+#define RESPAWN_IMMUNITY_TIME	1.0
+new Float:g_fOriginalRespawnImmunityTime;
 
 
 public OnPluginStart()
@@ -112,6 +119,7 @@ public OnPluginStart()
 	RegConsoleCmd("drop", OnDrop);
 	
 	cvar_mp_roundtime = FindConVar("mp_roundtime");
+	cvar_mp_respawn_immunitytime = FindConVar("mp_respawn_immunitytime");
 }
 
 public OnMapStart()
@@ -187,6 +195,12 @@ public OnMapEnd()
 
 public OnDayStart(iClient)
 {
+	if(cvar_mp_respawn_immunitytime != INVALID_HANDLE)
+	{
+		g_fOriginalRespawnImmunityTime = GetConVarFloat(cvar_mp_respawn_immunitytime);
+		SetConVarFloat(cvar_mp_respawn_immunitytime, RESPAWN_IMMUNITY_TIME, true, false);
+	}
+	
 	g_iDefendingTeam = 0;
 	g_bHasStartedCTF = false;
 	
@@ -203,6 +217,9 @@ public OnDayStart(iClient)
 
 public OnDayEnd(iClient)
 {
+	if(cvar_mp_respawn_immunitytime != INVALID_HANDLE)
+		SetConVarFloat(cvar_mp_respawn_immunitytime, g_fOriginalRespawnImmunityTime, true, false);
+	
 	g_bHasStartedCTF = false;
 	
 	StopTimer_Selection();
@@ -496,6 +513,41 @@ PrepareClient(iClient)
 	
 	SetEntProp(iClient, Prop_Send, "m_ArmorValue", 100);
 	SetEntProp(iClient, Prop_Send, "m_bHasHelmet", 1);
+	
+	SetClientSpawnHealth(iClient);
+}
+
+SetClientSpawnHealth(iClient)
+{
+	new iNumGuards, iNumPrisoners;
+	for(new iPlayer=1; iPlayer<=MaxClients; iPlayer++)
+	{
+		if(!IsClientInGame(iPlayer))
+			continue;
+		
+		switch(GetClientTeam(iPlayer))
+		{
+			case TEAM_GUARDS: iNumGuards++;
+			case TEAM_PRISONERS: iNumPrisoners++;
+		}
+	}
+	
+	new iHealth = 100;
+	new iTeam = GetClientTeam(iClient);
+	
+	if(iNumPrisoners > iNumGuards)
+	{
+		if(iTeam == TEAM_GUARDS)
+			iHealth += (iNumPrisoners - iNumGuards) * HEALTH_PER_CLIENT_TEAM_DIFFERENCE;
+	}
+	else
+	{
+		if(iTeam == TEAM_PRISONERS)
+			iHealth += (iNumGuards - iNumPrisoners) * HEALTH_PER_CLIENT_TEAM_DIFFERENCE;
+	}
+	
+	SetEntityHealth(iClient, iHealth);
+	SetEntProp(iClient, Prop_Data, "m_iMaxHealth", iHealth);
 }
 
 GetClientSide(iClient)
