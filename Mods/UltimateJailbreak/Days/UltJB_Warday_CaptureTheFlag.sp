@@ -17,7 +17,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Capture the Flag";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -90,8 +90,8 @@ enum
 #define SOLID_VPHYSICS	6
 #define COLLISION_GROUP_DEBRIS_TRIGGER	2
 
-#define RESPAWN_DELAY_PRISONERS	2.5
-#define RESPAWN_DELAY_GUARDS	3.0
+#define RESPAWN_DELAY_ATTACKERS	2.5
+#define RESPAWN_DELAY_DEFENDERS	3.0
 
 #define HEALTH_PER_CLIENT_TEAM_DIFFERENCE	50
 
@@ -401,8 +401,8 @@ StartGame()
 	UltJB_Settings_BlockTerminateRound(true);
 	UltJB_Settings_SetWeaponDroppingOnDeath(false);
 	UltJB_Settings_StartAutoRespawning();
-	UltJB_Settings_SetAutoRespawnDelay(RESPAWN_DELAY_PRISONERS, ART_PRISONERS);
-	UltJB_Settings_SetAutoRespawnDelay(RESPAWN_DELAY_GUARDS, ART_GUARDS);
+	UltJB_Settings_SetAutoRespawnDelay(RESPAWN_DELAY_DEFENDERS, (g_iDefendingTeam == TEAM_GUARDS) ? ART_GUARDS : ART_PRISONERS);
+	UltJB_Settings_SetAutoRespawnDelay(RESPAWN_DELAY_ATTACKERS, (g_iDefendingTeam == TEAM_GUARDS) ? ART_PRISONERS : ART_GUARDS);
 	
 	StartTimer_Logic();
 }
