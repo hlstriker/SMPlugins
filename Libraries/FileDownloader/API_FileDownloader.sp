@@ -1,7 +1,8 @@
 /*
 * 	Things to note:
 * 	- The http requests don't support redirects or services such as Cloudflare.
-* 	- If you are having problems with a request you may need to lower the MAX_BYTES_PER_PACKET value.
+* 	- If you are having problems with a request you may need to lower (or increase?) the MAX_BYTES_PER_PACKET value.
+* 	- If sending data make sure the server allows file sizes as large as you're sending! (Ex php.ini: post_max_size = 20M & upload_max_filesize = 20M)
 */
 
 #include <sourcemod>
@@ -15,7 +16,7 @@
 #pragma dynamic 18000000
 
 new const String:PLUGIN_NAME[] = "API: File Downloader";
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
 {
@@ -32,6 +33,7 @@ public Plugin:myinfo =
 // On Windows any value seemed fine.
 // I thought maybe the SocketSendBuffer option wasn't working so increased the default net.ipv4.tcp_wmem value, still no good.
 #define MAX_BYTES_PER_PACKET	13298
+//#define MAX_BYTES_PER_PACKET	4096
 
 /*
 #define PACK_LOCATION_PARSED_HEADER		0
@@ -42,12 +44,13 @@ public Plugin:myinfo =
 */
 
 #define PACK_LOCATION_PARSED_HEADER		0
-#define PACK_LOCATION_FILE_HANDLE		1
-#define PACK_LOCATION_PACK_STRINGS		2
-#define PACK_LOCATION_SUCCESS_FORWARD	3
-#define PACK_LOCATION_FAILED_FORWARD	4
-#define PACK_LOCATION_PASSED_DATA		5
-#define PACK_LOCATION_BYTES_SENT		6
+#define PACK_LOCATION_RECEIVED_FINISHED	1
+#define PACK_LOCATION_FILE_HANDLE		2
+#define PACK_LOCATION_PACK_STRINGS		3
+#define PACK_LOCATION_SUCCESS_FORWARD	4
+#define PACK_LOCATION_FAILED_FORWARD	5
+#define PACK_LOCATION_PASSED_DATA		6
+#define PACK_LOCATION_BYTES_SENT		7
 
 new const String:KEY_REQUEST[]		= "req";
 new const String:KEY_REQUEST_LEN[]	= "reqlen";
@@ -60,7 +63,8 @@ enum DownloadEndCode
 	DL_END_SUCCESS,
 	DL_END_FILE_NOT_FOUND,
 	DL_END_SOCKET_ERROR,
-	DL_END_WRITE_ERROR
+	DL_END_WRITE_ERROR,
+	DL_END_NOT_COMPLETE
 };
 
 new g_iNumFilesDownloading;
@@ -168,6 +172,7 @@ public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 	
 	new Handle:hPack = CreateDataPack();
 	WritePackCell(hPack, 0);
+	WritePackCell(hPack, 0);
 	WritePackCell(hPack, _:hFile);
 	WritePackCell(hPack, _:hPackStrings);
 	WritePackCell(hPack, _:hSuccessForward);
@@ -215,10 +220,11 @@ public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 			decl String:szPayloadEnd[iPayloadEndSize];
 			new iPayloadEndLen = FormatEx(szPayloadEnd, iPayloadEndSize, "\
 				\r\n\
-				--%s--\r\n", POST_BOUNDARY);
+				--%s--", POST_BOUNDARY);
 			
+			// Make sure we use HTTP 1.0 so we don't get a chunked response (with 1.1+). This API does not support chunked responses.
 			new iLen = FormatEx(szRequest, iRequestLen, "\
-				POST %s/%s HTTP/1.1\r\n\
+				POST %s/%s HTTP/1.0\r\n\
 				Host: %s\r\n\
 				Connection: close\r\n\
 				Pragma: no-cache\r\n\
@@ -232,6 +238,7 @@ public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 			
 			iLen += FormatEx(szRequest[iLen], iRequestLen-iLen, szPayloadStart);
 			
+			// We can't use any string functions that modify all of szRequest after setting this binary data. Otherwise it'll truncate the string at the first 0x00.
 			for(new i=0; i<iPostFileDataLen; i++)
 			{
 				szRequest[iLen] = iPostFileData[i];
@@ -248,8 +255,9 @@ public _FileDownloader_DownloadFile(Handle:hPlugin, iNumParams)
 	
 	if(!bSetRequest)
 	{
+		// Make sure we use HTTP 1.0 so we don't get a chunked response (with 1.1+). This API does not support chunked responses.
 		decl String:szRequest[MAX_URL_LENGTH];
-		new iLen = FormatEx(szRequest, sizeof(szRequest), "GET %s/%s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\nPragma: no-cache\r\nCache-Control: no-cache\r\n\r\n", szLocation, szFileName, szHostName);
+		new iLen = FormatEx(szRequest, sizeof(szRequest), "GET %s/%s HTTP/1.0\r\nHost: %s\r\nConnection: close\r\nPragma: no-cache\r\nCache-Control: no-cache\r\n\r\n", szLocation, szFileName, szHostName);
 		SetTrieArray(hPackStrings, KEY_REQUEST, szRequest, iLen);
 		SetTrieValue(hPackStrings, KEY_REQUEST_LEN, MAX_URL_LENGTH);
 	}
@@ -339,8 +347,12 @@ SetPackGhettoPosition(Handle:hPack, iPosition)
 		ReadPackCell(hPack);
 }
 
-public OnSocketReceive(Handle:hSocket, String:szData[], const iSize, any:hPack)
+public OnSocketReceive(Handle:hSocket, const String:szData[], const iSize, any:hPack)
 {
+	SetPackGhettoPosition(hPack, PACK_LOCATION_RECEIVED_FINISHED);
+	if(ReadPackCell(hPack))
+		return;
+	
 	// Check if the HTTP header has already been parsed.
 	SetPackGhettoPosition(hPack, PACK_LOCATION_PARSED_HEADER);
 	new bool:bParsedHeader = bool:ReadPackCell(hPack);
@@ -351,13 +363,13 @@ public OnSocketReceive(Handle:hSocket, String:szData[], const iSize, any:hPack)
 		iIndex = StrContains(szData, "\r\n\r\n");
 		if(iIndex == -1)
 		{
-			iIndex = 0;
+			return;
 		}
 		else
 		{
 			// Check HTTP status code
 			decl String:szStatusCode[4];
-			strcopy(szStatusCode, sizeof(szStatusCode), szData[9]);
+			strcopy(szStatusCode, sizeof(szStatusCode), szData[9]); // HTTP/1.1 200 OK
 			szStatusCode[3] = '\x0';
 			
 			if(!StrEqual(szStatusCode, "200"))
@@ -366,7 +378,7 @@ public OnSocketReceive(Handle:hSocket, String:szData[], const iSize, any:hPack)
 				return;
 			}
 			
-			iIndex += 4;
+			iIndex += 4; // Skip \r\n\r\n
 		}
 		
 		SetPackGhettoPosition(hPack, PACK_LOCATION_PARSED_HEADER);
@@ -379,10 +391,28 @@ public OnSocketReceive(Handle:hSocket, String:szData[], const iSize, any:hPack)
 	
 	while(iIndex < iSize)
 		WriteFileCell(hFile, szData[iIndex++], 1);
+	
+	// Null termination is done every socket receive callback. Can't use it for data transmission end.
+	/*
+	if(iData[iSize] == '\0')
+	{
+		SetPackGhettoPosition(hPack, PACK_LOCATION_RECEIVED_FINISHED);
+		WritePackCell(hPack, 1);
+	}
+	*/
 }
 
 public OnSocketDisconnected(Handle:hSocket, any:hPack)
 {
+	/*
+	SetPackGhettoPosition(hPack, PACK_LOCATION_RECEIVED_FINISHED);
+	if(!ReadPackCell(hPack))
+	{
+		DownloadEnded(DL_END_NOT_COMPLETE, hSocket, hPack);	
+		return;
+	}
+	*/
+	
 	DownloadEnded(DL_END_SUCCESS, hSocket, hPack);
 }
 
@@ -425,7 +455,7 @@ DownloadEnded(DownloadEndCode:code, Handle:hSocket=INVALID_HANDLE, Handle:hPack)
 			CloseSocketHandles(hSocket, hPack);
 			DeleteFileIfNeeded(szSavePath);
 		}
-		case DL_END_FILE_NOT_FOUND, DL_END_SOCKET_ERROR, DL_END_WRITE_ERROR:
+		case DL_END_FILE_NOT_FOUND, DL_END_SOCKET_ERROR, DL_END_WRITE_ERROR, DL_END_NOT_COMPLETE:
 		{
 			SetPackGhettoPosition(hPack, PACK_LOCATION_FAILED_FORWARD);
 			new Handle:hHandle = ReadPackCell(hPack);
