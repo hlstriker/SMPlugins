@@ -6,6 +6,7 @@
 #include <sdktools_tempents_stocks>
 #include <hls_color_chat>
 #include "Includes/ultjb_last_request"
+#include "Includes/ultjb_days"
 
 #undef REQUIRE_PLUGIN
 #include "../../Libraries/ModelSkinManager/model_skin_manager"
@@ -14,7 +15,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Last Guard";
-new const String:PLUGIN_VERSION[] = "1.8";
+new const String:PLUGIN_VERSION[] = "1.9";
 
 public Plugin:myinfo =
 {
@@ -231,6 +232,9 @@ public OnClientDisconnect(iClient)
 CheckForLastGuard()
 {
 	if(!g_bCanLastGuard)
+		return;
+	
+	if(UltJB_Day_IsInProgress())
 		return;
 	
 	decl iLastGuard;
