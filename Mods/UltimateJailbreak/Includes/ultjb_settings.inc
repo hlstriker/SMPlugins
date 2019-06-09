@@ -16,6 +16,9 @@ public SharedPlugin:__pl_ultjb_settings =
 };
 
 
+#include <cstrike>
+
+
 // Auto respawn teams
 #define ART_NONE		0
 #define ART_BOTH		1
