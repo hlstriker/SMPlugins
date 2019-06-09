@@ -12,6 +12,7 @@
 #include "Includes/ultjb_last_guard"
 #include "Includes/ultjb_days"
 #include "Includes/ultjb_wardenmenu"
+#include "Includes/ultjb_settings"
 
 #undef REQUIRE_PLUGIN
 //#include "../Swoobles 5.0/Plugins/StoreItems/Equipment/item_equipment"
@@ -24,7 +25,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warden";
-new const String:PLUGIN_VERSION[] = "1.39";
+new const String:PLUGIN_VERSION[] = "1.40";
 
 public Plugin:myinfo =
 {
@@ -45,7 +46,6 @@ new g_iTimerCountdown;
 new g_iTimerCountdownMax;
 
 new g_iWardenSerial;
-new g_iLastWardenSerial;
 new g_iClientWardenCount[MAXPLAYERS+1];
 
 new const String:PLAYER_MODEL_WARDEN[] = "models/player/custom_player/legacy/ctm_heavy.mdl";
@@ -421,7 +421,6 @@ public OnMapStart()
 public OnClientPutInServer(iClient)
 {
 	g_iClientWardenCount[iClient] = 0;
-	SDKHook(iClient, SDKHook_SpawnPost, OnSpawnPost);
 }
 
 public OnPreThinkPost(iClient)
@@ -887,7 +886,6 @@ SetWarden(iClient)
 	GetEntPropString(iClient, Prop_Data, "m_ModelName", g_szPlayerOriginalModel[iClient], sizeof(g_szPlayerOriginalModel[]));
 	
 	g_iWardenSerial = GetClientSerial(iClient);
-	g_iLastWardenSerial = g_iWardenSerial;
 	
 	if(g_bLibLoaded_ModelSkinManager)
 	{
@@ -1377,37 +1375,19 @@ SetBulletOriginsForLine()
 	g_fBulletOrigins_Line[1][2] = g_fBulletOriginsPulled_Saved[1][2];
 }
 
-public OnSpawnPost(iClient)
+public UltJB_Settings_OnSpawnPost(iClient)
 {
-	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
-		return;
-	
-	if(g_bLibLoaded_ModelSkinManager)
-	{
-		#if defined _model_skin_manager_included
-		if(MSManager_IsBeingForceRespawned(iClient))
-			return;
-		#endif
-	}
-	
 	if(!g_bRoundStarted)
 		return;
-		
+	
 	if(GetNumAliveGuards() < 1)
 		return;
-		
+	
 	if(GetClientFromSerial(g_iWardenSerial))
 		return;
-		
+	
 	if(g_hTimer_SelectWarden != INVALID_HANDLE)
 		return;
 	
-	new iWarden = GetClientFromSerial(g_iLastWardenSerial);
-	if(iWarden && GetClientTeam(iWarden) == TEAM_GUARDS && IsPlayerAlive(iWarden))
-	{
-		CPrintToChatAll("{green}[{lightred}SM{green}] {lightred}%N {olive}is now warden.", iWarden);
-		SetWarden(iWarden);
-	}
-	else
-		StartWardenTimer();
+	StartWardenTimer();
 }
