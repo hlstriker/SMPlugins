@@ -23,6 +23,7 @@ public Plugin:myinfo =
 
 #define INVALID_STYLE_ID		-1
 #define MAX_STYLES				31
+#define MAX_LENGTH_COMMAND		24
 
 new g_iRegisteredBitMask;
 new g_iDefaultBits;
@@ -49,6 +50,14 @@ new Handle:g_hFwd_OnSpawnPostForwardsSent;
 new g_iStyleBits[MAXPLAYERS+1];
 new g_iStyleBitsRespawn[MAXPLAYERS+1];
 
+enum _:StyleCommand
+{
+	StyleCommand_StyleBit,
+	String:StyleCommand_CommandString[MAX_LENGTH_COMMAND],
+}
+
+new Handle:g_aStyleCommands;
+
 
 public OnPluginStart()
 {
@@ -61,6 +70,8 @@ public OnPluginStart()
 	g_hFwd_OnBitsChangedPost = CreateGlobalForward("MovementStyles_OnBitsChanged_Post", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
 	g_hFwd_OnMenuBitsChanged = CreateGlobalForward("MovementStyles_OnMenuBitsChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_CellByRef);
 	g_hFwd_OnSpawnPostForwardsSent = CreateGlobalForward("MovementStyles_OnSpawnPostForwardsSent", ET_Ignore, Param_Cell);
+
+	g_aStyleCommands = CreateArray(StyleCommand, 0);
 	
 	RegConsoleCmd("sm_style", OnStylesSelect, "Opens the styles selection menu.");
 	RegConsoleCmd("sm_styles", OnStylesSelect, "Opens the styles selection menu.");
@@ -271,6 +282,7 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	RegPluginLibrary("movement_styles");
 	CreateNative("MovementStyles_RegisterStyle", _MovementStyles_RegisterStyle);
 	CreateNative("MovementStyles_RegisterMultiStyle", _MovementStyles_RegisterMultiStyle);
+	CreateNative("MovementStyles_RegisterStyleCommand", _MovementStyles_RegisterStyleCommand);
 	CreateNative("MovementStyles_GetStyleBits", _MovementStyles_GetStyleBits);
 	CreateNative("MovementStyles_GetStyleNames", _MovementStyles_GetStyleNames);
 	CreateNative("MovementStyles_GetTotalStylesRegistered", _MovementStyles_GetTotalStylesRegistered);
@@ -454,6 +466,53 @@ public _MovementStyles_RegisterMultiStyle(Handle:hPlugin, iNumParams)
 	PushArrayArray(g_aStyles, eStyle);
 	
 	return true;
+}
+
+public _MovementStyles_RegisterStyleCommand(Handle:hPlugin, iNumParams)
+{
+	if(iNumParams != 2)
+	{
+		decl String:szPlugin[PLATFORM_MAX_PATH];
+		GetPluginFilename(hPlugin, szPlugin, sizeof(szPlugin));
+		
+		LogError("Invalid number of parameters. [%s]", szPlugin);
+		return;
+	}
+
+	new iStyleBit = GetNativeCell(1);
+	
+	decl String:szCommand[MAX_LENGTH_COMMAND];
+	GetNativeString(2, szCommand, sizeof(szCommand));
+
+	decl eCmd[StyleCommand];
+	eCmd[StyleCommand_CommandString] = szCommand;
+	eCmd[StyleCommand_StyleBit] = iStyleBit;
+
+	PushArrayArray(g_aStyleCommands, eCmd);
+
+	RegConsoleCmd(szCommand, OnStyleCommand, "Style shortcut command");
+}
+
+public Action:OnStyleCommand(iClient, iArgNum)
+{
+	if (!iClient)
+		return Plugin_Continue;
+
+	decl String:szCommand[MAX_LENGTH_COMMAND];
+	GetCmdArg(0, szCommand, MAX_LENGTH_COMMAND);
+
+	for (new i = 0; i < GetArraySize(g_aStyleCommands); i++)
+	{
+		decl eCmd[StyleCommand];
+		GetArrayArray(g_aStyleCommands, i, eCmd);
+		if (StrEqual(eCmd[StyleCommand_CommandString], szCommand))
+		{
+			ToggleStyleBits(iClient, eCmd[StyleCommand_StyleBit], false);
+			PrintToChat(iClient, "[SM] Styles will update when you respawn.");
+			return Plugin_Handled;
+		}
+	}
+	return Plugin_Continue;
 }
 
 GetNumBitsSet(iBits)

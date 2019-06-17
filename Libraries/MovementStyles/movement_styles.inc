@@ -52,6 +52,7 @@ forward MovementStyles_OnSpawnPostForwardsSent(client);
 
 native bool:MovementStyles_RegisterStyle(style_bit, const String:style_name[], Callback_OnActivated:activated_callback=INVALID_FUNCTION, Callback_OnDeactivated:deactivated_callback=INVALID_FUNCTION, order=0, const String:custom_menu_name[]="");
 native bool:MovementStyles_RegisterMultiStyle(style_bits, const String:style_name[], order=0);
+native MovementStyles_RegisterStyleCommand(style_bit, const String:command[]);
 native MovementStyles_GetTotalStylesRegistered();
 
 native MovementStyles_GetStyleBits(client);
