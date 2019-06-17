@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Movement Styles";
-new const String:PLUGIN_VERSION[] = "1.14";
+new const String:PLUGIN_VERSION[] = "1.15";
 
 public Plugin:myinfo =
 {
@@ -50,14 +50,7 @@ new Handle:g_hFwd_OnSpawnPostForwardsSent;
 new g_iStyleBits[MAXPLAYERS+1];
 new g_iStyleBitsRespawn[MAXPLAYERS+1];
 
-enum _:StyleCommand
-{
-	StyleCommand_StyleBit,
-	String:StyleCommand_CommandString[MAX_LENGTH_COMMAND],
-}
-
-new Handle:g_aStyleCommands;
-
+new Handle:g_hTrie_CommandStringToStyleBit;
 
 public OnPluginStart()
 {
@@ -71,7 +64,7 @@ public OnPluginStart()
 	g_hFwd_OnMenuBitsChanged = CreateGlobalForward("MovementStyles_OnMenuBitsChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_CellByRef);
 	g_hFwd_OnSpawnPostForwardsSent = CreateGlobalForward("MovementStyles_OnSpawnPostForwardsSent", ET_Ignore, Param_Cell);
 
-	g_aStyleCommands = CreateArray(StyleCommand, 0);
+	g_hTrie_CommandStringToStyleBit = CreateTrie();
 	
 	RegConsoleCmd("sm_style", OnStylesSelect, "Opens the styles selection menu.");
 	RegConsoleCmd("sm_styles", OnStylesSelect, "Opens the styles selection menu.");
@@ -484,14 +477,8 @@ public _MovementStyles_RegisterStyleCommand(Handle:hPlugin, iNumParams)
 	decl String:szCommand[MAX_LENGTH_COMMAND];
 	GetNativeString(2, szCommand, sizeof(szCommand));
 
-	if (CommandExists(szCommand))
+	if (!SetTrieValue(g_hTrie_CommandStringToStyleBit, szCommand, iStyleBit, false))
 		return;
-	
-	decl eCmd[StyleCommand];
-	eCmd[StyleCommand_CommandString] = szCommand;
-	eCmd[StyleCommand_StyleBit] = iStyleBit;
-
-	PushArrayArray(g_aStyleCommands, eCmd);
 
 	RegConsoleCmd(szCommand, OnStyleCommand, "Style shortcut command");
 }
@@ -504,17 +491,14 @@ public Action:OnStyleCommand(iClient, iArgNum)
 	decl String:szCommand[MAX_LENGTH_COMMAND];
 	GetCmdArg(0, szCommand, MAX_LENGTH_COMMAND);
 
-	for (new i = 0; i < GetArraySize(g_aStyleCommands); i++)
+	decl iStyleBit;
+	if (GetTrieValue(g_hTrie_CommandStringToStyleBit, szCommand, iStyleBit))
 	{
-		decl eCmd[StyleCommand];
-		GetArrayArray(g_aStyleCommands, i, eCmd);
-		if (StrEqual(eCmd[StyleCommand_CommandString], szCommand))
-		{
-			ToggleStyleBits(iClient, eCmd[StyleCommand_StyleBit], false);
-			PrintToChat(iClient, "[SM] Styles will update when you respawn.");
-			return Plugin_Handled;
-		}
+		ToggleStyleBits(iClient, iStyleBit, false);
+		PrintToChat(iClient, "[SM] Styles will update when you respawn. You can also change styles with the !style menu");
+		return Plugin_Handled;
 	}
+
 	return Plugin_Continue;
 }
 
