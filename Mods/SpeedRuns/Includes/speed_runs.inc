@@ -28,6 +28,22 @@ public SharedPlugin:__pl_speed_runs =
 #define GROUP_TYPE_ROCKET	5
 
 
+enum _:Record
+{
+	Record_StageNumber,	// Stage 0 = entire map record.
+	Record_StyleBits,
+	Float:Record_StageTime
+};
+
+enum RecordType
+{
+	RT_StageForMap = 1,
+	RT_StageForUser,
+	RT_MapForMap,
+	RT_MapForUser
+};
+
+
 forward Action:SpeedRuns_OnStageStarted_Pre(client, stage_number, style_bits);
 forward SpeedRuns_OnStageStarted_Post(client, stage_number, style_bits);
 
@@ -37,6 +53,8 @@ forward SpeedRuns_OnStageCompleted_Post(client, stage_number, style_bits, Float:
 forward SpeedRuns_OnStageFailed(client, old_stage, new_stage);
 
 forward SpeedRuns_OnRunStopped(client);
+
+forward SpeedRuns_OnNewRecord(client, RecordType:record_type, old_record[Record], new_record[Record]);
 
 
 native SpeedRuns_ClientTouchStart(client, start_number, iZoneID);

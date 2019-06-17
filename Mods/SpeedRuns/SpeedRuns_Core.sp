@@ -23,7 +23,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Speed Runs: Core";
-new const String:PLUGIN_VERSION[] = "1.39";
+new const String:PLUGIN_VERSION[] = "1.40";
 
 public Plugin:myinfo =
 {
@@ -78,20 +78,6 @@ new bool:g_bAreUserRecordsLoaded[MAXPLAYERS+1];
 
 #define INVALID_RECORD_INDEX	-1
 new Handle:g_aRecords[MAXPLAYERS+1];
-enum _:Record
-{
-	Record_StageNumber,	// Stage 0 = entire map record.
-	Record_StyleBits,
-	Float:Record_StageTime
-};
-
-enum RecordType
-{
-	RT_StageForMap = 1,
-	RT_StageForUser,
-	RT_MapForMap,
-	RT_MapForUser
-};
 
 new Handle:g_hFwd_OnStageStarted_Pre;
 new Handle:g_hFwd_OnStageStarted_Post;
@@ -99,6 +85,7 @@ new Handle:g_hFwd_OnStageCompleted_Pre;
 new Handle:g_hFwd_OnStageCompleted_Post;
 new Handle:g_hFwd_OnStageFailed;
 new Handle:g_hFwd_OnRunStopped;
+new Handle:g_hFwd_OnNewRecord;
 
 new HudDisplay:g_iHudDisplay[MAXPLAYERS+1];
 enum HudDisplay
@@ -201,6 +188,8 @@ public OnPluginStart()
 	
 	g_hFwd_OnStageFailed = CreateGlobalForward("SpeedRuns_OnStageFailed", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
 	g_hFwd_OnRunStopped = CreateGlobalForward("SpeedRuns_OnRunStopped", ET_Ignore, Param_Cell);
+	
+	g_hFwd_OnNewRecord = CreateGlobalForward("SpeedRuns_OnNewRecord", ET_Ignore, Param_Cell, Param_Cell, Param_Array, Param_Array);
 	
 	HookEvent("player_death", Event_PlayerDeath_Pre, EventHookMode_Pre);
 	HookEvent("player_team", Event_PlayerTeam_Pre, EventHookMode_Pre);
@@ -361,6 +350,17 @@ Forward_OnRunStopped(iClient)
 	decl result;
 	Call_StartForward(g_hFwd_OnRunStopped);
 	Call_PushCell(iClient);
+	Call_Finish(result);
+}
+
+Forward_OnNewRecord(iClient, RecordType:iRecordType, const eOldRecord[Record], const eNewRecord[Record])
+{
+	decl result;
+	Call_StartForward(g_hFwd_OnNewRecord);
+	Call_PushCell(iClient);
+	Call_PushCell(iRecordType);
+	Call_PushArray(eOldRecord, Record);
+	Call_PushArray(eNewRecord, Record);
 	Call_Finish(result);
 }
 
@@ -831,6 +831,8 @@ InsertRecord(iClient, RecordType:iRecordType, bool:bDisplayText, const eOldRecor
 		case RT_StageForUser:	SetRecord(iClient, eNewRecord);
 		case RT_MapForUser:		SetRecord(iClient, eNewRecord);
 	}
+	
+	Forward_OnNewRecord(iClient, iRecordType, eOldRecord, eNewRecord);
 }
 
 GetRecordTimeString(const eOldRecord[Record], const eNewRecord[Record], String:szBuffer[], iMaxLength)
