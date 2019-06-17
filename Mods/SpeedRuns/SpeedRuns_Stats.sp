@@ -31,7 +31,10 @@ new const g_iStyleBitsDefault[] =
 };
 
 new Handle:cvar_database_servers_configname;
-new String:g_szDatabaseConfigName[64];
+new String:g_szDatabaseConfigName[64]; 
+
+new String:g_szAverageMapTimeString[20];
+new bool:g_bMapAverageCached = false;
 
 
 public OnAllPluginsLoaded()
@@ -62,6 +65,52 @@ public DB_OnStartConnectionSetup()
 		GetConVarString(cvar_database_servers_configname, g_szDatabaseConfigName, sizeof(g_szDatabaseConfigName));
 }
 
+public OnMapStart()
+{
+	g_bMapAverageCached = false;
+}
+
+public SpeedRuns_OnNewRecord(iClient, RecordType:iRecordType, eOldRecord[Record], eNewRecord[Record])
+{
+	GetMapAverageTimeString();
+}
+
+public DBMaps_OnMapIDReady()
+{
+	GetMapAverageTimeString();
+}
+
+GetMapAverageTimeString()
+{
+	DB_TQuery(g_szDatabaseConfigName, Query_GetAverage, DBPrio_Low, _, "\
+	SELECT SEC_TO_TIME(AVG(r.stage_time)) \
+	FROM ( \
+	SELECT stage_time FROM plugin_sr_records \
+    WHERE map_id = %i AND \
+    stage_number = 0 \
+    ) r", DBMaps_GetMapID());
+}
+
+public Query_GetAverage(Handle:hDatabase, Handle:hQuery, any:data)
+{
+	if(hQuery == INVALID_HANDLE)
+	{
+		return;
+	}
+	
+	if (SQL_FetchRow(hQuery) && !SQL_IsFieldNull(hQuery, 0))
+	{
+		SQL_FetchString(hQuery, 0, g_szAverageMapTimeString, sizeof(g_szAverageMapTimeString));
+
+		while (StrContains(g_szAverageMapTimeString, "00:") == 0)
+		{
+			ReplaceString(g_szAverageMapTimeString, sizeof(g_szAverageMapTimeString), "00:", "");
+		}
+
+		g_bMapAverageCached = true;
+	}
+}
+
 public Action:OnStats(iClient, iArgCount)
 {
 	if(!iClient)
@@ -88,48 +137,15 @@ public Action:OnAverage(iClient, iArgCount)
 	if (!iClient)
 		return Plugin_Handled;
 
-	new iMapID = DBMaps_GetMapID();
-	if(!iMapID)
+	if(g_bMapAverageCached)
 	{
-		CPrintToChat(iClient, "{lightgreen}-- {olive}Required data for stats not loaded yet.");
+		CPrintToChat(iClient, "{lightgreen}-- {olive}The average {red}Map {olive}completion time across all styles is {yellow}%s", g_szAverageMapTimeString);
 		return Plugin_Handled;
-	}
-
-	DB_TQuery(g_szDatabaseConfigName, Query_GetAverage, DBPrio_Low, GetClientSerial(iClient), "\
-	SELECT SEC_TO_TIME(AVG(r.stage_time)) \
-	FROM ( \
-	SELECT stage_time FROM plugin_sr_records \
-    WHERE map_id = %i AND \
-    stage_number = 0 \
-    ) r", iMapID);
-	return Plugin_Handled;
-}
-
-public Query_GetAverage(Handle:hDatabase, Handle:hQuery, any:iClientSerial)
-{
-	new iClient = GetClientFromSerial(iClientSerial);
-	if(!iClient)
-		return;
-
-	if(hQuery == INVALID_HANDLE)
-	{
-		return;
-	}
-	
-	decl String:szAverageString[64];
-	if (SQL_FetchRow(hQuery) && !SQL_IsFieldNull(hQuery, 0))
-	{
-		SQL_FetchString(hQuery, 0, szAverageString, sizeof(szAverageString));
-
-		while (StrContains(szAverageString, "00:") == 0)
-		{
-			ReplaceString(szAverageString, sizeof(szAverageString), "00:", "");
-		}
-
-		CPrintToChat(iClient, "{lightgreen}-- {olive}The average {red}Map {olive}completion time across all styles is {yellow}%s", szAverageString);
 	}
 	else
 	{
-		CPrintToChat(iClient, "{lightgreen}-- {olive}Unable to find the average map completion time");
+		CPrintToChat(iClient, "{lightgreen}-- {olive}Map average completion time has not been loaded yet.");
 	}
+
+	return Plugin_Handled;
 }
