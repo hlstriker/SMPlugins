@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: High FOV";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -38,6 +38,8 @@ public OnPluginStart()
 public MovementStyles_OnRegisterReady()
 {
 	MovementStyles_RegisterStyle(THIS_STYLE_BIT, THIS_STYLE_NAME, OnActivated, OnDeactivated, THIS_STYLE_ORDER, GetConVarBool(cvar_force_autobhop) ? THIS_STYLE_NAME_AUTO : "");
+	MovementStyles_RegisterStyleCommand(THIS_STYLE_BIT, "sm_highfov");
+	MovementStyles_RegisterStyleCommand(THIS_STYLE_BIT, "sm_hifov");
 }
 
 public MovementStyles_OnRegisterMultiReady()

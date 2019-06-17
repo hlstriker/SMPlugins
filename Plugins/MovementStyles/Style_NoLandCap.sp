@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: No Landing Cap";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -19,6 +19,8 @@ public Plugin:myinfo =
 	version = PLUGIN_VERSION,
 	url = "www.swoobles.com"
 }
+
+#define THIS_STYLE_BIT			STYLE_BIT_NO_LAND_CAP
 
 new bool:g_bActivated[MAXPLAYERS+1];
 
@@ -103,7 +105,9 @@ RestoreOriginalBytes()
 
 public MovementStyles_OnRegisterReady()
 {
-	MovementStyles_RegisterStyle(STYLE_BIT_NO_LAND_CAP, "No Landing Cap", OnActivated, OnDeactivated, 1);
+	MovementStyles_RegisterStyle(THIS_STYLE_BIT, "No Landing Cap", OnActivated, OnDeactivated, 1);
+	MovementStyles_RegisterStyleCommand(THIS_STYLE_BIT, "sm_nolandingcap");
+	MovementStyles_RegisterStyleCommand(THIS_STYLE_BIT, "sm_nlc");
 }
 
 public OnClientConnected(iClient)

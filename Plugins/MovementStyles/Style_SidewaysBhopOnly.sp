@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: Sideways Bhop Only";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -47,6 +47,8 @@ public OnPluginStart()
 public MovementStyles_OnRegisterReady()
 {
 	MovementStyles_RegisterStyle(THIS_STYLE_BIT, THIS_STYLE_NAME, OnActivated, OnDeactivated, THIS_STYLE_ORDER, GetConVarBool(cvar_force_autobhop) ? THIS_STYLE_NAME_AUTO : "");
+	MovementStyles_RegisterStyleCommand(THIS_STYLE_BIT, "sm_sideways");
+	MovementStyles_RegisterStyleCommand(THIS_STYLE_BIT, "sm_sw");
 }
 
 public MovementStyles_OnRegisterMultiReady()

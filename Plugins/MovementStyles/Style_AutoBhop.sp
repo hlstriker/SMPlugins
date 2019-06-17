@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: Auto Bhop";
-new const String:PLUGIN_VERSION[] = "2.3";
+new const String:PLUGIN_VERSION[] = "2.4";
 
 public Plugin:myinfo =
 {
@@ -15,6 +15,8 @@ public Plugin:myinfo =
 	version = PLUGIN_VERSION,
 	url = "www.swoobles.com"
 }
+
+#define THIS_STYLE_BIT			STYLE_BIT_AUTO_BHOP
 
 new bool:g_bActivated[MAXPLAYERS+1];
 
@@ -43,7 +45,10 @@ public OnConVarChanged(Handle:hConVar, const String:szOldValue[], const String:s
 
 public MovementStyles_OnRegisterReady()
 {
-	MovementStyles_RegisterStyle(STYLE_BIT_AUTO_BHOP, "Auto Bhop", OnActivated, OnDeactivated, 5);
+	MovementStyles_RegisterStyle(THIS_STYLE_BIT, "Auto Bhop", OnActivated, OnDeactivated, 5);
+	MovementStyles_RegisterStyleCommand(THIS_STYLE_BIT, "sm_auto");
+	MovementStyles_RegisterStyleCommand(THIS_STYLE_BIT, "sm_autobhop");
+	MovementStyles_RegisterStyleCommand(THIS_STYLE_BIT, "sm_abh");
 }
 
 public OnClientConnected(iClient)

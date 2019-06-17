@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: Backwards";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -40,6 +40,8 @@ public OnPluginStart()
 public MovementStyles_OnRegisterReady()
 {
 	MovementStyles_RegisterStyle(THIS_STYLE_BIT, THIS_STYLE_NAME, OnActivated, OnDeactivated, THIS_STYLE_ORDER, GetConVarBool(cvar_force_autobhop) ? THIS_STYLE_NAME_AUTO : "");
+	MovementStyles_RegisterStyleCommand(THIS_STYLE_BIT, "sm_backwards");
+	MovementStyles_RegisterStyleCommand(THIS_STYLE_BIT, "sm_bw");
 }
 
 public MovementStyles_OnRegisterMultiReady()
