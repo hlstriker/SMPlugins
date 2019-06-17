@@ -4,12 +4,13 @@
 #include <hls_color_chat>
 #include "Includes/ultjb_last_request"
 #include "Includes/ultjb_warden"
+#include "Includes/ultjb_days"
 #include "../../Libraries/ClientCookies/client_cookies"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Points";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -50,7 +51,10 @@ public EventPlayerDeath_Post(Handle:hEvent, const String:szName[], bool:bDontBro
 {
 	if(!g_bPointsEnabled)
 		return;
-		
+	
+	if(UltJB_Day_IsInProgress())
+		return;
+	
 	new iClient = GetClientOfUserId(GetEventInt(hEvent, "userid"));
 	if(!iClient || !IsPlayer(iClient))
 		return;
@@ -58,7 +62,7 @@ public EventPlayerDeath_Post(Handle:hEvent, const String:szName[], bool:bDontBro
 	new iAttacker = GetClientOfUserId(GetEventInt(hEvent, "attacker"));
 	if(!iAttacker || !IsPlayer(iAttacker))
 		return;
-		
+	
 	if(iAttacker == iClient)
 		return;
 	
