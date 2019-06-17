@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Movement Styles";
-new const String:PLUGIN_VERSION[] = "1.13";
+new const String:PLUGIN_VERSION[] = "1.14";
 
 public Plugin:myinfo =
 {
@@ -484,6 +484,9 @@ public _MovementStyles_RegisterStyleCommand(Handle:hPlugin, iNumParams)
 	decl String:szCommand[MAX_LENGTH_COMMAND];
 	GetNativeString(2, szCommand, sizeof(szCommand));
 
+	if (CommandExists(szCommand))
+		return;
+	
 	decl eCmd[StyleCommand];
 	eCmd[StyleCommand_CommandString] = szCommand;
 	eCmd[StyleCommand_StyleBit] = iStyleBit;
