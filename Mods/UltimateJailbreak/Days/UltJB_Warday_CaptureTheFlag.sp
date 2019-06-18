@@ -17,7 +17,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Capture the Flag";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -400,7 +400,7 @@ StartGame()
 	UltJB_Settings_SetNextRoundEndReason(true, (g_iDefendingTeam == TEAM_GUARDS) ? CSRoundEnd_CTWin : CSRoundEnd_TerroristWin);
 	UltJB_Settings_BlockTerminateRound(true);
 	UltJB_Settings_SetWeaponDroppingOnDeath(false);
-	UltJB_Settings_StartAutoRespawning();
+	UltJB_Settings_StartAutoRespawning(true);
 	UltJB_Settings_SetAutoRespawnDelay(RESPAWN_DELAY_DEFENDERS, (g_iDefendingTeam == TEAM_GUARDS) ? ART_GUARDS : ART_PRISONERS);
 	UltJB_Settings_SetAutoRespawnDelay(RESPAWN_DELAY_ATTACKERS, (g_iDefendingTeam == TEAM_GUARDS) ? ART_PRISONERS : ART_GUARDS);
 	
@@ -463,7 +463,13 @@ PrepareClient(iClient)
 	switch(GetClientTeam(iClient))
 	{
 		case TEAM_GUARDS:		UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_KNIFE);
-		case TEAM_PRISONERS:	UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_KNIFE_T);
+		case TEAM_PRISONERS:
+		{
+			if(UltJB_LR_HasStartedLastRequest(iClient) && (UltJB_LR_GetLastRequestFlags(iClient) & LR_FLAG_FREEDAY))
+				return;
+			
+			UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_KNIFE_T);
+		}
 	}
 	
 	decl iWeapon;
@@ -528,7 +534,13 @@ SetClientSpawnHealth(iClient)
 		switch(GetClientTeam(iPlayer))
 		{
 			case TEAM_GUARDS: iNumGuards++;
-			case TEAM_PRISONERS: iNumPrisoners++;
+			case TEAM_PRISONERS:
+			{
+				if(UltJB_LR_HasStartedLastRequest(iPlayer) && (UltJB_LR_GetLastRequestFlags(iPlayer) & LR_FLAG_FREEDAY))
+					continue;
+				
+				iNumPrisoners++;
+			}
 		}
 	}
 	
@@ -784,6 +796,9 @@ InitFlagSharedProperties(iFlag)
 public OnTouchPost_Flag(iEnt, iOther)
 {
 	if(!IsPlayer(iOther) || !IsPlayerAlive(iOther))
+		return;
+	
+	if(UltJB_LR_HasStartedLastRequest(iOther) && (UltJB_LR_GetLastRequestFlags(iOther) & LR_FLAG_FREEDAY))
 		return;
 	
 	if(CanReturnFlag(iOther))

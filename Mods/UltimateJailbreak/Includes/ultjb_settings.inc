@@ -39,8 +39,8 @@ native UltJB_Settings_StripWeaponFromOwner(weapon);
  * Starts auto-respawning players.
  *
  * @param reset_clients_respawn_limits			Should reset previous respawn timers limits?
- * @param num_allowed_respawns_per_client		How many respawns each client gets before it stops respawning them.
- * @param seconds_to_respawn_for				How many seconds to keep respawning before it auto shuts off.
+ * @param num_allowed_respawns_per_client		How many respawns each client gets before it stops respawning them. 0 = unlimited
+ * @param seconds_to_respawn_for				How many seconds to keep respawning before it auto shuts off. 0 = unlimited
  * @param team_allowed_to_respawn				The team(s) allowed to respawn.
  * @param disable_respawn_on_death				Should respawn be disabled for that player after they die?
  * @param disable_respawn_on_team_change		Should respawn be disabled for that player after they switch teams?

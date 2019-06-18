@@ -19,7 +19,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Settings";
-new const String:PLUGIN_VERSION[] = "1.29";
+new const String:PLUGIN_VERSION[] = "1.30";
 
 public Plugin:myinfo =
 {
@@ -253,6 +253,9 @@ StripWeaponFromOwner(iWeapon)
 
 public EventPlayerTeam_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
 {
+	if(GetEventInt(hEvent, "oldteam") < CS_TEAM_T)
+		return;
+	
 	new iClient = GetClientOfUserId(GetEventInt(hEvent, "userid"));
 	
 	if(g_hTimer_AutoRespawn != INVALID_HANDLE)
