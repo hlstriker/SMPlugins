@@ -19,7 +19,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Settings";
-new const String:PLUGIN_VERSION[] = "1.30";
+new const String:PLUGIN_VERSION[] = "1.31";
 
 public Plugin:myinfo =
 {
@@ -41,7 +41,6 @@ public Plugin:myinfo =
 new Handle:cvar_mp_teamname_1;
 new Handle:cvar_mp_teamname_2;
 new Handle:cvar_healthshot_health;
-new Handle:cvar_mp_death_drop_gun;
 new Handle:cvar_mp_ignore_round_win_conditions;
 new Handle:cvar_sv_disable_immunity_alpha;
 
@@ -158,7 +157,6 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	CreateNative("UltJB_Settings_StartAutoRespawning", _UltJB_Settings_StartAutoRespawning);
 	CreateNative("UltJB_Settings_StopAutoRespawning", _UltJB_Settings_StopAutoRespawning);
 	CreateNative("UltJB_Settings_SetAutoRespawnDelay", _UltJB_Settings_SetAutoRespawnDelay);
-	CreateNative("UltJB_Settings_SetWeaponDroppingOnDeath", _UltJB_Settings_SetWeaponDroppingOnDeath);
 	CreateNative("UltJB_Settings_BlockTerminateRound", _UltJB_Settings_BlockTerminateRound);
 	CreateNative("UltJB_Settings_SetNextRoundEndReason", _UltJB_Settings_SetNextRoundEndReason);
 	
@@ -218,11 +216,6 @@ public _UltJB_Settings_SetAutoRespawnDelay(Handle:hPlugin, iNumParams)
 public _UltJB_Settings_StripWeaponFromOwner(Handle:hPlugin, iNumParams)
 {
 	StripWeaponFromOwner(GetNativeCell(1));
-}
-
-public _UltJB_Settings_SetWeaponDroppingOnDeath(Handle:hPlugin, iNumParams)
-{
-	AllowWeaponDroppingOnDeath(GetNativeCell(1));
 }
 
 StripWeaponFromOwner(iWeapon)
@@ -430,16 +423,9 @@ SetupConVars()
 		SetConVarInt(cvar_sv_disable_immunity_alpha, 1);
 	}
 	
-	cvar_mp_death_drop_gun = FindConVar("mp_death_drop_gun");
 	cvar_mp_ignore_round_win_conditions = FindConVar("mp_ignore_round_win_conditions");
 	
 	BlockTerminateRound(false);
-}
-
-AllowWeaponDroppingOnDeath(bool:bShouldAllow)
-{
-	if(cvar_mp_death_drop_gun != INVALID_HANDLE)
-		SetConVarInt(cvar_mp_death_drop_gun, bShouldAllow ? 1 : 0);
 }
 
 public OnConVarChanged(Handle:hConvar, const String:szOldValue[], const String:szNewValue[])
@@ -523,14 +509,7 @@ OnRoundStart()
 	g_fRoundStartTime = GetEngineTime();
 	
 	if(UltJB_CellDoors_DoExist())
-	{
-		AllowWeaponDroppingOnDeath(false);
 		StartAutoRespawning(true, 1, GetConVarInt(cvar_cells_closed_auto_respawn_seconds), ART_PRISONERS, true, true);
-	}
-	else
-	{
-		AllowWeaponDroppingOnDeath(true);
-	}
 	
 	RemoveReserveAmmoFromCellWeapons();
 	
@@ -719,7 +698,6 @@ public Action:Timer_AutoRespawn(Handle:hTimer)
 public UltJB_CellDoors_OnOpened()
 {
 	StopTimer_AutoRespawn();
-	AllowWeaponDroppingOnDeath(true);
 }
 
 public UltJB_Day_OnWardayStart(iClient)

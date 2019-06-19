@@ -67,14 +67,6 @@ native UltJB_Settings_StopAutoRespawning();
 native UltJB_Settings_SetAutoRespawnDelay(Float:delay, team_to_set_delay_for=ART_BOTH);
 
 /**
- * Sets if players are allowed to drop their weapons when they die.
- *
- * @param can_drop_weapons			True if allowed to drop weapons, false otherwise.
- * @noreturn
- */
-native UltJB_Settings_SetWeaponDroppingOnDeath(bool:can_drop_weapons);
-
-/**
  * Sets if the round termination should be blocked or not.
  *
  * @param block_terminate_round			True to block terminate round, false otherwise.
