@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.16";
+new const String:PLUGIN_VERSION[] = "1.17";
 
 public Plugin:myinfo =
 {
@@ -98,6 +98,8 @@ public OnPluginStart()
 	HookEvent("cs_match_end_restart", Event_RoundEnd_Post, EventHookMode_PostNoCopy);
 	HookEvent("round_start", Event_RoundStart_Post, EventHookMode_PostNoCopy);
 	HookEvent("player_death", Event_PlayerDeath_Post, EventHookMode_PostNoCopy);
+	
+	AddCommandListener(OnWeaponDrop, "drop");
 	
 	//RegConsoleCmd("sm_d", OnDaysMenu, "Opens the days menu."); - removed because of donator
 	RegConsoleCmd("sm_day", OnDaysMenu, "Opens the days menu.");
@@ -258,21 +260,40 @@ bool:ShouldBlockWeaponGain(iClient, iWeapon)
 	return true;
 }
 
+public Action:OnWeaponDrop(iClient, const String:szCommand[], iArgCount)
+{
+	if(!IsClientInGame(iClient))
+		return Plugin_Continue;
+	
+	if(CanDropWeapon())
+		return Plugin_Continue;
+	
+	return Plugin_Handled;
+}
+
 public Action:CS_OnCSWeaponDrop(iClient, iWeapon)
 {
 	if(!IsClientInGame(iClient))
 		return Plugin_Continue;
 	
-	if(!IsDayInProgress())
+	if(CanDropWeapon())
 		return Plugin_Continue;
+	
+	return Plugin_Handled;
+}
+
+CanDropWeapon()
+{
+	if(!IsDayInProgress())
+		return true;
 	
 	decl eDay[Day];
 	GetArrayArray(g_aDays, g_iDayIDToIndex[g_iCurrentDayID], eDay);
 	
 	if(eDay[Day_Flags] & DAY_FLAG_ALLOW_WEAPON_DROPS)
-		return Plugin_Continue;
+		return true;
 	
-	return Plugin_Handled;
+	return false;
 }
 
 public Event_RoundStart_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
