@@ -17,7 +17,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Capture the Flag";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
@@ -116,7 +116,7 @@ public OnPluginStart()
 	HookEvent("round_start", Event_RoundStart_Post, EventHookMode_PostNoCopy);
 	HookEvent("round_prestart", Event_RoundPrestart_Post, EventHookMode_PostNoCopy);
 	
-	RegConsoleCmd("drop", OnDrop);
+	AddCommandListener(OnWeaponDrop, "drop");
 	
 	cvar_mp_roundtime = FindConVar("mp_roundtime");
 	cvar_mp_respawn_immunitytime = FindConVar("mp_respawn_immunitytime");
@@ -231,7 +231,6 @@ public OnDayEnd(iClient)
 		g_bEventHooked_PlayerDeath = false;
 	}
 	
-	UltJB_Settings_SetWeaponDroppingOnDeath(true);
 	UltJB_Settings_StopAutoRespawning();
 }
 
@@ -399,7 +398,6 @@ StartGame()
 	
 	UltJB_Settings_SetNextRoundEndReason(true, (g_iDefendingTeam == TEAM_GUARDS) ? CSRoundEnd_CTWin : CSRoundEnd_TerroristWin);
 	UltJB_Settings_BlockTerminateRound(true);
-	UltJB_Settings_SetWeaponDroppingOnDeath(false);
 	UltJB_Settings_StartAutoRespawning(true);
 	UltJB_Settings_SetAutoRespawnDelay(RESPAWN_DELAY_DEFENDERS, (g_iDefendingTeam == TEAM_GUARDS) ? ART_GUARDS : ART_PRISONERS);
 	UltJB_Settings_SetAutoRespawnDelay(RESPAWN_DELAY_ATTACKERS, (g_iDefendingTeam == TEAM_GUARDS) ? ART_PRISONERS : ART_GUARDS);
@@ -990,7 +988,7 @@ SetFlagCarrier(iClient=CLIENT_NOT_CARRIED, bool:bDropFromDeath=false)
 	}
 }
 
-public Action:OnDrop(iClient, iArgsNum)
+public Action:OnWeaponDrop(iClient, const String:szCommand[], iArgCount)
 {
 	if(!IsClientInGame(iClient))
 		return Plugin_Continue;
