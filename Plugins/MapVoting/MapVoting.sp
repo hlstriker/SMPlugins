@@ -24,7 +24,7 @@
 #pragma dynamic 500000
 
 new const String:PLUGIN_NAME[] = "Map Voting";
-new const String:PLUGIN_VERSION[] = "1.21";
+new const String:PLUGIN_VERSION[] = "1.22";
 
 public Plugin:myinfo =
 {
@@ -1072,6 +1072,11 @@ SetNextLevel(const String:szMapName[])
 	g_bWasNextMapSelected = true;
 	strcopy(g_szNextMapSelected, sizeof(g_szNextMapSelected), szMapName);
 	SetNextMap(szMapName);
+	
+	decl String:szPath[PLATFORM_MAX_PATH], String:szCurMap[MAX_MAP_NAME_LENGTH];
+	GetCurrentMap(szCurMap, sizeof(szCurMap));
+	BuildPath(Path_SM, szPath, sizeof(szPath), "logs/map_voting.txt");
+	LogToFile(szPath, "[Current: %s] - [Next: %s]", szCurMap, g_szNextMapSelected);
 }
 
 GetEligiblePlayerCount()
