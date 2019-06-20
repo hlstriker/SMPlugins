@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Speed Runs: Ranks";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -85,13 +85,13 @@ public DBMaps_OnMapIDReady(iMapID)
 	{
 		if(!Query_CreateSpeedrunRanksTable())
 			SetFailState("There was an error creating the plugin_sr_points sql table.");
-
+		
 		if(!Query_CreateSpeedrunRankNamesTable())
 			SetFailState("There was an error creating the plugin_sr_ranks sql table.");
-	
+		
 		if(!Query_CreateSpeedrunCustomRanksTable())
 			SetFailState("There was an error creating the plugin_sr_custom_ranks sql table.");
-	
+		
 		g_bTablesLoaded = true;
 	}
 	
@@ -308,6 +308,7 @@ public Query_SelectSpeedrunPoints(Handle:hDatabase, Handle:hQuery, any:iClientSe
 		if(!iClient)
 			return;
 	}
+	
 	g_bHaveSpeedrunPointsLoaded[iClient] = true;
 	
 	if(hQuery == INVALID_HANDLE)
@@ -325,7 +326,6 @@ public Query_SelectSpeedrunPoints(Handle:hDatabase, Handle:hQuery, any:iClientSe
 	}
 	
 	CalcUserRank(iClient);
-	
 }
 
 public Query_SelectSpeedrunRanks(Handle:hDatabase, Handle:hQuery, any:iClientSerial)
@@ -447,7 +447,7 @@ CalcUserRank(iClient, bool:bDisplay=false)
 		
 	new Float:fPerc = float(g_iUserSpeedrunPoints[iClient]) / float(g_iUserSpeedrunPoints[0]);
 	
-	if(bDisplay)
+	if(bDisplay && iClient)
 		PrintToChat(iClient, "fPerc calculated to %f (%d / %d)", fPerc, g_iUserSpeedrunPoints[iClient], g_iSpeedrunRankTotal);
 	
 	for(new i=1;i<g_iSpeedrunRankTotal;i++)
@@ -462,16 +462,18 @@ CalcUserRank(iClient, bool:bDisplay=false)
 	GetArrayString(g_aSpeedrunRankNames, g_iSpeedrunRank[iClient], szTemp, sizeof(szTemp));
 	
 	new iFind = FindValueInArray(g_aSpeedrunCustomRankIDs, DBUsers_GetUserID(iClient));
-	if(bDisplay)
+	if(bDisplay && iClient)
 		PrintToChat(iClient, "Custom name found at index %d.", iFind);
+	
 	if(iFind != -1)
 	{
 		GetArrayString(g_aSpeedrunCustomRanks, iFind, szTemp, sizeof(szTemp));
-		if(bDisplay)
+		if(bDisplay && iClient)
 			PrintToChat(iClient, "Got custom name as %s.", szTemp);
 	}
 	
-	CS_SetClientClanTag(iClient, szTemp);
+	if(iClient)
+		CS_SetClientClanTag(iClient, szTemp);
 }
 
 SetPlayerTags()
