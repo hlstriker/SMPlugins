@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Speed Runs: Ranks";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -111,15 +111,34 @@ public Action:OnRank(iClient, iArgNum)
 		PrintToConsole(iClient, "[SM] Skill rank data is still loading, please be patient.");
 		return Plugin_Handled;
 	}
-
-	new iPerc, String:szTemp[32];
 	
+	new iArraySize = GetArraySize(g_aSpeedrunRankPercentiles);
+	if(!iArraySize)
+	{
+		PrintToChat(iClient, "[SM] There are no rank percentiles.");
+		return Plugin_Handled;
+	}
+	
+	if(g_iSpeedrunRank[iClient] >= iArraySize)
+	{
+		PrintToChat(iClient, "[SM] You have an invalid rank.");
+		return Plugin_Handled;
+	}
+	
+	decl iPerc, String:szTemp[32];
 	GetArrayString(g_aSpeedrunRankNames, g_iSpeedrunRank[iClient], szTemp, sizeof(szTemp));
 	
-	new iFlat = RoundToFloor(g_iUserSpeedrunPoints[0] * Float:GetArrayCell(g_aSpeedrunRankPercentiles, g_iSpeedrunRank[iClient]));
-	new iNext = RoundToFloor(g_iUserSpeedrunPoints[0] * Float:GetArrayCell(g_aSpeedrunRankPercentiles, g_iSpeedrunRank[iClient]+1));
-	
-	iPerc = ((g_iUserSpeedrunPoints[iClient] - iFlat) *  100) / ((iNext - iFlat));
+	if((g_iSpeedrunRank[iClient] + 1) < iArraySize)
+	{
+		new iFlat = RoundToFloor(g_iUserSpeedrunPoints[0] * Float:GetArrayCell(g_aSpeedrunRankPercentiles, g_iSpeedrunRank[iClient]));
+		new iNext = RoundToFloor(g_iUserSpeedrunPoints[0] * Float:GetArrayCell(g_aSpeedrunRankPercentiles, g_iSpeedrunRank[iClient]+1));
+		
+		iPerc = ((g_iUserSpeedrunPoints[iClient] - iFlat) *  100) / ((iNext - iFlat));
+	}
+	else
+	{
+		iPerc = 0;
+	}
 	
 	PrintToChat(iClient, "[SM] Skill rank: %s (%d%% of the way to next rank)", szTemp, iPerc);
 	PrintToConsole(iClient, "[SM] Skill rank: %s (%d%% of the way to next rank)", szTemp, iPerc);
@@ -133,11 +152,25 @@ public Action:OnRankStat(iClient, iArgNum)
 	if(!iClient)
 		return Plugin_Handled;
 	
+	new iArraySize = GetArraySize(g_aSpeedrunRankPercentiles);
+	if(!iArraySize)
+	{
+		PrintToChat(iClient, "[SM] There are no rank percentiles.");
+		return Plugin_Handled;
+	}
+	
+	if(g_iSpeedrunRank[iClient] >= iArraySize)
+	{
+		PrintToChat(iClient, "[SM] You have an invalid rank.");
+		return Plugin_Handled;
+	}
+	
 	PrintToChat(iClient, "Displaying user rank.");
 	PrintToChat(iClient, "Servers ready: %i", g_bServersReady);
 	PrintToChat(iClient, "Rank names loaded: %b", g_bHaveSpeedrunRanksLoaded);
 	PrintToChat(iClient, "Your current rank is %i.", g_iSpeedrunRank[iClient]);
-	new String:szTemp[64];
+	
+	decl iPerc, String:szTemp[64];
 	GetArrayString(g_aSpeedrunRankNames, g_iSpeedrunRank[iClient], szTemp, sizeof(szTemp));
 	PrintToChat(iClient, "Your rank title: %s.", szTemp);
 	PrintToChat(iClient, "You have %d points.", g_iUserSpeedrunPoints[iClient]);
@@ -145,17 +178,24 @@ public Action:OnRankStat(iClient, iArgNum)
 	CalcUserRank(iClient, true);
 	
 	new iFlat = RoundToFloor(g_iUserSpeedrunPoints[0] * Float:GetArrayCell(g_aSpeedrunRankPercentiles, g_iSpeedrunRank[iClient]));
-	new iNext = RoundToFloor(g_iUserSpeedrunPoints[0] * Float:GetArrayCell(g_aSpeedrunRankPercentiles, g_iSpeedrunRank[iClient]+1));
-	
-	
-	new iPerc = ((g_iUserSpeedrunPoints[iClient] - iFlat) *  100) / ((iNext - iFlat));
 	PrintToChat(iClient, "iFlat calculated to: %d", iFlat);
-	PrintToChat(iClient, "iNext calculated to: %d", iNext);
+	
+	if((g_iSpeedrunRank[iClient] + 1) < iArraySize)
+	{
+		new iNext = RoundToFloor(g_iUserSpeedrunPoints[0] * Float:GetArrayCell(g_aSpeedrunRankPercentiles, g_iSpeedrunRank[iClient]+1));	
+		PrintToChat(iClient, "iNext calculated to: %d", iNext);
+		
+		iPerc = ((g_iUserSpeedrunPoints[iClient] - iFlat) *  100) / ((iNext - iFlat));
+	}
+	else
+	{
+		iPerc = 0;
+	}
+	
 	PrintToChat(iClient, "iPerc calculated to: %d", iPerc);
 	
 	return Plugin_Handled;
 }
-
 
 public Action:OnRankList(iClient, iArgNum)
 {
