@@ -13,7 +13,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Player Chat";
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
 {
@@ -65,6 +65,7 @@ enum
 #define TEAM_NAME_LENGTH	20
 new String:g_szTeamNames[NUM_TEAMS][TEAM_NAME_LENGTH];
 
+new Handle:cvar_disable_message_display;
 new Handle:cvar_sv_deadtalk;
 new Handle:cvar_sm_flood_time;
 new Handle:cvar_sm_chat_mode;
@@ -89,6 +90,8 @@ public OnPluginStart()
 		SetFailState("Game not supported.");
 		return;
 	}
+	
+	cvar_disable_message_display = CreateConVar("playerchat_disable_message_display", "0", "Should message display be disabled?", _, true, 0.0, true, 1.0);
 	
 	cvar_sm_flood_time = FindConVar("sm_flood_time");
 	if(cvar_sm_flood_time == INVALID_HANDLE)
@@ -301,6 +304,9 @@ bool:TrySendMessage(iSender, ChatType:iSendType, const String:szArgs[])
 	Call_Finish(iReturn);
 	
 	if(iReturn != Plugin_Continue)
+		return true;
+	
+	if(GetConVarBool(cvar_disable_message_display))
 		return true;
 	
 	if(bFirstIsAt)
