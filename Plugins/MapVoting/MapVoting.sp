@@ -24,7 +24,7 @@
 #pragma dynamic 500000
 
 new const String:PLUGIN_NAME[] = "Map Voting";
-new const String:PLUGIN_VERSION[] = "1.22";
+new const String:PLUGIN_VERSION[] = "1.23";
 
 public Plugin:myinfo =
 {
@@ -117,6 +117,8 @@ new Handle:cvar_sm_mapvote_start;
 new Handle:cvar_sm_mapvote_voteduration;
 
 new Handle:cvar_sm_mapvote_playedmax_type;
+
+new Handle:cvar_mapvoting_log_nextmap;
 
 new bool:g_bIsVoteInProgress;
 new Float:g_fLastMapVote;
@@ -229,8 +231,6 @@ public OnPluginStart()
 	if((cvar_sm_rtv_roundend_forcetime = FindConVar("sm_rtv_roundend_forcetime")) == INVALID_HANDLE)
 		cvar_sm_rtv_roundend_forcetime = CreateConVar("sm_rtv_roundend_forcetime", "0", "Only for sm_rtv_changetime 1: The number of seconds before the round will force end after a map vote passes. Set to 0 to disable.");
 	
-	
-	
 	AutoExecConfig(false, "rtv", "sourcemod");
 	
 	// cvars for mapchooser.cfg
@@ -259,6 +259,9 @@ public OnPluginStart()
 		cvar_sm_mapvote_playedmax_type = CreateConVar("sm_mapvote_playedmax_type", "1", "0: How many times a category can be played in a row before another category is forced. 1: How many times a category can be played in a cycle before the cycle is reset.", _, true, 0.0, true, 1.0);
 	
 	AutoExecConfig(false, "mapchooser", "sourcemod");
+	
+	// Custom cvars
+	cvar_mapvoting_log_nextmap = CreateConVar("mapvoting_log_nextmap", "0", "Should the nextmap be logged?", _, true, 0.0, true, 1.0);
 }
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
@@ -1073,10 +1076,13 @@ SetNextLevel(const String:szMapName[])
 	strcopy(g_szNextMapSelected, sizeof(g_szNextMapSelected), szMapName);
 	SetNextMap(szMapName);
 	
-	decl String:szPath[PLATFORM_MAX_PATH], String:szCurMap[MAX_MAP_NAME_LENGTH];
-	GetCurrentMap(szCurMap, sizeof(szCurMap));
-	BuildPath(Path_SM, szPath, sizeof(szPath), "logs/map_voting.txt");
-	LogToFile(szPath, "[Current: %s] - [Next: %s]", szCurMap, g_szNextMapSelected);
+	if(GetConVarBool(cvar_mapvoting_log_nextmap))
+	{
+		decl String:szPath[PLATFORM_MAX_PATH], String:szCurMap[MAX_MAP_NAME_LENGTH];
+		GetCurrentMap(szCurMap, sizeof(szCurMap));
+		BuildPath(Path_SM, szPath, sizeof(szPath), "logs/map_voting.txt");
+		LogToFile(szPath, "[Current: %s] - [Next: %s]", szCurMap, g_szNextMapSelected);
+	}
 }
 
 GetEligiblePlayerCount()
