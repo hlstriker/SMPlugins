@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Horror Movie";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -84,10 +84,6 @@ public OnDayStart(iClient)
 {
 	g_fPrisonerSpeed = PRISONER_SPEED_START;
 	g_fGuardFogDensity = GUARD_FOG_DENSITY_START;
-	
-	new iCustomFogController = CreateCustomFogControllerEnt();
-	if(iCustomFogController)
-		SetCustomFogControllerOnClients(iCustomFogController);
 }
 
 CreateCustomFogControllerEnt()
@@ -212,6 +208,10 @@ RemoveCustomFogController()
 
 public OnFreezeEnd()
 {
+	new iCustomFogController = CreateCustomFogControllerEnt();
+	if(iCustomFogController)
+		SetCustomFogControllerOnClients(iCustomFogController);
+	
 	decl iWeapon;
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
