@@ -12,7 +12,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Admin Xray Vision";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -64,11 +64,13 @@ public Action:OnXray(iClient, iArgs)
 	if(g_bXrayEnabled[iClient])
 	{
 		DisableXray(iClient);
+		LogAction(iClient, -1, "\"%L\" toggled X-ray off", iClient);
 		ReplyToCommand(iClient, "[SM] X-ray disabled.");
 	}
 	else
 	{
 		EnableXray(iClient);
+		LogAction(iClient, -1, "\"%L\" toggled X-ray on", iClient);
 		ReplyToCommand(iClient, "[SM] X-ray enabled.");
 	}
 	

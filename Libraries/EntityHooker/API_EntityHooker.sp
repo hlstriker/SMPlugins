@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Entity Hooker";
-new const String:PLUGIN_VERSION[] = "1.9";
+new const String:PLUGIN_VERSION[] = "1.10";
 
 public Plugin:myinfo =
 {
@@ -537,7 +537,7 @@ Forward_OnEntityUnhooked(iHookType, iEnt)
 	Call_Finish(result);
 }
 
-CreateNewEntityHook(iClient, iHookType, iEnt, iCustomData1)
+CreateNewEntityHook(iClient, const eHookData[HookData], iEnt, iCustomData1)
 {
 	new iHammerID = GetEntProp(iEnt, Prop_Data, "m_iHammerID");
 	
@@ -556,23 +556,29 @@ CreateNewEntityHook(iClient, iHookType, iEnt, iCustomData1)
 		VALUES \
 		(%i, %i, %i, '%s', %i) \
 		ON DUPLICATE KEY UPDATE ent_classname='%s', custom_data_1=%i",
-		DBMaps_GetMapID(), iHookType, iHammerID, szClassName, iCustomData1, szClassName, iCustomData1);
+		DBMaps_GetMapID(), eHookData[HOOK_DATA_TYPE], iHammerID, szClassName, iCustomData1, szClassName, iCustomData1);
 	
-	AddHookedEntityToArray(iHookType, iHammerID, szClassName, iCustomData1);
-	Forward_OnEntityHooked(iHookType, iEnt);
+	AddHookedEntityToArray(eHookData[HOOK_DATA_TYPE], iHammerID, szClassName, iCustomData1);
+	Forward_OnEntityHooked(eHookData[HOOK_DATA_TYPE], iEnt);
+	
+	LogAction(iClient, -1, "\"%L\" created an entity hook (type \"%s\") (hammer_id \"%d\") (classname \"%s\")", iClient, eHookData[HOOK_DATA_NAME], iHammerID, szClassName);
 }
 
-RemoveEntityHook(iHookType, iEnt)
+RemoveEntityHook(iClient, const eHookData[HookData], iEnt)
 {
 	new iHammerID = GetEntProp(iEnt, Prop_Data, "m_iHammerID");
 	
 	DB_TQuery(g_szDatabaseConfigName, _, DBPrio_Low, _, "\
 		DELETE FROM plugin_entity_hooker \
 		WHERE map_id=%i AND hook_type=%i AND hammer_id=%i",
-		DBMaps_GetMapID(), iHookType, iHammerID);
+		DBMaps_GetMapID(), eHookData[HOOK_DATA_TYPE], iHammerID);
 	
-	RemoveHookedEntityFromArray(iHookType, iHammerID);
-	Forward_OnEntityUnhooked(iHookType, iEnt);
+	RemoveHookedEntityFromArray(eHookData[HOOK_DATA_TYPE], iHammerID);
+	Forward_OnEntityUnhooked(eHookData[HOOK_DATA_TYPE], iEnt);
+	
+	decl String:szClassName[MAX_CLASSNAME_LEN];
+	GetEntityClassname(iEnt, szClassName, sizeof(szClassName));
+	LogAction(iClient, -1, "\"%L\" removed an entity hook (type \"%s\") (hammer_id \"%d\") (classname \"%s\")", iClient, eHookData[HOOK_DATA_NAME], iHammerID, szClassName);
 }
 
 public Action:Command_EntityHook(iClient, iArgs)
@@ -870,7 +876,7 @@ public MenuHandle_EntitySelect(Handle:hMenu, MenuAction:action, iParam1, iParam2
 			decl eHookData[HookData];
 			GetArrayArray(g_aHookData, iHookDataIndex, eHookData);
 			
-			CreateNewEntityHook(iParam1, eHookData[HOOK_DATA_TYPE], iEnt, 0); // TODO: Set custom data.
+			CreateNewEntityHook(iParam1, eHookData, iEnt, 0); // TODO: Set custom data.
 			
 			DisplayMenu_EntitySelect(iParam1, iHookDataIndex, iClassNameIndex, 2);
 		}
@@ -885,7 +891,7 @@ public MenuHandle_EntitySelect(Handle:hMenu, MenuAction:action, iParam1, iParam2
 			decl eHookData[HookData];
 			GetArrayArray(g_aHookData, iHookDataIndex, eHookData);
 			
-			RemoveEntityHook(eHookData[HOOK_DATA_TYPE], iEnt);
+			RemoveEntityHook(iParam1, eHookData, iEnt);
 			
 			DisplayMenu_EntitySelect(iParam1, iHookDataIndex, iClassNameIndex, 2);
 		}

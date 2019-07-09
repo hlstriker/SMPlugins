@@ -4,7 +4,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Cell Doors";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -40,6 +40,8 @@ public Action:OnCellDoorsOpen(iClient, iArgNum)
 	}
 	
 	PrintToChatAll("Admin %N forced the cell doors open.", iClient);
+	LogAction(iClient, -1, "\"%L\" forced open cell doors", iClient);
+	
 	return Plugin_Handled;
 }
 

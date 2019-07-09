@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Cell Doors API";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
@@ -338,6 +338,7 @@ AddCellDoor(iClient)
 	}
 	
 	PrintToChat(iClient, "[SM] Door \"%s\" is now a cell door.", szName);
+	LogAction(iClient, -1, "\"%L\" added cell door \"%s\"", iClient, szName);
 }
 
 RemoveCellDoor(iClient)
@@ -462,6 +463,7 @@ RemoveCellDoor(iClient)
 	}
 	
 	PrintToChat(iClient, "[SM] Door \"%s\" is no longer a cell door.", szName);
+	LogAction(iClient, -1, "\"%L\" removed cell door \"%s\"", iClient, szName);
 }
 
 public Action:OnCellDoorsEdit(iClient, iArgNum)
@@ -681,6 +683,7 @@ SaveCellDoorNamesForMap(iClient)
 	CloseHandle(fp);
 	
 	PrintToChat(iClient, "[SM] The cell doors have been saved.");
+	LogAction(iClient, -1, "\"%L\" saved cell doors", iClient);
 }
 
 GetLowercaseMapName(String:szMapName[], iMaxLength)
