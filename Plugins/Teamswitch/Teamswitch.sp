@@ -33,7 +33,7 @@
 #define TEAM_SPEC 1
 
 
-#define TEAMSWITCH_VERSION    "1.3"
+#define TEAMSWITCH_VERSION    "1.4"
 #define TEAMSWITCH_ADMINFLAG  ADMFLAG_KICK
 #define TEAMSWITCH_ARRAY_SIZE 64
 
@@ -64,12 +64,12 @@ enum TeamSwitchEvent{
 public OnPluginStart(){
 	CreateConVar( "teamswitch_version",	TEAMSWITCH_VERSION, "TeamSwitch version", FCVAR_NOTIFY );
 	
-	RegAdminCmd( "teamswitch",			Command_SwitchImmed,	TEAMSWITCH_ADMINFLAG );
-	RegAdminCmd( "teamswitch_death",	Command_SwitchDeath,	TEAMSWITCH_ADMINFLAG );
-	RegAdminCmd( "teamswitch_roundend",	Command_SwitchRend,		TEAMSWITCH_ADMINFLAG );
-	RegAdminCmd( "ts",					Command_SwitchImmed,	TEAMSWITCH_ADMINFLAG );
-	RegAdminCmd( "tsd",					Command_SwitchDeath,	TEAMSWITCH_ADMINFLAG );
-	RegAdminCmd( "tsr",					Command_SwitchRend,		TEAMSWITCH_ADMINFLAG );
+	RegAdminCmd( "sm_teamswitch",			Command_SwitchImmed,	TEAMSWITCH_ADMINFLAG );
+	RegAdminCmd( "sm_teamswitch_death",	Command_SwitchDeath,	TEAMSWITCH_ADMINFLAG );
+	RegAdminCmd( "sm_teamswitch_roundend",	Command_SwitchRend,		TEAMSWITCH_ADMINFLAG );
+	RegAdminCmd( "sm_ts",					Command_SwitchImmed,	TEAMSWITCH_ADMINFLAG );
+	RegAdminCmd( "sm_tsd",					Command_SwitchDeath,	TEAMSWITCH_ADMINFLAG );
+	RegAdminCmd( "sm_tsr",					Command_SwitchRend,		TEAMSWITCH_ADMINFLAG );
 	
 	HookEvent(   "player_death",	Event_PlayerDeath	);
 	
@@ -169,6 +169,8 @@ public Action:Command_SwitchImmed( client, args ){
 			PrintToChatAll( "[SM] Admin teamswitched %s to team %s.", target_name, teamArg );
 		else
 			PrintToChatAll( "[SM] Admin teamswitched %s.", target_name);
+		
+		LogAction(client, target, "\"%L\" used teamswitch for \"%L\"", client, target);
 	}
 	
 	return Plugin_Handled;
@@ -193,6 +195,8 @@ public Action:Command_SwitchDeath( client, args ){
 			"[SM] %s will %s be switched to opposite team on their death.",
 			target_name, ( switchOnDeath[target] ? "" : "not" )
 			);
+		
+		LogAction(client, target, "\"%L\" used teamswitch on death for \"%L\"", client, target);
 		}
 	
 	return Plugin_Handled;
@@ -223,6 +227,8 @@ public Action:Command_SwitchRend( client, args ){
 			"[SM] %s will %s be switched to opposite team on round end.",
 			target_name, ( switchOnRoundEnd[target] ? "" : "not" )
 			);
+		
+		LogAction(client, target, "\"%L\" used teamswitch on round end for \"%L\"", client, target);
 		}
 	
 	return Plugin_Handled;
