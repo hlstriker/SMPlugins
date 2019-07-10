@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Skill Server Weapons";
-new const String:PLUGIN_VERSION[] = "1.9";
+new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
 {
@@ -97,14 +97,14 @@ public OnPluginStart()
 
 	if((cvar_allow_dropped_weapon = FindConVar("weapons_allow_dropped_weapon")) == INVALID_HANDLE)
 		cvar_allow_dropped_weapon = CreateConVar("weapons_allow_dropped_weapon", "1", "Whether to allow clients to drop weapons (max 1 per player)");
-
+	
 	new Handle:cvar_mp_give_player_c4 = FindConVar("mp_give_player_c4");
 	if(cvar_mp_give_player_c4 != INVALID_HANDLE)
 	{
 		HookConVarChange(cvar_mp_give_player_c4, OnConVarChanged);
 		SetConVarBool(cvar_mp_give_player_c4, false);
 	}
-
+	
 	g_aWeapons = CreateArray(WeaponData);
 	BuildWeaponsArray();
 
@@ -184,7 +184,7 @@ public Action:OnWeaponSelect(iClient, iArgNum)
 {
 	if(!iClient)
 		return Plugin_Handled;
-
+	
 	DisplayMenu_CategorySelect(iClient);
 	return Plugin_Handled;
 }
@@ -193,10 +193,10 @@ public Action:OnWeaponSelect_WeaponSkins(iClient, iArgNum)
 {
 	if(g_bLibLoaded_UnsafeWeaponSkins)
 		return Plugin_Handled;
-
+	
 	if(!iClient)
 		return Plugin_Handled;
-
+	
 	DisplayMenu_CategorySelect(iClient);
 	return Plugin_Handled;
 }
@@ -208,21 +208,21 @@ DisplayMenu_CategorySelect(iClient)
 		CPrintToChat(iClient, "{red}Unavailable, try again in a few seconds.");
 		return;
 	}
-
+	
 	new Handle:hMenu = CreateMenu(MenuHandle_CategorySelect);
 	SetMenuTitle(hMenu, "Select a category");
-
+	
 	decl String:szInfo[4];
 	IntToString(_:CATEGORY_KNIFE, szInfo, sizeof(szInfo));
 	AddMenuItem(hMenu, szInfo, "Knives");
-
+	
 	IntToString(_:CATEGORY_PISTOLS, szInfo, sizeof(szInfo));
 	AddMenuItem(hMenu, szInfo, "Pistols");
-
+	
 	#if defined VIEWMODEL_EFFECTS
 	AddMenuItem(hMenu, "", "", ITEMDRAW_SPACER);
 	AddMenuItem(hMenu, "", "", ITEMDRAW_SPACER);
-
+	
 	IntToString(_:CATEGORY_HIDE_WEAPONS, szInfo, sizeof(szInfo));
 	if(g_bShouldHideWeapons[iClient])
 		AddMenuItem(hMenu, szInfo, "Unhide weapons");
@@ -238,15 +238,15 @@ DisplayMenu_CategorySelect(iClient)
 		{
 			decl String:szDisplay[48];
 			FormatEx(szDisplay, sizeof(szDisplay), "%sADMIN: Disable map weapons", (MapCookies_HasCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU) && MapCookies_GetCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU)) ? "[\xE2\x9C\x93] " : "");
-
+			
 			AddMenuItem(hMenu, "", "", ITEMDRAW_SPACER);
-
+			
 			IntToString(_:CATEGORY_ADMIN_TOGGLE_WEAPONS, szInfo, sizeof(szInfo));
 			AddMenuItem(hMenu, szInfo, szDisplay);
 		}
 		#endif
 	}
-
+	
 	SetMenuPagination(hMenu, false);
 	SetMenuExitButton(hMenu, true);
 	if(!DisplayMenu(hMenu, iClient, 0))
@@ -260,13 +260,13 @@ public MenuHandle_CategorySelect(Handle:hMenu, MenuAction:action, iParam1, iPara
 		CloseHandle(hMenu);
 		return;
 	}
-
+	
 	if(action != MenuAction_Select)
 		return;
-
+	
 	decl String:szInfo[4];
 	GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
-
+	
 	new iCategory = StringToInt(szInfo);
 	if(iCategory == CATEGORY_ADMIN_TOGGLE_WEAPONS)
 	{
@@ -277,7 +277,7 @@ public MenuHandle_CategorySelect(Handle:hMenu, MenuAction:action, iParam1, iPara
 			MapCookies_SetCookie(MC_TYPE_NO_SKILL_SRV_WEAPONS_MENU, bDisabled);
 			#endif
 		}
-
+		
 		DisplayMenu_CategorySelect(iParam1);
 		return;
 	}
@@ -288,14 +288,14 @@ public MenuHandle_CategorySelect(Handle:hMenu, MenuAction:action, iParam1, iPara
 	{
 		g_bShouldHideWeapons[iParam1] = !g_bShouldHideWeapons[iParam1];
 		ClientCookies_SetCookie(iParam1, CC_TYPE_SKILL_SERVER_WEAPONS_HIDE, g_bShouldHideWeapons[iParam1]);
-
+		
 		SetViewModelVisibility(iParam1);
-
+		
 		DisplayMenu_CategorySelect(iParam1);
 		return;
 	}
 	#endif
-
+	
 	if(g_bLibLoaded_UnsafeKnives && iCategory == _:CATEGORY_KNIFE)
 	{
 		#if defined _unsafe_knives_included
@@ -303,7 +303,7 @@ public MenuHandle_CategorySelect(Handle:hMenu, MenuAction:action, iParam1, iPara
 		return;
 		#endif
 	}
-
+	
 	DisplayMenu_WeaponSelect(iParam1, iCategory);
 }
 
@@ -316,26 +316,26 @@ DisplayMenu_WeaponSelect(iClient, iCategory)
 		DisplayMenu_CategorySelect(iClient);
 		return;
 	}
-
+	
 	new Handle:hMenu = CreateMenu(MenuHandle_WeaponSelect);
 	SetMenuTitle(hMenu, "Select a weapon");
-
+	
 	decl String:szInfo[9], eWeaponData[WeaponData];
 	FormatEx(szInfo, sizeof(szInfo), "%i~%i", iCategory, USE_DEFAULT_WEAPON);
 	AddMenuItem(hMenu, szInfo, "Default");
-
+	
 	for(new i=0; i<iArraySize; i++)
 	{
 		if(!GetArrayArray(g_aWeapons, i, eWeaponData))
 			continue;
-
+		
 		if(iCategory != _:eWeaponData[WEAPON_CATEGORY])
 			continue;
-
+		
 		FormatEx(szInfo, sizeof(szInfo), "%i~%i", iCategory, i);
 		AddMenuItem(hMenu, szInfo, eWeaponData[WEAPON_NAME]);
 	}
-
+	
 	SetMenuExitBackButton(hMenu, true);
 	if(!DisplayMenu(hMenu, iClient, 0))
 	{
@@ -352,7 +352,7 @@ public MenuHandle_WeaponSelect(Handle:hMenu, MenuAction:action, iParam1, iParam2
 		CloseHandle(hMenu);
 		return;
 	}
-
+	
 	if(action == MenuAction_Cancel)
 	{
 		if(iParam2 == MenuCancel_ExitBack)
@@ -360,20 +360,20 @@ public MenuHandle_WeaponSelect(Handle:hMenu, MenuAction:action, iParam1, iParam2
 			DisplayMenu_CategorySelect(iParam1);
 			return;
 		}
-
+		
 		return;
 	}
-
+	
 	if(action != MenuAction_Select)
 		return;
-
+	
 	decl String:szInfo[9], String:szBuffers[2][9];
 	GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
 	ExplodeString(szInfo, "~", szBuffers, sizeof(szBuffers), sizeof(szBuffers[]));
-
+	
 	new iCategory = StringToInt(szBuffers[0]);
 	new iIndex = StringToInt(szBuffers[1]);
-
+	
 	switch(iCategory)
 	{
 		case CATEGORY_KNIFE:
@@ -387,27 +387,27 @@ public MenuHandle_WeaponSelect(Handle:hMenu, MenuAction:action, iParam1, iParam2
 			ClientCookies_SetCookie(iParam1, CC_TYPE_SKILL_SERVER_WEAPONS_PISTOL_INDEX, iIndex);
 		}
 	}
-
+	
 	if(iIndex == USE_DEFAULT_WEAPON)
 	{
 		CPrintToChat(iParam1, "{red}The next time you respawn you will use your default.");
 		DisplayMenu_CategorySelect(iParam1);
 		return;
 	}
-
+	
 	if(!IsPlayerAlive(iParam1))
 	{
 		PrintSelectedWeaponOnRespawn(iParam1);
 		DisplayMenu_CategorySelect(iParam1);
 		return;
 	}
-
+	
 	if(!CanGiveMapWeapons(iParam1))
 	{
 		DisplayMenu_CategorySelect(iParam1);
 		return;
 	}
-
+	
 	GivePlayerWeapon(iParam1, iIndex, true);
 	DisplayMenu_CategorySelect(iParam1);
 }
@@ -421,12 +421,12 @@ bool:CanGiveMapWeapons(iClient, bool:bShowMessage=true)
 		{
 			if(bShowMessage)
 				CPrintToChat(iClient, "{red}Weapons are disabled for this map.");
-
+			
 			return false;
 		}
 		#endif
 	}
-
+	
 	return true;
 }
 
@@ -444,21 +444,21 @@ public OnUnsafeKnivesMenuSelect(iClient)
 {
 	g_iKnifeIndex[iClient] = USE_DEFAULT_WEAPON;
 	DisplayMenu_CategorySelect(iClient);
-
+	
 	if(!IsPlayerAlive(iClient))
 	{
 		PrintSelectedWeaponOnRespawn(iClient);
 		return;
 	}
-
+	
 	if(!g_bLibLoaded_UnsafeKnives)
 		return;
-
+	
 	if(!CanGiveMapWeapons(iClient))
 		return;
-
+	
 	decl String:szKnifeClassName[32];
-
+	
 	#if defined _unsafe_knives_included
 	if(!Knives_GetUsedKnifeClassname(iClient, szKnifeClassName, sizeof(szKnifeClassName)))
 	{
@@ -468,7 +468,7 @@ public OnUnsafeKnivesMenuSelect(iClient)
 	#else
 	return;
 	#endif
-
+	
 	StripClientWeaponsOfCategoryType(iClient, _:CATEGORY_KNIFE);
 	GivePlayerWeaponByName(iClient, szKnifeClassName);
 }
@@ -477,28 +477,28 @@ GivePlayerWeapon(iClient, iIndex, bool:bStripWeaponsOfSameCategory)
 {
 	decl eWeaponData[WeaponData];
 	GetArrayArray(g_aWeapons, iIndex, eWeaponData);
-
+	
 	// Strip weapons of the same category if needed.
 	if(bStripWeaponsOfSameCategory)
 		StripClientWeaponsOfCategoryType(iClient, _:eWeaponData[WEAPON_CATEGORY]);
-
+	
 	// Give the weapon.
 	new iWeapon = GivePlayerWeaponByName(iClient, eWeaponData[WEAPON_ENT_NAME], eWeaponData[WEAPON_TEAM]);
 	SDKHook(iWeapon, SDKHook_ReloadPost, OnWeaponReload);
-
+	
 	return iWeapon;
 }
 
 GivePlayerWeaponByName(iClient, const String:szEntName[], iTeam=WEAPON_TEAM_ANY)
 {
 	new iClientTeam = GetClientTeam(iClient);
-
+	
 	if(iTeam != WEAPON_TEAM_ANY)
 		SetEntProp(iClient, Prop_Send, "m_iTeamNum", iTeam);
-
+	
 	new iWeapon = GivePlayerItemCustom(iClient, szEntName);
 	SetEntProp(iClient, Prop_Send, "m_iTeamNum", iClientTeam);
-
+	
 	return iWeapon;
 }
 
@@ -507,14 +507,14 @@ public OnWeaponReload(iWeapon, bool:bSuccess)
 	new iClient = GetEntPropEnt(iWeapon, Prop_Data, "m_hOwnerEntity");
 	if(!(1 <= iClient <= MaxClients))
 		return;
-
+	
 	GivePlayerAmmo(iClient, 500, GetEntProp(iWeapon, Prop_Data, "m_iPrimaryAmmoType"), true);
 }
 
 GivePlayerItemCustom(iClient, const String:szClassName[])
 {
 	new iEnt = GivePlayerItem(iClient, szClassName);
-
+	
 	/*
 	* 	Sometimes GivePlayerItem() will call EquipPlayerWeapon() directly.
 	* 	Other times which seems to be directly after stripping weapons or player spawn EquipPlayerWeapon() won't get called.
@@ -522,7 +522,7 @@ GivePlayerItemCustom(iClient, const String:szClassName[])
 	*/
 	if(iEnt != -1 && GetEntPropEnt(iEnt, Prop_Send, "m_hOwnerEntity") == -1)
 		EquipPlayerWeapon(iClient, iEnt);
-
+	
 	return iEnt;
 }
 
@@ -539,10 +539,10 @@ public Action:CS_OnBuyCommand(iClient, const String:szWeaponName[])
 public OnClientPutInServer(iClient)
 {
 	g_bShouldHideWeapons[iClient] = false;
-
+	
 	g_iKnifeIndex[iClient] = USE_DEFAULT_WEAPON;
 	g_iPistolIndex[iClient] = USE_DEFAULT_WEAPON;
-
+	
 	SDKHook(iClient, SDKHook_SpawnPost, OnSpawnPost);
 	SDKHook(iClient, SDKHook_WeaponCanUse, OnWeaponCanUse);
 	SDKHook(iClient, SDKHook_WeaponEquipPost, OnWeaponEquipPost);
@@ -554,11 +554,11 @@ public OnWeaponSwitchPost(iClient, iWeapon)
 {
 	if(iWeapon < 1 || !IsValidEntity(iWeapon))
 		return;
-
+	
 	#if defined VIEWMODEL_EFFECTS
 	SetViewModelVisibility(iClient);
 	#endif
-
+	
 }
 
 #if defined VIEWMODEL_EFFECTS
@@ -568,7 +568,7 @@ SetViewModelVisibility(iClient)
 	iViewModel = GetEntPropEnt(iClient, Prop_Data, "m_hViewModel");
 	if(iViewModel < 1)
 		return;
-
+	
 	if(g_bShouldHideWeapons[iClient])
 		SetEntProp(iViewModel, Prop_Send, "m_fEffects", EF_NODRAW);
 	else
@@ -581,21 +581,21 @@ public ClientCookies_OnCookiesLoaded(iClient)
 	// Should hide weapons
 	if(ClientCookies_HasCookie(iClient, CC_TYPE_SKILL_SERVER_WEAPONS_HIDE))
 		g_bShouldHideWeapons[iClient] = bool:ClientCookies_GetCookie(iClient, CC_TYPE_SKILL_SERVER_WEAPONS_HIDE);
-
+	
 	// Knives
 	if(ClientCookies_HasCookie(iClient, CC_TYPE_SKILL_SERVER_WEAPONS_KNIFE_INDEX))
 		g_iKnifeIndex[iClient] = ClientCookies_GetCookie(iClient, CC_TYPE_SKILL_SERVER_WEAPONS_KNIFE_INDEX);
-
+	
 	if(g_iKnifeIndex[iClient] >= g_iNumKnives)
 		g_iKnifeIndex[iClient] = USE_DEFAULT_WEAPON;
-
+	
 	// Pistols
 	if(ClientCookies_HasCookie(iClient, CC_TYPE_SKILL_SERVER_WEAPONS_PISTOL_INDEX))
 		g_iPistolIndex[iClient] = ClientCookies_GetCookie(iClient, CC_TYPE_SKILL_SERVER_WEAPONS_PISTOL_INDEX);
-
+	
 	if(g_iPistolIndex[iClient] >= (g_iNumKnives + g_iNumPistols))
 		g_iPistolIndex[iClient] = USE_DEFAULT_WEAPON;
-
+	
 	// Give weapons if needed.
 	if(IsPlayerAlive(iClient))
 		GivePlayerSpawnWeapons(iClient);
@@ -607,7 +607,7 @@ GivePlayerSpawnWeapons(iClient)
 		TryGiveTeamDefaultKnife(iClient);
 	else
 		GivePlayerWeapon(iClient, g_iKnifeIndex[iClient], true);
-
+	
 	if(g_iPistolIndex[iClient] == USE_DEFAULT_WEAPON)
 		TryGiveTeamDefaultPistol(iClient);
 	else
@@ -619,7 +619,7 @@ TryGiveTeamDefaultKnife(iClient)
 	// Return if the player already has a knife since we don't want to replace their custom knife model if they have one.
 	if(GetPlayerWeaponSlot(iClient, 3) > 0)
 		return;
-
+	
 	switch(GetClientTeam(iClient))
 	{
 		case CS_TEAM_T: GivePlayerWeapon(iClient, g_iDefaultIndex_KnifeT, true);
@@ -640,7 +640,7 @@ public OnSpawnPost(iClient)
 {
 	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
 		return;
-
+	
 	if(g_bLibLoaded_MovementStyles)
 	{
 		#if defined _movement_styles_included
@@ -648,7 +648,7 @@ public OnSpawnPost(iClient)
 			return;
 		#endif
 	}
-
+	
 	if(g_bLibLoaded_ModelSkinManager)
 	{
 		#if defined _model_skin_manager_included
@@ -656,11 +656,11 @@ public OnSpawnPost(iClient)
 			return;
 		#endif
 	}
-
+	
 	SetEntProp(iClient, Prop_Send, "m_bHasDefuser", 0);
-
+	
 	StripClientWeapons(iClient);
-
+	
 	if(CanGiveMapWeapons(iClient, false))
 		GivePlayerSpawnWeapons(iClient);
 }
@@ -669,7 +669,7 @@ public Action:OnWeaponCanUse(iClient, iWeapon)
 {
 	if(GetEntityFlags(iWeapon) & FL_KILLME)
 		return Plugin_Handled;
-
+	
 	return Plugin_Continue;
 }
 
@@ -685,17 +685,17 @@ public OnWeaponEquipPost(iClient, iWeapon)
 		{
 			new WeaponCategory:iWeaponCategory = GetWeaponsCategory(iWeapon);
 			new iDroppedWeapon = EntRefToEntIndex(g_iDroppedWeaponRef[iOwner][iWeaponCategory]);
-
+			
 			if(iDroppedWeapon > 0)
 			{
 				if(iDroppedWeapon != iWeapon)
 					KillWeapon(iDroppedWeapon);
-
+				
 				g_iDroppedWeaponRef[iOwner][iWeaponCategory] = INVALID_ENT_REFERENCE;
 			}
 		}
 	}
-
+	
 	SetWeaponOwnerSerial(iWeapon, GetClientSerial(iClient));
 
 	#if defined VIEWMODEL_EFFECTS
@@ -707,7 +707,7 @@ public OnWeaponDropPost(iClient, iWeapon)
 {
 	if(g_bIgnoreDropHook[iClient])
 		return;
-
+	
 	if(!IsValidEntity(iWeapon))
 		return;
 
@@ -715,10 +715,10 @@ public OnWeaponDropPost(iClient, iWeapon)
 	{
 		new WeaponCategory:iWeaponCategory = GetWeaponsCategory(iWeapon);
 		new iDroppedWeapon = EntRefToEntIndex(g_iDroppedWeaponRef[iClient][iWeaponCategory]);
-
+		
 		if(iDroppedWeapon > 0)
 			KillWeapon(iDroppedWeapon);
-
+		
 		g_iDroppedWeaponRef[iClient][iWeaponCategory] = EntIndexToEntRef(iWeapon);
 	}
 	else
@@ -728,15 +728,15 @@ public OnWeaponDropPost(iClient, iWeapon)
 StripClientWeaponsOfCategoryType(iClient, iCategory)
 {
 	new iArraySize = GetArraySize(g_aWeapons);
-
+	
 	decl eWeaponData[WeaponData];
 	for(new i=0; i<iArraySize; i++)
 	{
 		GetArrayArray(g_aWeapons, i, eWeaponData);
-
+		
 		if(_:eWeaponData[WEAPON_CATEGORY] != iCategory)
 			continue;
-
+		
 		StripClientSpecificWeapon(iClient, eWeaponData[WEAPON_ENT_NAME]);
 	}
 }
@@ -744,20 +744,20 @@ StripClientWeaponsOfCategoryType(iClient, iCategory)
 StripClientSpecificWeapon(iClient, const String:szWeaponEnt[])
 {
 	new iArraySize = GetEntPropArraySize(iClient, Prop_Send, "m_hMyWeapons");
-
+	
 	decl iWeapon, String:szClassName[MAX_WEAPON_ENT_NAME_LEN];
 	for(new i=0; i<iArraySize; i++)
 	{
 		iWeapon = GetEntPropEnt(iClient, Prop_Send, "m_hMyWeapons", i);
 		if(iWeapon < 1)
 			continue;
-
+		
 		if(!GetEntityClassname(iWeapon, szClassName, sizeof(szClassName)))
 			continue;
-
+		
 		if(!StrEqual(szWeaponEnt, szClassName))
 			continue;
-
+		
 		KillOwnedWeapon(iWeapon);
 		SetEntPropEnt(iClient, Prop_Send, "m_hMyWeapons", -1, i);
 		break;
@@ -769,20 +769,20 @@ StripClientWeapons(iClient)
 	new iKnife;
 	if(g_iKnifeIndex[iClient] == USE_DEFAULT_WEAPON)
 		iKnife = GetPlayerWeaponSlot(iClient, 3);
-
+	
 	new iArraySize = GetEntPropArraySize(iClient, Prop_Send, "m_hMyWeapons");
-
+	
 	decl iWeapon;
 	for(new i=0; i<iArraySize; i++)
 	{
 		iWeapon = GetEntPropEnt(iClient, Prop_Send, "m_hMyWeapons", i);
 		if(iWeapon < 1)
 			continue;
-
+		
 		// Don't kill the players knife if they are set to use their default knife.
 		if(iWeapon == iKnife)
 			continue;
-
+		
 		KillOwnedWeapon(iWeapon);
 		SetEntPropEnt(iClient, Prop_Send, "m_hMyWeapons", -1, i);
 	}
@@ -797,15 +797,15 @@ KillOwnedWeapon(iWeapon)
 		g_bIgnoreDropHook[iOwner] = true;
 		SDKHooks_DropWeapon(iOwner, iWeapon);
 		g_bIgnoreDropHook[iOwner] = false;
-
+		
 		// If the weapon still has an owner after being dropped called RemovePlayerItem.
 		// Note we check m_hOwner instead of m_hOwnerEntity here.
 		if(GetEntPropEnt(iWeapon, Prop_Send, "m_hOwner") == iOwner)
 			RemovePlayerItem(iOwner, iWeapon);
-
+		
 		SetEntPropEnt(iWeapon, Prop_Send, "m_hOwnerEntity", -1);
 	}
-
+	
 	KillWeapon(iWeapon);
 }
 
@@ -817,7 +817,7 @@ KillWeapon(iWeapon)
 		SetEntPropEnt(iWeapon, Prop_Send, "m_hWeaponWorldModel", -1);
 		AcceptEntityInput(iWorldModel, "KillHierarchy");
 	}
-
+	
 	AcceptEntityInput(iWeapon, "KillHierarchy");
 }
 
@@ -825,12 +825,12 @@ BuildWeaponsArray()
 {
 	g_iNumKnives = 0;
 	g_iNumPistols = 0;
-
+	
 	// Knife
 	g_iDefaultIndex_KnifeT = AddWeaponToArray("Knife (T)", "weapon_knife_t", CATEGORY_KNIFE, WEAPON_TEAM_T);
 	g_iDefaultIndex_KnifeCT = AddWeaponToArray("Knife (CT)", "weapon_knife", CATEGORY_KNIFE, WEAPON_TEAM_CT);
 	AddWeaponToArray("Knife (Golden)", "weapon_knifegg", CATEGORY_KNIFE);
-
+	
 	// Pistols
 	g_iDefaultIndex_PistolT = AddWeaponToArray("Glock-18", "weapon_glock", CATEGORY_PISTOLS, WEAPON_TEAM_T);
 	AddWeaponToArray("P2000", "weapon_hkp2000", CATEGORY_PISTOLS, WEAPON_TEAM_NONE);
@@ -851,9 +851,9 @@ AddWeaponToArray(const String:szWeaponName[], const String:szWeaponEntName[], co
 	strcopy(eWeaponData[WEAPON_ENT_NAME], MAX_WEAPON_ENT_NAME_LEN, szWeaponEntName);
 	eWeaponData[WEAPON_TEAM] = iWeaponTeam;
 	eWeaponData[WEAPON_CATEGORY] = iCategory;
-
+	
 	new iIndex = PushArrayArray(g_aWeapons, eWeaponData);
-
+	
 	if(iCategory == CATEGORY_KNIFE)
 	{
 		g_iNumKnives++;
@@ -862,7 +862,7 @@ AddWeaponToArray(const String:szWeaponName[], const String:szWeaponEntName[], co
 	{
 		g_iNumPistols++;
 	}
-
+	
 	return iIndex;
 }
 
@@ -871,9 +871,9 @@ WeaponCategory:GetWeaponsCategory(iWeapon)
 	decl String:szClassName[MAX_WEAPON_ENT_NAME_LEN];
 	if(!GetEntityClassname(iWeapon, szClassName, sizeof(szClassName)))
 		return CATEGORY_UNKNOWN;
-
+	
 	new iArraySize = GetArraySize(g_aWeapons);
-
+	
 	decl eWeaponData[WeaponData];
 	for(new i=0; i<iArraySize; i++)
 	{
@@ -881,11 +881,6 @@ WeaponCategory:GetWeaponsCategory(iWeapon)
 		if(StrEqual(szClassName, eWeaponData[WEAPON_ENT_NAME]))
 			return eWeaponData[WEAPON_CATEGORY];
 	}
-
+	
 	return CATEGORY_UNKNOWN;
-}
-
-public OnClientDisconnect(iClient)
-{
-	StripClientWeapons(iClient);
 }
