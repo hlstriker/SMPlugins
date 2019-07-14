@@ -20,7 +20,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Speed Runs: Teleport";
-new const String:PLUGIN_VERSION[] = "1.22";
+new const String:PLUGIN_VERSION[] = "1.23";
 
 public Plugin:myinfo =
 {
@@ -61,6 +61,7 @@ new Handle:g_hFwd_OnTeleport_Post;
 
 new Handle:cvar_restart_is_respawn;
 new Handle:cvar_allow_respawn_only;
+new Handle:cvar_allow_in_air;
 
 new Handle:cvar_mp_free_armor;
 
@@ -75,6 +76,7 @@ public OnPluginStart()
 	
 	cvar_restart_is_respawn = CreateConVar("speedruns_teleport_restart_is_respawn", "0", "0: Default behavior -- 1: Restart will act like respawn.", _, true, 0.0, true, 1.0);
 	cvar_allow_respawn_only = CreateConVar("speedruns_teleport_allow_respawn_only", "0", "0: Default behavior -- 1: Only the spawn command is allowed.", _, true, 0.0, true, 1.0);
+	cvar_allow_in_air = CreateConVar("speedruns_teleport_allow_in_air", "0", "0: Cannot teleport in air. -- 1: Can teleport in air.", _, true, 0.0, true, 1.0);
 	
 	cvar_mp_free_armor = FindConVar("mp_free_armor");
 	
@@ -179,10 +181,13 @@ bool:IsAllowedToTeleport(iClient)
 		return false;
 	}
 	
-	if(GetEntProp(iClient, Prop_Send, "m_hGroundEntity") == -1)
+	if(!GetConVarBool(cvar_allow_in_air))
 	{
-		CPrintToChat(iClient, "{lightgreen}-- {red}You must be on the ground to teleport.");
-		return false;
+		if(GetEntProp(iClient, Prop_Send, "m_hGroundEntity") == -1)
+		{
+			CPrintToChat(iClient, "{lightgreen}-- {red}You must be on the ground to teleport.");
+			return false;
+		}
 	}
 	
 	return true;
