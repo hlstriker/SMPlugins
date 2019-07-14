@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Skill Server Weapons";
-new const String:PLUGIN_VERSION[] = "1.9";
+new const String:PLUGIN_VERSION[] = "1.10";
 
 public Plugin:myinfo =
 {
@@ -887,5 +887,6 @@ WeaponCategory:GetWeaponsCategory(iWeapon)
 
 public OnClientDisconnect(iClient)
 {
-	StripClientWeapons(iClient);
+	if (IsClientInGame(iClient) && IsPlayerAlive(iClient))
+		StripClientWeapons(iClient);
 }
