@@ -3,14 +3,17 @@
 #include <sdktools_functions>
 #include <sdktools_tempents>
 #include <sdktools_tempents_stocks>
+#include "../DatabaseUsers/database_users"
 #include "../DatabaseCore/database_core"
 #include "../DatabaseMaps/database_maps"
+#include "../DatabaseMapSessions/database_map_sessions"
+#include "../UserLogs/user_logs"
 #include <hls_color_chat>
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Entity Hooker";
-new const String:PLUGIN_VERSION[] = "1.10";
+new const String:PLUGIN_VERSION[] = "1.11";
 
 public Plugin:myinfo =
 {
@@ -62,6 +65,12 @@ enum
 	ENT_SELECT_TYPE_PREV,
 	ENT_SELECT_TYPE_HOOK,
 	ENT_SELECT_TYPE_UNHOOK
+};
+
+enum EHLogType
+{
+	ENTHOOK_LOGTYPE_ADDED = 1,
+	ENTHOOK_LOGTYPE_REMOVED
 };
 
 new Handle:g_hFwd_OnRegisterReady;
@@ -562,6 +571,7 @@ CreateNewEntityHook(iClient, const eHookData[HookData], iEnt, iCustomData1)
 	Forward_OnEntityHooked(eHookData[HOOK_DATA_TYPE], iEnt);
 	
 	LogAction(iClient, -1, "\"%L\" created an entity hook (type \"%s\") (hammer_id \"%d\") (classname \"%s\")", iClient, eHookData[HOOK_DATA_NAME], iHammerID, szClassName);
+	LogChanges(iClient, ENTHOOK_LOGTYPE_ADDED, iHammerID);
 }
 
 RemoveEntityHook(iClient, const eHookData[HookData], iEnt)
@@ -579,6 +589,16 @@ RemoveEntityHook(iClient, const eHookData[HookData], iEnt)
 	decl String:szClassName[MAX_CLASSNAME_LEN];
 	GetEntityClassname(iEnt, szClassName, sizeof(szClassName));
 	LogAction(iClient, -1, "\"%L\" removed an entity hook (type \"%s\") (hammer_id \"%d\") (classname \"%s\")", iClient, eHookData[HOOK_DATA_NAME], iHammerID, szClassName);
+	LogChanges(iClient, ENTHOOK_LOGTYPE_REMOVED, iHammerID);
+}
+
+LogChanges(iClient, EHLogType:iLogType, iHammerID)
+{
+	new iUserID = DBUsers_GetUserID(iClient);
+	new iMapID = DBMaps_GetMapID();
+	new iMapSessionID = DBMapSessions_GetSessionID();
+	
+	UserLogs_AddLog(iUserID, USER_LOG_TYPE_ENTITYHOOKER, _, _:iLogType, iMapID, iMapSessionID, iHammerID);
 }
 
 public Action:Command_EntityHook(iClient, iArgs)
