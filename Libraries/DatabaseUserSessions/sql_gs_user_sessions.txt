@@ -20,9 +20,10 @@ CREATE TABLE IF NOT EXISTS gs_user_sessions
 
 	PRIMARY KEY ( sess_id ),
 	INDEX ( user_id, sess_id ),		-- Used in class_Player.php
-	INDEX ( map_sess_id ),			-- Used in class_Maps.php
-	INDEX ( user_id, user_ip ),		-- Used in class_ServerUser.php
+	INDEX ( map_sess_id ),			-- Used in class_Servers.php
+	INDEX ( user_id, user_ip ),		-- Used in class_Servers.php
 	INDEX ( server_id, utime_start ),	-- Used in class_Servers.php
 	INDEX ( user_id, server_id ),		-- Used in class_Servers.php
-	INDEX ( user_id, utime_start )		-- Used in class_Servers.php
+	INDEX ( user_id, utime_start ),		-- Used in class_Servers.php
+	INDEX ( user_ip )			-- Used in class_Servers.php
 ) ENGINE = INNODB;
