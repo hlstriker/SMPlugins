@@ -1204,7 +1204,7 @@ bool:DisplayMenu_MapVote()
 			
 			if(GetMapsPlayerRequirementNeeds(eMap) != 0)
 				continue;
-
+			
 			if(strncmp(eMap[Map_NameFormatted], "dr_", 3, false) == 0)
 				continue;
 			
