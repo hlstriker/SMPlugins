@@ -101,7 +101,7 @@ stock CPrintToChatAll(const String:format[], any:...)
 	
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
-		if(IsClientInGame(iClient) && !IsFakeClient(iClient))
+		if(IsClientInGame(iClient) && (!IsFakeClient(iClient) || IsClientSourceTV(iClient)))
 		{
 			SetGlobalTransTarget(iClient);
 			VFormat(szBuffer, sizeof(szBuffer), format, 2);
