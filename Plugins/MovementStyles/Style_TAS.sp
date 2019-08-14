@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: TAS";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -23,7 +23,6 @@ public Plugin:myinfo =
 
 #define THIS_STYLE_BIT			STYLE_BIT_TAS
 #define THIS_STYLE_NAME			"TAS"
-#define THIS_STYLE_NAME_AUTO	"TAS"
 #define THIS_STYLE_ORDER		1
 
 new bool:g_bActivated[MAXPLAYERS+1];
@@ -172,7 +171,7 @@ public MenuHandle_TAS(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 
 public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVel[3], Float:fAngles[3], &iWeapon, &iSubType, &iCmdNum, &iTickCount, &iSeed, iMouse[2])
 {
-	if (g_bAllowMouse[iClient])
+	if (g_bActivated[iClient] && g_bAllowMouse[iClient])
 	{
 		if (iButtons & IN_ATTACK)
 		{
