@@ -4,7 +4,7 @@
 #define _movement_styles_included
 
 
-public SharedPlugin:__pl_movement_styles = 
+public SharedPlugin:__pl_movement_styles =
 {
 	name = "movement_styles",
 	file = "API_MovementStyles.smx",
@@ -34,6 +34,7 @@ public SharedPlugin:__pl_movement_styles =
 #define STYLE_BIT_ROCKET_JUMP				(1<<11)
 #define STYLE_BIT_PARKOUR				(1<<12)
 #define STYLE_BIT_AUTO_STRAFE				(1<<13)
+#define STYLE_BIT_TAS             (1<<14)
 #define STYLE_BIT_HIGH_FOV				(1<<15)
 #define STYLE_BIT_BACKWARDS				(1<<16)
 #define STYLE_BIT_ONE_STRAFE_ONLY		(1<<17)
@@ -56,7 +57,9 @@ native MovementStyles_RegisterStyleCommand(style_bit, const String:command[]);
 native MovementStyles_GetTotalStylesRegistered();
 
 native MovementStyles_GetStyleBits(client);
+native MovementStyles_SetStyleBitsRespawn(client, style_bits);
 native bool:MovementStyles_GetStyleNames(client, Handle:names_array);
+native bool:MovementStyles_GetStyleNamesFromBits(bits, Handle:names_array);
 
 native MovementStyles_SetDefaultBits(bits); // Safe to call this in MovementStyles_OnRegisterReady().
 
@@ -69,7 +72,9 @@ public __pl_movement_styles_SetNTVOptional()
 	MarkNativeAsOptional("MovementStyles_RegisterMultiStyle");
 	MarkNativeAsOptional("MovementStyles_GetTotalStylesRegistered");
 	MarkNativeAsOptional("MovementStyles_GetStyleBits");
-	MarkNativeAsOptional("MovementStyles_GetStyleNames");
+  MarkNativeAsOptional("MovementStyles_SetStyleBitsRespawn");
+  MarkNativeAsOptional("MovementStyles_GetStyleNames");
+  MarkNativeAsOptional("MovementStyles_GetStyleNamesFromBits");
 	MarkNativeAsOptional("MovementStyles_SetDefaultBits");
 }
 #endif
