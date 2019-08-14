@@ -1,11 +1,12 @@
 #include <sourcemod>
 #include <sdktools_functions>
 #include "../../Libraries/MovementStyles/movement_styles"
+#include "../AutoStrafe/auto_strafe"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: Auto Strafe";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "2.0";
 
 public Plugin:myinfo =
 {
@@ -24,14 +25,10 @@ public Plugin:myinfo =
 new Handle:cvar_add_autobhop;
 new Handle:cvar_force_autobhop;
 
-new g_iGroundTicks[MAXPLAYERS + 1];
-new bool:g_bActivated[MAXPLAYERS+1];
-
-
 public OnPluginStart()
 {
-	CreateConVar("style_halfsideways_bhop_only_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
-	
+	CreateConVar("style_auto_strafe_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
+
 	cvar_add_autobhop = CreateConVar("style_autostrafe_add_autobhop", "0", "Add an additional auto-bhop style for this style too.", _, true, 0.0, true, 1.0);
 	cvar_force_autobhop = CreateConVar("style_autostrafe_force_autobhop", "0", "Force auto-bhop on this style.", _, true, 0.0, true, 1.0);
 }
@@ -54,7 +51,7 @@ public MovementStyles_OnBitsChanged(iClient, iOldBits, &iNewBits)
 	// Do not compare using bitwise operators. The bit should be an exact equal.
 	if(iNewBits != THIS_STYLE_BIT)
 		return;
-	
+
 	iNewBits = TryForceAutoBhopBits(iNewBits);
 }
 
@@ -63,7 +60,7 @@ public Action:MovementStyles_OnMenuBitsChanged(iClient, iBitsBeingToggled, bool:
 	// Do not compare using bitwise operators. The bit should be an exact equal.
 	if(!bBeingToggledOn || iBitsBeingToggled != THIS_STYLE_BIT)
 		return;
-	
+
 	iExtraBitsToForceOn = TryForceAutoBhopBits(iExtraBitsToForceOn);
 }
 
@@ -71,65 +68,16 @@ TryForceAutoBhopBits(iBits)
 {
 	if(!GetConVarBool(cvar_force_autobhop))
 		return iBits;
-	
-	return (iBits | STYLE_BIT_AUTO_BHOP);
-}
 
-public OnClientConnected(iClient)
-{
-	g_bActivated[iClient] = false;
+	return (iBits | STYLE_BIT_AUTO_BHOP);
 }
 
 public OnActivated(iClient)
 {
-	g_bActivated[iClient] = true;
+	AutoStrafe_SetEnabled(iClient, true);
 }
 
 public OnDeactivated(iClient)
 {
-	g_bActivated[iClient] = false;
-}
-
-public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVel[3], Float:fAngles[3], &iWeapon, &iSubType, &iCmdNum, &iTickCount, &iSeed, iMouse[2])
-{
-	if(!g_bActivated[iClient])
-		return Plugin_Continue;
-
-	if(!IsPlayerAlive(iClient))
-		return Plugin_Continue;
-		
-	if(GetEntityMoveType(iClient) == MOVETYPE_NOCLIP)
-		return Plugin_Continue;
-		
-	if(GetEntityFlags(iClient) & FL_ONGROUND)
-		g_iGroundTicks[iClient]++;
-	else
-		g_iGroundTicks[iClient] = 0;
-		
-	
-	decl Float:fEyeAngles[3];
-	GetClientEyeAngles(iClient, fEyeAngles);
-	
-	if(g_iGroundTicks[iClient] < 5 && fVel[0] == 0.0 && fVel[1] == 0.0)
-	{
-		new Float:fPredictedDelta = fAngles[1] - fEyeAngles[1];
-		
-		if (fPredictedDelta > 180.0)
-			fPredictedDelta -= 360.0;
-		if (fPredictedDelta < -180.0)
-			fPredictedDelta += 360.0;
-		
-		if (fPredictedDelta > 0.0)
-		{
-			fVel[1] = -450.0;
-			return Plugin_Changed;
-		}
-		if (fPredictedDelta < 0.0)
-		{
-			fVel[1] = 450.0;
-			return Plugin_Changed;
-		}
-		
-	}
-	return Plugin_Continue;
+	AutoStrafe_SetEnabled(iClient, false);
 }
