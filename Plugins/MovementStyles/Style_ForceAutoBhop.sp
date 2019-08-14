@@ -27,9 +27,11 @@ public OnPluginStart()
 
 public MovementStyles_OnBitsChanged(iClient, iOldBits, &iNewBits)
 {
+	if (iNewBits == STYLE_BIT_TAS)
+		return;
 	if(GetConVarBool(cvar_force_auto_bhop_but_not_legit))
 	{
-		if(iNewBits == STYLE_BIT_NONE || iNewBits == STYLE_BIT_NO_LAND_CAP || STYLE_BIT_TAS)
+		if(iNewBits == STYLE_BIT_NONE || iNewBits == STYLE_BIT_NO_LAND_CAP)
 			return;
 	}
 
@@ -38,6 +40,9 @@ public MovementStyles_OnBitsChanged(iClient, iOldBits, &iNewBits)
 
 public Action:MovementStyles_OnMenuBitsChanged(iClient, iBitsBeingToggled, bool:bBeingToggledOn, &iBitsToForceMenuVisualOnly)
 {
+	if(iBitsBeingToggled == STYLE_BIT_TAS && bBeingToggledOn)
+		return;
+
 	if(GetConVarBool(cvar_force_auto_bhop_but_not_legit))
 	{
 		if(iBitsBeingToggled == STYLE_BIT_NO_LAND_CAP && bBeingToggledOn)
