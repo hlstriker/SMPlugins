@@ -4,7 +4,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Replays";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -28,6 +28,7 @@ enum _:Frame
 	Float:Frame_Velocity[3],
 	Float:Frame_Angles[3],
 	Float:Frame_Origin[3],
+	MoveType:Frame_MoveType
 };
 
 public OnPluginStart()
@@ -99,6 +100,8 @@ public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVelocity[3], 
 		eFrame[Frame_Angles][1] = fAng[1];
 		eFrame[Frame_Angles][2] = fAng[2];
 
+		eFrame[Frame_MoveType] = GetEntityMoveType(iClient);
+
 		PushArrayArray(g_aReplay[iClient], eFrame);
 		return result;
 	}
@@ -130,6 +133,8 @@ public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVelocity[3], 
 	Call_PushCell(iClient);
 	Call_PushCell(g_iTick[iClient]);
 	Call_Finish();
+
+	SetEntityMoveType(iClient, eFrame[Frame_MoveType]);
 
 	TeleportEntity(iClient, fLoadOrigin, fLoadAngles, fLoadVelocity);
 
