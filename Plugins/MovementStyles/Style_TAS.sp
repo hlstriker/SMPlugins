@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: TAS";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -64,6 +64,8 @@ public OnActivated(iClient)
 	g_bMouseControl[iClient] = false;
 	AutoBhop_SetEnabled(iClient, true);
 	AutoStrafe_SetEnabled(iClient, true);
+
+	CPrintToChat(iClient, "{blue}[TAS] {default} Type !tas to open the menu");
 }
 
 public OnDeactivated(iClient)
