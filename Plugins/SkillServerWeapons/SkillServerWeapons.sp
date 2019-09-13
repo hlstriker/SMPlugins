@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Skill Server Weapons";
-new const String:PLUGIN_VERSION[] = "1.10";
+new const String:PLUGIN_VERSION[] = "1.11";
 
 public Plugin:myinfo =
 {
@@ -39,10 +39,6 @@ public Plugin:myinfo =
 #define GetWeaponOwnerSerial(%1)		GetEntProp(%1, Prop_Data, "m_iMaxHealth")
 
 #define EF_NODRAW	32
-
-// Applying Viewmodel effects no longer works in CS:GO
-#define VIEWMODEL_EFFECTS
-#undef VIEWMODEL_EFFECTS
 
 #define CATEGORY_HIDE_WEAPONS			-1
 #define CATEGORY_ADMIN_TOGGLE_WEAPONS	-2
@@ -219,7 +215,6 @@ DisplayMenu_CategorySelect(iClient)
 	IntToString(_:CATEGORY_PISTOLS, szInfo, sizeof(szInfo));
 	AddMenuItem(hMenu, szInfo, "Pistols");
 
-	#if defined VIEWMODEL_EFFECTS
 	AddMenuItem(hMenu, "", "", ITEMDRAW_SPACER);
 	AddMenuItem(hMenu, "", "", ITEMDRAW_SPACER);
 
@@ -228,8 +223,6 @@ DisplayMenu_CategorySelect(iClient)
 		AddMenuItem(hMenu, szInfo, "Unhide weapons");
 	else
 		AddMenuItem(hMenu, szInfo, "Hide weapons");
-	#endif
-
 
 	if(g_bLibLoaded_MapCookies)
 	{
@@ -283,7 +276,6 @@ public MenuHandle_CategorySelect(Handle:hMenu, MenuAction:action, iParam1, iPara
 	}
 
 
-	#if defined VIEWMODEL_EFFECTS
 	if(iCategory == CATEGORY_HIDE_WEAPONS)
 	{
 		g_bShouldHideWeapons[iParam1] = !g_bShouldHideWeapons[iParam1];
@@ -294,7 +286,6 @@ public MenuHandle_CategorySelect(Handle:hMenu, MenuAction:action, iParam1, iPara
 		DisplayMenu_CategorySelect(iParam1);
 		return;
 	}
-	#endif
 
 	if(g_bLibLoaded_UnsafeKnives && iCategory == _:CATEGORY_KNIFE)
 	{
@@ -555,13 +546,10 @@ public OnWeaponSwitchPost(iClient, iWeapon)
 	if(iWeapon < 1 || !IsValidEntity(iWeapon))
 		return;
 
-	#if defined VIEWMODEL_EFFECTS
 	SetViewModelVisibility(iClient);
-	#endif
 
 }
 
-#if defined VIEWMODEL_EFFECTS
 SetViewModelVisibility(iClient)
 {
 	static iViewModel;
@@ -569,12 +557,8 @@ SetViewModelVisibility(iClient)
 	if(iViewModel < 1)
 		return;
 
-	if(g_bShouldHideWeapons[iClient])
-		SetEntProp(iViewModel, Prop_Send, "m_fEffects", EF_NODRAW);
-	else
-		SetEntProp(iViewModel, Prop_Send, "m_fEffects", 0);
+	SetEntProp(iClient, Prop_Send, "m_bDrawViewmodel", !g_bShouldHideWeapons[iClient]);
 }
-#endif
 
 public ClientCookies_OnCookiesLoaded(iClient)
 {
@@ -698,9 +682,7 @@ public OnWeaponEquipPost(iClient, iWeapon)
 
 	SetWeaponOwnerSerial(iWeapon, GetClientSerial(iClient));
 
-	#if defined VIEWMODEL_EFFECTS
 	SetViewModelVisibility(iClient);
-	#endif
 }
 
 public OnWeaponDropPost(iClient, iWeapon)
