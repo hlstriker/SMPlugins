@@ -12,7 +12,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Knives";
-new const String:PLUGIN_VERSION[] = "2.2";
+new const String:PLUGIN_VERSION[] = "2.3";
 
 public Plugin:myinfo =
 {
@@ -42,7 +42,13 @@ new const String:g_szKnifeNames[][] =
 	"Ursus",
 	"Navaja",
 	"Stiletto",
-	"Talon"
+	"Talon",
+	"Spectral Shiv",
+	"Paracord",
+	"Survival",
+	"Nomad",
+	"Skeleton",
+	"Classic"
 };
 
 new const g_iItemDefinitionIndexes[] =
@@ -64,7 +70,13 @@ new const g_iItemDefinitionIndexes[] =
 	519,	// Ursus
 	520,	// Navaja
 	522,	// Stiletto
-	523 	// Talon
+	523, 	// Talon
+	80, 	// Spectral Shiv
+	517, 	// Paracord
+	518, 	// Survival
+	521, 	// Nomdad
+	525, 	// Skeleton
+	503  	// Classic
 };
 
 new const String:g_szKnifeEnts[][] =
@@ -86,7 +98,13 @@ new const String:g_szKnifeEnts[][] =
 	"weapon_knife_ursus",
 	"weapon_knife_gypsy_jackknife",
 	"weapon_knife_stiletto",
-	"weapon_knife_widowmaker"
+	"weapon_knife_widowmaker",
+	"weapon_knife_ghost",
+	"weapon_knife_cord",
+	"weapon_knife_canis",
+	"weapon_knife_outdoor",
+	"weapon_knife_skeleton",
+	"weapon_knife_css"
 };
 
 new const String:g_szWorldModels[][] =
@@ -108,7 +126,13 @@ new const String:g_szWorldModels[][] =
 	"models/weapons/w_knife_ursus.mdl",
 	"models/weapons/w_knife_gypsy_jackknife.mdl",
 	"models/weapons/w_knife_stiletto.mdl",
-	"models/weapons/w_knife_widowmaker.mdl"
+	"models/weapons/w_knife_widowmaker.mdl",
+	"models/weapons/w_knife_ghost.mdl",
+	"models/weapons/w_knife_cord.mdl",
+	"models/weapons/w_knife_canis.mdl",
+	"models/weapons/w_knife_outdoor.mdl",
+	"models/weapons/w_knife_skeleton.mdl",
+	"models/weapons/w_knife_css.mdl"
 };
 
 new g_iModelIndex_WorldModels[sizeof(g_szWorldModels)];
