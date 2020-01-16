@@ -12,7 +12,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Knives";
-new const String:PLUGIN_VERSION[] = "2.3";
+new const String:PLUGIN_VERSION[] = "2.4";
 
 public Plugin:myinfo =
 {
@@ -43,7 +43,6 @@ new const String:g_szKnifeNames[][] =
 	"Navaja",
 	"Stiletto",
 	"Talon",
-	"Spectral Shiv",
 	"Paracord",
 	"Survival",
 	"Nomad",
@@ -71,7 +70,6 @@ new const g_iItemDefinitionIndexes[] =
 	520,	// Navaja
 	522,	// Stiletto
 	523, 	// Talon
-	80, 	// Spectral Shiv
 	517, 	// Paracord
 	518, 	// Survival
 	521, 	// Nomdad
@@ -99,7 +97,6 @@ new const String:g_szKnifeEnts[][] =
 	"weapon_knife_gypsy_jackknife",
 	"weapon_knife_stiletto",
 	"weapon_knife_widowmaker",
-	"weapon_knife_ghost",
 	"weapon_knife_cord",
 	"weapon_knife_canis",
 	"weapon_knife_outdoor",
@@ -127,7 +124,6 @@ new const String:g_szWorldModels[][] =
 	"models/weapons/w_knife_gypsy_jackknife.mdl",
 	"models/weapons/w_knife_stiletto.mdl",
 	"models/weapons/w_knife_widowmaker.mdl",
-	"models/weapons/w_knife_ghost.mdl",
 	"models/weapons/w_knife_cord.mdl",
 	"models/weapons/w_knife_canis.mdl",
 	"models/weapons/w_knife_outdoor.mdl",
