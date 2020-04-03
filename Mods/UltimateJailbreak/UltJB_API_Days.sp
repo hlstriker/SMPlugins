@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.17";
+new const String:PLUGIN_VERSION[] = "1.18";
 
 public Plugin:myinfo =
 {
@@ -103,8 +103,8 @@ public OnPluginStart()
 	
 	//RegConsoleCmd("sm_d", OnDaysMenu, "Opens the days menu."); - removed because of donator
 	RegConsoleCmd("sm_day", OnDaysMenu, "Opens the days menu.");
-	RegConsoleCmd("sm_warday", OnDaysMenu, "Opens the days menu.");
-	RegConsoleCmd("sm_freeday", OnDaysMenu, "Opens the days menu.");
+	RegConsoleCmd("sm_warday", OnDaysMenu_Warday, "Opens the warday menu.");
+	RegConsoleCmd("sm_freeday", OnDaysMenu_Freeday, "Opens the freeday menu.");
 	RegAdminCmd("sm_de", OnDaysEdit, ADMFLAG_UNBAN, "Edits the day configuration for the current map.");
 	RegAdminCmd("sm_daysedit", OnDaysEdit, ADMFLAG_UNBAN, "Edits the day configuration for the current map.");
 	
@@ -347,29 +347,69 @@ public Action:OnDaysMenu(iClient, iArgNum)
 	if(!iClient)
 		return Plugin_Handled;
 	
+	if(!CanUseDayMenu(iClient))
+		return Plugin_Handled;
+	
+	DisplayMenu_DayTypeSelect(iClient);
+	
+	return Plugin_Handled;
+}
+
+public Action:OnDaysMenu_Warday(iClient, iArgNum)
+{
+	if(!iClient)
+		return Plugin_Handled;
+	
+	if(!CanUseDayMenu(iClient))
+		return Plugin_Handled;
+	
+	if(!CanSelectWarday(iClient))
+		return Plugin_Handled;
+	
+	DisplayMenu_DaySelect(iClient, DAY_TYPE_WARDAY);
+	
+	return Plugin_Handled;
+}
+
+public Action:OnDaysMenu_Freeday(iClient, iArgNum)
+{
+	if(!iClient)
+		return Plugin_Handled;
+	
+	if(!CanUseDayMenu(iClient))
+		return Plugin_Handled;
+	
+	if(!CanSelectFreeday(iClient))
+		return Plugin_Handled;
+	
+	DisplayMenu_DaySelect(iClient, DAY_TYPE_FREEDAY);
+	
+	return Plugin_Handled;
+}
+
+bool:CanUseDayMenu(iClient)
+{
 	if(iClient != UltJB_Warden_GetWarden())
 	{
 		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}You must be the warden to use the days menu.");
 		PrintToConsole(iClient, "[SM] You must be the warden to use the days menu.");
-		return Plugin_Handled;
+		return false;
 	}
 	
 	if(IsDayInProgress())
 	{
 		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}A day is already in progress.");
 		PrintToConsole(iClient, "[SM] A day is already in progress.");
-		return Plugin_Handled;
+		return false;
 	}
 	
 	if(HasSelectTimeExpired())
 	{
 		ShowSelectTimeExpiredMessage(iClient);
-		return Plugin_Handled;
+		return false;
 	}
 	
-	DisplayMenu_DayTypeSelect(iClient);
-	
-	return Plugin_Handled;
+	return true;
 }
 
 ShowSelectTimeExpiredMessage(iClient)
@@ -1042,13 +1082,15 @@ DisplayMenu_DayTypeSelect(iClient)
 	if(UltJB_Warden_GetWarden() != iClient)
 		return;
 	
-	if(HasUsedDay(iClient) && false)
+	/*
+	if(HasUsedDay(iClient))
 	{
 		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}You already used your day for this map.");
 		PrintToConsole(iClient, "[SM] You already used your day for this map.");
 		
 		return;
 	}
+	*/
 	
 	new Handle:hMenu = CreateMenu(MenuHandle_DayTypeSelect);
 	SetMenuTitle(hMenu, "Custom Day");
@@ -1081,7 +1123,7 @@ DisplayMenu_DayTypeSelect(iClient)
 		PrintToChat(iClient, "[SM] There are no day types.");
 }
 
-bool:HasUsedDay(iClient)
+stock bool:HasUsedDay(iClient)
 {
 	decl String:szAuthID[48];
 	if(!GetClientAuthId(iClient, AuthId_Steam2, szAuthID, sizeof(szAuthID), false))
