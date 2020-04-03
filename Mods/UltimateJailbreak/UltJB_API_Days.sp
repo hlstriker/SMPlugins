@@ -103,6 +103,8 @@ public OnPluginStart()
 	
 	//RegConsoleCmd("sm_d", OnDaysMenu, "Opens the days menu."); - removed because of donator
 	RegConsoleCmd("sm_day", OnDaysMenu, "Opens the days menu.");
+	RegConsoleCmd("sm_warday", OnDaysMenu, "Opens the days menu.");
+	RegConsoleCmd("sm_freeday", OnDaysMenu, "Opens the days menu.");
 	RegAdminCmd("sm_de", OnDaysEdit, ADMFLAG_UNBAN, "Edits the day configuration for the current map.");
 	RegAdminCmd("sm_daysedit", OnDaysEdit, ADMFLAG_UNBAN, "Edits the day configuration for the current map.");
 	
