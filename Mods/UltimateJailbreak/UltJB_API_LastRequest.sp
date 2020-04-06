@@ -304,7 +304,7 @@ public Action:Command_GiveFreeday(iClient, iArgs)
 {
 	if(iArgs < 1)
 	{
-		ReplyToCommand(iClient, "[SM] Usage: sm_freeday <#steamid|#userid|name>");
+		ReplyToCommand(iClient, "[SM] Usage: sm_givefreeday <#steamid|#userid|name>");
 		return Plugin_Handled;
 	}
 	
