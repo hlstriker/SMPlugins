@@ -213,7 +213,7 @@ public OnPluginStart()
 	AddCommandListener(OnWeaponDrop, "drop");
 	
 	RegAdminCmd("sm_abortlr", Command_AbortLastRequest, ADMFLAG_KICK, "sm_abortlr <#steamid|#userid|name> - Aborts a players last request.");
-	RegAdminCmd("sm_givefreeday", Command_GiveFreeday, ADMFLAG_KICK, "sm_freeday <#steamid|#userid|name> - Gives a player a freeday.");
+	RegAdminCmd("sm_givefreeday", Command_GiveFreeday, ADMFLAG_KICK, "sm_givefreeday <#steamid|#userid|name> - Gives a player a freeday.");
 	RegAdminCmd("sm_rspawn", Command_LastRequestTeleportOrigin, ADMFLAG_ROOT, "sm_rspawn <#steamid|#userid|name> <index> - Used for testing rebel spawns only.");
 }
 
