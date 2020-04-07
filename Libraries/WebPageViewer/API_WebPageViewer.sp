@@ -7,7 +7,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Web Page Viewer";
-new const String:PLUGIN_VERSION[] = "2.2";
+new const String:PLUGIN_VERSION[] = "3.0";
 
 public Plugin:myinfo =
 {
@@ -22,7 +22,6 @@ new Handle:cvar_database_servers_configname;
 new String:g_szDatabaseConfigName[64];
 
 new bool:g_bQueryingDB[MAXPLAYERS+1];
-new bool:g_bQueryingCvar[MAXPLAYERS+1];
 
 
 public OnPluginStart()
@@ -59,7 +58,10 @@ bool:Query_CreateTable_WebpageViewer()
 		user_id		INT UNSIGNED		NOT NULL,\
 		url			TEXT				NOT NULL,\
 		utime		INT UNSIGNED		NOT NULL,\
-		PRIMARY KEY ( user_id )\
+		user_ip		VARBINARY(16)		NOT NULL,\
+		loaded		BIT(1)				NOT NULL,\
+		PRIMARY KEY ( user_id ),\
+		INDEX ( user_ip )\
 	) ENGINE = INNODB");
 	
 	if(hQuery == INVALID_HANDLE)
@@ -83,7 +85,7 @@ public _WebPageViewer_OpenPage(Handle:hPlugin, iNumParams)
 {
 	new iClient = GetNativeCell(1);
 	
-	if(g_bQueryingDB[iClient] || g_bQueryingCvar[iClient])
+	if(g_bQueryingDB[iClient])
 	{
 		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {lightred}Please wait...");
 		return false;
@@ -96,92 +98,42 @@ public _WebPageViewer_OpenPage(Handle:hPlugin, iNumParams)
 	static String:szBuffer[4096];
 	FormatNativeString(0, 2, 3, sizeof(szBuffer), _, szBuffer);
 	
-	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {blue}The in-game web viewer was removed by Valve. Please open the following URL in your web browser.");
-	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}-= %s =-", szBuffer);
-	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {blue}If you would like it back, please email {white}CSGOTeamFeedback@valvesoftware.com {blue}with {white}#PanoramaUI {blue}in the subject line.");
-	
-	if(StrContains(szBuffer, "swoobles.com") != -1)
-	{
-		// Need to make sure the fragment portion comes after "wpv=1".
-		static String:szFragment[2048];
-		
-		new iFragmentPos = StrContains(szBuffer, "#");
-		if(iFragmentPos != -1)
-		{
-			strcopy(szFragment, sizeof(szFragment), szBuffer[iFragmentPos]);
-			szBuffer[iFragmentPos] = '\x00';
-		}
-		
-		// Add the wpv (web page viewer) variable.
-		StrCat(szBuffer, sizeof(szBuffer), (StrContains(szBuffer, "?") == -1) ? "?wpv=1" : "&wpv=1");
-		
-		if(iFragmentPos != -1)
-			StrCat(szBuffer, sizeof(szBuffer), szFragment);
-	}
-	
 	if(!DB_EscapeString(g_szDatabaseConfigName, szBuffer, szBuffer, sizeof(szBuffer)))
 		return false;
+	
+	decl String:szIP[31];
+	GetClientIP(iClient, szIP, sizeof(szIP));
+	if(!DB_EscapeString(g_szDatabaseConfigName, szIP, szIP, sizeof(szIP)))
+		return false;
+	
+	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}Preparing page for opening...");
 	
 	new Handle:hPack = CreateDataPack();
 	WritePackCell(hPack, iClient);
 	WritePackCell(hPack, GetClientSerial(iClient));
 	
 	g_bQueryingDB[iClient] = true;
-	DB_TQuery(g_szDatabaseConfigName, Query_InsertURL, DBPrio_High, hPack, "INSERT INTO plugin_webpage_viewer (user_id, url, utime) VALUES (%i, '%s', UNIX_TIMESTAMP()) ON DUPLICATE KEY UPDATE url='%s', utime=UNIX_TIMESTAMP()", iUserID, szBuffer, szBuffer);
-	
-	g_bQueryingCvar[iClient] = true;
-	QueryClientConVar(GetNativeCell(1), "cl_disablehtmlmotd", Query_GetCvarValue, hPack);
+	DB_TQuery(g_szDatabaseConfigName, Query_InsertURL, DBPrio_High, hPack, "INSERT INTO plugin_webpage_viewer (user_id, url, utime, user_ip, loaded) VALUES (%i, '%s', UNIX_TIMESTAMP(), INET_ATON('%s'), 0) ON DUPLICATE KEY UPDATE url='%s', utime=UNIX_TIMESTAMP(), user_ip=INET_ATON('%s'), loaded=0", iUserID, szBuffer, szIP, szBuffer, szIP);
 	
 	return true;
 }
 
 public OnClientPutInServer(iClient)
 {
-	g_bQueryingCvar[iClient] = false;
 	g_bQueryingDB[iClient] = false;
 }
 
 public Query_InsertURL(Handle:hDatabase, Handle:hQuery, any:hPack)
 {
-	TryShowMOTD(hPack, false);
-}
-
-public Query_GetCvarValue(QueryCookie:cookie, iClient, ConVarQueryResult:result, const String:szConvarName[], const String:szConvarValue[], any:hPack)
-{
-	TryShowMOTD(hPack, true, StringToInt(szConvarValue));
-}
-
-TryShowMOTD(Handle:hPack, bool:bFromCvar, iCvarValue=0)
-{
 	ResetPack(hPack, false);
 	new iClient = ReadPackCell(hPack);
 	new iClientFromSerial = GetClientFromSerial(ReadPackCell(hPack));
-	
-	if(bFromCvar)
-		g_bQueryingCvar[iClient] = false;
-	else
-		g_bQueryingDB[iClient] = false;
-	
-	if(g_bQueryingDB[iClient] || g_bQueryingCvar[iClient])
-		return;
-	
+	g_bQueryingDB[iClient] = false;
 	CloseHandle(hPack);
 	
 	if(!iClientFromSerial)
 		return;
 	
-	if(iCvarValue != 0)
-	{
-		CPrintToChat(iClientFromSerial, "{green}[{lightred}SM{green}] {olive}Type {green}cl_disablehtmlmotd 0 {olive}in console.");
-		return;
-	}
-	
-	new iUserID = DBUsers_GetUserID(iClientFromSerial);
-	if(iUserID < 1)
-		return;
-	
-	decl String:szURL[128];
-	Format(szURL, sizeof(szURL), "https://swoobles.com/plugin_page_viewer/web_page_viewer_db.php?uid=%i", iUserID);
-	
-	ShowMOTDPanel(iClientFromSerial, "", szURL, MOTDPANEL_TYPE_URL);
+	CPrintToChat(iClientFromSerial, "{green}[{lightred}SM{green}] {lightred}Right click {olive}on the {lightred}scoreboard{olive}. Click {lightred}Server Website {olive}button.");
+	CPrintToChat(iClientFromSerial, "{green}[{lightred}SM{green}] {olive}Make sure you are {lightred}logged in {olive}when the site loads.");
 }
