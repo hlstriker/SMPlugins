@@ -19,7 +19,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Settings";
-new const String:PLUGIN_VERSION[] = "1.31";
+new const String:PLUGIN_VERSION[] = "1.32";
 
 public Plugin:myinfo =
 {
@@ -532,9 +532,22 @@ public OnClientPutInServer(iClient)
 
 public OnSpawnPost(iClient)
 {
+	if(g_bLibLoaded_ModelSkinManager)
+		return;
+	
 	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
 		return;
 	
+	SpawnPost(iClient);
+}
+
+public MSManager_OnSpawnPost(iClient)
+{
+	SpawnPost(iClient);
+}
+
+SpawnPost(iClient)
+{
 	if(g_bLibLoaded_ModelSkinManager)
 	{
 		#if defined _model_skin_manager_included
