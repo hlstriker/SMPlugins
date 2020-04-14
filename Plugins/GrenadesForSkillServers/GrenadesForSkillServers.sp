@@ -11,7 +11,7 @@ public Plugin:myinfo =
 {
 	name = PLUGIN_NAME,
 	author = "hlstriker",
-	description = "Disables grenade annoyances used for course servers.",
+	description = "Disables grenade annoyances used for skill servers.",
 	version = PLUGIN_VERSION,
 	url = "www.swoobles.com"
 }
