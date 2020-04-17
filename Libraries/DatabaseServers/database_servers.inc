@@ -20,5 +20,8 @@ native DBServers_GetGameID();
 native DBServers_GetServerID();
 native DBServers_GetServerParentID(); /* If a parent_id doesn't exist it will return the server_id */
 
+#define SERVER_NAME_MAX_LENGTH	49
+native bool:DBServers_GetServerName(String:name[], maxlength);
+
 
 forward DBServers_OnServerIDReady(server_id, game_id);

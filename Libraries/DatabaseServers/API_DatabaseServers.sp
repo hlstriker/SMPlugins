@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Database Servers";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -29,6 +29,7 @@ new bool:g_bServersDBReady;
 new g_iServerID;
 new g_iServerParentID;
 new g_iGameID;
+new String:g_szServerName[49];
 
 new Handle:g_hFwd_OnServerIDReady;
 
@@ -55,7 +56,18 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	CreateNative("DBServers_GetGameID", _DBServers_GetGameID);
 	CreateNative("DBServers_GetServerID", _DBServers_GetServerID);
 	CreateNative("DBServers_GetServerParentID", _DBServers_GetServerParentID);
+	CreateNative("DBServers_GetServerName", _DBServers_GetServerName);
 	return APLRes_Success;
+}
+
+public _DBServers_GetServerName(Handle:hPlugin, iNumParams)
+{
+	if(iNumParams != 2)
+		return false;
+	
+	SetNativeString(1, g_szServerName, GetNativeCell(2));
+	
+	return true;
 }
 
 public _DBServers_GetGameID(Handle:hPlugin, iNumParams)
@@ -181,7 +193,7 @@ bool:Query_GetServerAndGameID()
 	if(!DB_EscapeString(g_szDatabaseBridgeConfigName, szServerCode, szServerCode, sizeof(szServerCode)))
 		return false;
 	
-	new Handle:hQuery = DB_Query(g_szDatabaseBridgeConfigName, "SELECT server_id, server_parent_id, game_id FROM core_servers WHERE server_enabled=1 AND server_code='%s' LIMIT 1", szServerCode);
+	new Handle:hQuery = DB_Query(g_szDatabaseBridgeConfigName, "SELECT server_id, server_parent_id, game_id, server_name FROM core_servers WHERE server_enabled=1 AND server_code='%s' LIMIT 1", szServerCode);
 	if(hQuery == INVALID_HANDLE)
 		return false;
 	
@@ -189,7 +201,8 @@ bool:Query_GetServerAndGameID()
 	{
 		g_iServerID = SQL_FetchInt(hQuery, 0);
 		g_iServerParentID = SQL_FetchInt(hQuery, 1);
-		g_iGameID = SQL_FetchInt(hQuery, 2);
+		g_iGameID = SQL_FetchInt(hQuery, 2);	
+		SQL_FetchString(hQuery, 3, g_szServerName, sizeof(g_szServerName));
 	}
 	
 	DB_CloseQueryHandle(hQuery);
