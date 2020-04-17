@@ -1,0 +1,16 @@
+CREATE TABLE IF NOT EXISTS plugin_server_need_queue
+(
+	server_id		SMALLINT UNSIGNED	NOT NULL,
+
+	server_name		VARCHAR( 48 )		NOT NULL,
+	players_needed		TINYINT UNSIGNED	NOT NULL,	-- 0 = Needs a sub (for pug)
+
+	display_to_gameservers	BIT(1)			NOT NULL,
+	display_to_shoutbox	BIT(1)			NOT NULL,
+
+	time_sent		INT			NOT NULL,
+
+	PRIMARY KEY ( server_id ),
+	INDEX ( server_id, display_to_gameservers, time_sent ),
+	INDEX ( display_to_shoutbox, time_sent )
+) CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;
