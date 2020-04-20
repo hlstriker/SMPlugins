@@ -7,7 +7,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Server Need";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -26,6 +26,7 @@ new Handle:cvar_display_to_gameservers;
 new Handle:cvar_display_to_shoutbox;
 new Handle:cvar_need_command_delay;
 new Handle:cvar_maxplayers_override;
+new Handle:cvar_enable_sub;
 
 new Float:g_fLastNeedIssued;
 
@@ -38,10 +39,11 @@ public OnPluginStart()
 {
 	CreateConVar("server_need_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	
-	cvar_display_to_gameservers = CreateConVar("serverneed_display_to_gameservers", "0", "Display this server's need notifications to other game servers.", _, true, 0.0, true, 1.0);
+	cvar_display_to_gameservers = CreateConVar("serverneed_display_to_gameservers", "1", "Display this server's need notifications to other game servers.", _, true, 0.0, true, 1.0);
 	cvar_display_to_shoutbox = CreateConVar("serverneed_display_to_shoutbox", "1", "Display this server's need notifications to the shoutbox.", _, true, 0.0, true, 1.0);
 	cvar_need_command_delay = CreateConVar("serverneed_need_command_delay", "180", "The delay between using the need command.", _, true, 120.0);
 	cvar_maxplayers_override = CreateConVar("serverneed_maxplayers_override", "0", "An override for the maximum amount of players needed.", _, true, 0.0);
+	cvar_enable_sub = CreateConVar("serverneed_enable_sub", "0", "Enables the sub command.", _, true, 0.0, true, 1.0);
 	
 	RegConsoleCmd("sm_need", OnNeed, "Announce this server needs more players.");
 	RegConsoleCmd("sm_needsub", OnNeedSub, "Announce this server needs a sub.");
@@ -190,6 +192,9 @@ public Action:OnNeed(iClient, iArgNum)
 public Action:OnNeedSub(iClient, iArgNum)
 {
 	if(!iClient)
+		return Plugin_Handled;
+	
+	if(!GetConVarBool(cvar_enable_sub))
 		return Plugin_Handled;
 	
 	if(!CanUseNeedCommand(iClient))
