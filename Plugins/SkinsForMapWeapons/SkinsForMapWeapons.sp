@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Skins for map weapons";
-new const String:PLUGIN_VERSION[] = "3.4";
+new const String:PLUGIN_VERSION[] = "3.6";
 
 public Plugin:myinfo =
 {
@@ -41,10 +41,14 @@ enum _:WeaponData
 
 new Handle:g_hFwd_OnWeaponEquip;
 
+new Handle:cvar_enable;
+
 
 public OnPluginStart()
 {
 	CreateConVar("skins_for_map_weapons_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
+	
+	cvar_enable = CreateConVar("sfmw_enable", "1", "Enables this plugin.", _, true, 0.0, true, 1.0);
 	
 	g_aWeapons = CreateArray(WeaponData);
 	AddWeaponsToArray();
@@ -80,6 +84,9 @@ PlayerHooks(iClient)
 
 public OnWeaponEquip_Post(iClient, iWeapon)
 {
+	if(!GetConVarBool(cvar_enable))
+		return;
+	
 	if(iWeapon < 1 || !IsValidEntity(iWeapon))
 		return;
 	
@@ -118,6 +125,10 @@ public OnWeaponEquip_Post(iClient, iWeapon)
 	
 	if(iNewWeapon != -1)
 	{
+		static String:szTargetname[128];
+		GetEntPropString(iWeapon, Prop_Data, "m_iName", szTargetname, sizeof(szTargetname));
+		SetEntPropString(iNewWeapon, Prop_Data, "m_iName", szTargetname);
+		
 		decl iChild;
 		for(new i=0; i<GetArraySize(hChildren); i++)
 		{
