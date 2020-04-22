@@ -7,7 +7,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Server Need";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "2.0";
 
 public Plugin:myinfo =
 {
@@ -88,7 +88,8 @@ bool:Query_CreateTable_ServerNeedQueue()
 	(\
 		server_id				SMALLINT UNSIGNED	NOT NULL,\
 		server_name				VARCHAR( 48 )		NOT NULL,\
-		players_needed			TINYINT UNSIGNED	NOT NULL,\
+		players					TINYINT UNSIGNED	NOT NULL,\
+		players_max				TINYINT UNSIGNED	NOT NULL,\
 		display_to_gameservers	BIT(1)				NOT NULL,\
 		display_to_shoutbox		BIT(1)				NOT NULL,\
 		time_sent				INT					NOT NULL,\
@@ -120,7 +121,7 @@ CheckNeedQueue()
 		return;
 	
 	g_bWaitingForResponse = true;
-	DB_TQuery(g_szDatabaseConfigName, Query_SelectNeeds, DBPrio_Low, _, "SELECT server_id, server_name, players_needed, time_sent FROM plugin_server_need_queue WHERE server_id != %d AND display_to_gameservers = 1 AND time_sent > (UNIX_TIMESTAMP() - 600) ORDER BY time_sent ASC", DBServers_GetServerID());
+	DB_TQuery(g_szDatabaseConfigName, Query_SelectNeeds, DBPrio_Low, _, "SELECT server_id, server_name, players, time_sent, players_max FROM plugin_server_need_queue WHERE server_id != %d AND display_to_gameservers = 1 AND time_sent > (UNIX_TIMESTAMP() - 600) ORDER BY time_sent ASC", DBServers_GetServerID());
 }
 
 public Query_SelectNeeds(Handle:hDatabase, Handle:hQuery, any:iClientSerial)
@@ -130,7 +131,7 @@ public Query_SelectNeeds(Handle:hDatabase, Handle:hQuery, any:iClientSerial)
 	if(hQuery == INVALID_HANDLE)
 		return;
 	
-	static String:szServerName[SERVER_NAME_MAX_LENGTH], iServerID, iPlayersNeeded, iTimeSent;
+	static String:szServerName[SERVER_NAME_MAX_LENGTH], iServerID, iPlayers, iPlayersMax, iTimeSent;
 	
 	while(SQL_FetchRow(hQuery))
 	{
@@ -143,10 +144,11 @@ public Query_SelectNeeds(Handle:hDatabase, Handle:hQuery, any:iClientSerial)
 		SetServersLastNeedTimeSent(iServerID, iTimeSent);
 		
 		SQL_FetchString(hQuery, 1, szServerName, sizeof(szServerName));
-		iPlayersNeeded = SQL_FetchInt(hQuery, 2);
+		iPlayers = SQL_FetchInt(hQuery, 2);
+		iPlayersMax = SQL_FetchInt(hQuery, 4);
 		
-		if(iPlayersNeeded)
-			CPrintToChatAll("{olive}The {lightred}%s server {olive}is in need of {lightred}%d more players{olive}.", szServerName, iPlayersNeeded);
+		if(iPlayers)
+			CPrintToChatAll("{lightred}%s {olive}has {lightred}%d{olive}/{lightred}%d {olive}players. Come join the fun!", szServerName, iPlayers, iPlayersMax);
 		else
 			CPrintToChatAll("{olive}The {lightred}%s server {olive}is in need of {lightred}a sub{olive}.", szServerName);
 		
@@ -232,39 +234,40 @@ IssueNeed(iClient, bool:bIsSub=false)
 	if(!DB_EscapeString(g_szDatabaseConfigName, szServerNameEscaped, szServerNameEscaped, sizeof(szServerNameEscaped)))
 		return;
 	
-	decl iPlayersNeeded;
+	decl iPlayersMax;
+	new iPlayers = GetNumRealPlayersInServer();
+	
+	if(GetConVarInt(cvar_maxplayers_override))
+	{
+		iPlayersMax = GetConVarInt(cvar_maxplayers_override);
+	}
+	else
+	{
+		iPlayersMax = GetMaxHumanPlayers();
+		
+		if(cvar_reserved_slots != INVALID_HANDLE)
+			iPlayersMax -= GetConVarInt(cvar_reserved_slots);
+	}
 	
 	if(bIsSub)
 	{
-		iPlayersNeeded = 0;
-		
+		iPlayers = 0;
 		CPrintToChatAll("{lightred}%N {olive}has created a need sub announcement.", iClient);
 	}
 	else
 	{
-		if(GetConVarInt(cvar_maxplayers_override))
+		if((iPlayersMax - iPlayers) < 1)
 		{
-			iPlayersNeeded = GetConVarInt(cvar_maxplayers_override);
-		}
-		else
-		{
-			iPlayersNeeded = GetMaxHumanPlayers();
-			
-			if(cvar_reserved_slots != INVALID_HANDLE)
-				iPlayersNeeded -= GetConVarInt(cvar_reserved_slots);
-		}
-		
-		iPlayersNeeded -= GetNumRealPlayersInServer();
-		
-		if(iPlayersNeeded < 1)
+			ReplyToCommand(iClient, "This server doesn't need more players.");
 			return;
+		}
 		
 		CPrintToChatAll("{lightred}%N {olive}has created a need players announcement.", iClient);
 	}
 	
 	DB_TQuery(g_szDatabaseConfigName, _, DBPrio_Low, _,
-		"INSERT INTO plugin_server_need_queue (server_id, server_name, players_needed, display_to_gameservers, display_to_shoutbox, time_sent) VALUES (%d, '%s', %d, %d, %d, UNIX_TIMESTAMP()) ON DUPLICATE KEY UPDATE server_name='%s', players_needed=%d, display_to_gameservers=%d, display_to_shoutbox=%d, time_sent=UNIX_TIMESTAMP()",
-		DBServers_GetServerID(), szServerNameEscaped, iPlayersNeeded, GetConVarInt(cvar_display_to_gameservers), GetConVarInt(cvar_display_to_shoutbox), szServerNameEscaped, iPlayersNeeded, GetConVarInt(cvar_display_to_gameservers), GetConVarInt(cvar_display_to_shoutbox));
+		"INSERT INTO plugin_server_need_queue (server_id, server_name, players, players_max, display_to_gameservers, display_to_shoutbox, time_sent) VALUES (%d, '%s', %d, %d, %d, %d, UNIX_TIMESTAMP()) ON DUPLICATE KEY UPDATE server_name='%s', players=%d, players_max=%d, display_to_gameservers=%d, display_to_shoutbox=%d, time_sent=UNIX_TIMESTAMP()",
+		DBServers_GetServerID(), szServerNameEscaped, iPlayers, iPlayersMax, GetConVarInt(cvar_display_to_gameservers), GetConVarInt(cvar_display_to_shoutbox), szServerNameEscaped, iPlayers, iPlayersMax, GetConVarInt(cvar_display_to_gameservers), GetConVarInt(cvar_display_to_shoutbox));
 }
 
 GetNumRealPlayersInServer()

@@ -3,7 +3,8 @@ CREATE TABLE IF NOT EXISTS plugin_server_need_queue
 	server_id		SMALLINT UNSIGNED	NOT NULL,
 
 	server_name		VARCHAR( 48 )		NOT NULL,
-	players_needed		TINYINT UNSIGNED	NOT NULL,	-- 0 = Needs a sub (for pug)
+	players			TINYINT UNSIGNED	NOT NULL,	-- 0 = Needs a sub (for pug)
+	players_max		TINYINT UNSIGNED	NOT NULL,
 
 	display_to_gameservers	BIT(1)			NOT NULL,
 	display_to_shoutbox	BIT(1)			NOT NULL,
