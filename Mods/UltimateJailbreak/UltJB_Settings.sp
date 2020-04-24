@@ -19,7 +19,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Settings";
-new const String:PLUGIN_VERSION[] = "1.32";
+new const String:PLUGIN_VERSION[] = "1.33";
 
 public Plugin:myinfo =
 {
@@ -122,6 +122,10 @@ public OnPluginStart()
 	AddNormalSoundHook(OnNormalSound);
 	
 	//AddCommandListener(OnWeaponDrop, "drop");
+	
+	AddCommandListener(BlockCommand, "kill");
+	AddCommandListener(BlockCommand, "killvector");
+	AddCommandListener(BlockCommand, "explode");
 	
 	SetupConVars();
 }
@@ -242,6 +246,11 @@ StripWeaponFromOwner(iWeapon)
 	}
 	
 	AcceptEntityInput(iWeapon, "KillHierarchy");
+}
+
+public Action:BlockCommand(iClient, const String:szCommand[], iArgCount)
+{
+	return Plugin_Handled;
 }
 
 public EventPlayerTeam_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)

@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Team Ratio";
-new const String:PLUGIN_VERSION[] = "1.14";
+new const String:PLUGIN_VERSION[] = "1.15";
 
 public Plugin:myinfo =
 {
@@ -60,10 +60,6 @@ public OnPluginStart()
 	HookEvent("round_start", Event_RoundStart_Post, EventHookMode_PostNoCopy);
 	
 	RegConsoleCmd("sm_guard", OnGuardQueue, "Adds you to the guard queue.");
-	
-	AddCommandListener(BlockCommand, "kill");
-	AddCommandListener(BlockCommand, "killvector");
-	AddCommandListener(BlockCommand, "explode");
 }
 
 public OnAllPluginsLoaded()
@@ -103,11 +99,6 @@ public OnLibraryRemoved(const String:szName[])
 	{
 		g_bLibLoaded_DatabaseUserStats = false;
 	}
-}
-
-public Action:BlockCommand(iClient, const String:szCommand[], iArgCount)
-{
-	return Plugin_Handled;
 }
 
 public OnMapStart()
