@@ -62,6 +62,7 @@ public OnPluginStart()
 	RegConsoleCmd("sm_guard", OnGuardQueue, "Adds you to the guard queue.");
 	
 	AddCommandListener(BlockCommand, "kill");
+	AddCommandListener(BlockCommand, "killvector");
 	AddCommandListener(BlockCommand, "explode");
 }
 
