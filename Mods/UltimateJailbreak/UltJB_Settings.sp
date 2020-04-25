@@ -140,7 +140,7 @@ public OnLibraryAdded(const String:szName[])
 {
 	if(StrEqual(szName, "model_skin_manager"))
 		g_bLibLoaded_ModelSkinManager = true;
-		
+	
 	if(StrEqual(szName, "skins_for_map_weapons"))
 		g_bPluginLoaded_SkinsForMapWeapons = true;
 }
@@ -149,7 +149,7 @@ public OnLibraryRemoved(const String:szName[])
 {
 	if(StrEqual(szName, "model_skin_manager"))
 		g_bLibLoaded_ModelSkinManager = false;
-		
+	
 	if(StrEqual(szName, "skins_for_map_weapons"))
 		g_bPluginLoaded_SkinsForMapWeapons = false;
 }

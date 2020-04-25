@@ -22,12 +22,13 @@
 #undef REQUIRE_PLUGIN
 #include "../../Libraries/SquelchManager/squelch_manager"
 #include "../../Libraries/ModelSkinManager/model_skin_manager"
+#include "../../Plugins/Parachute/parachute"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Last Request API";
-new const String:PLUGIN_VERSION[] = "1.43";
+new const String:PLUGIN_VERSION[] = "1.44";
 
 public Plugin:myinfo =
 {
@@ -101,12 +102,15 @@ new bool:g_bHasRoundStarted;
 
 const MAX_WEAPONS = 128;
 const MAX_WEAPON_CLASSNAME_LENGTH = 32;
+const MAX_PASSIVE_ITEMS = 4;
 new String:g_szSavedActiveWeapon[MAXPLAYERS+1][MAX_WEAPON_CLASSNAME_LENGTH];
 new g_iSavedWeaponAmmoClip[MAXPLAYERS+1][MAX_WEAPONS];
 new g_iSavedWeaponAmmoReserveGlobal[MAXPLAYERS+1][MAX_WEAPONS];
 new g_iSavedWeaponAmmoReservePrimary[MAXPLAYERS+1][MAX_WEAPONS];
 new g_iSavedWeaponAmmoReserveSecondary[MAXPLAYERS+1][MAX_WEAPONS];
 new Handle:g_aSavedWeapons[MAXPLAYERS+1];
+new g_iSavedPassiveItems[MAXPLAYERS+1][MAX_PASSIVE_ITEMS];
+new bool:g_bSavedHasParachute[MAXPLAYERS+1];
 
 new const BEAM_COLOR_START[] = {0, 255, 0, 200};
 new const BEAM_COLOR_END[] = {255, 0, 0, 200};
@@ -172,6 +176,7 @@ new g_iAvailableLastRequestSlotCount;
 
 new bool:g_bLibLoaded_SquelchManager;
 new bool:g_bLibLoaded_ModelSkinManager;
+new bool:g_bLibLoaded_Parachute;
 
 new Float:g_fLastRequestTeleportOrigins[100][3];
 new g_iLastRequestTeleportOriginsTotal;
@@ -221,6 +226,7 @@ public OnAllPluginsLoaded()
 {
 	g_bLibLoaded_SquelchManager = LibraryExists("squelch_manager");
 	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
+	g_bLibLoaded_Parachute = LibraryExists("parachute");
 }
 
 public OnLibraryAdded(const String:szName[])
@@ -233,6 +239,10 @@ public OnLibraryAdded(const String:szName[])
 	{
 		g_bLibLoaded_ModelSkinManager = true;
 	}
+	else if(StrEqual(szName, "parachute"))
+	{
+		g_bLibLoaded_Parachute = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
@@ -244,6 +254,10 @@ public OnLibraryRemoved(const String:szName[])
 	else if(StrEqual(szName, "model_skin_manager"))
 	{
 		g_bLibLoaded_ModelSkinManager = false;
+	}
+	else if(StrEqual(szName, "parachute"))
+	{
+		g_bLibLoaded_Parachute = false;
 	}
 }
 
@@ -3266,9 +3280,21 @@ SaveClientWeapons(iClient)
 	
 	// Save reserve ammo global.
 	iArraySize = GetEntPropArraySize(iClient, Prop_Send, "m_iAmmo");
-	
 	for(i=0; i<iArraySize; i++)
 		g_iSavedWeaponAmmoReserveGlobal[iClient][i] = GetEntProp(iClient, Prop_Send, "m_iAmmo", _, i);
+	
+	// Save passive items.
+	iArraySize = GetEntPropArraySize(iClient, Prop_Send, "m_passiveItems");
+	for(i=0; i<iArraySize; i++)
+		g_iSavedPassiveItems[iClient][i] = GetEntProp(iClient, Prop_Send, "m_passiveItems", 1, i);
+	
+	// Save parachute.
+	if(g_bLibLoaded_Parachute)
+	{
+		#if defined _parachute_included
+		g_bSavedHasParachute[iClient] = Parachute_HasParachute(iClient);
+		#endif
+	}
 }
 
 RestoreClientWeapons(iClient)
@@ -3316,14 +3342,28 @@ RestoreClientWeapons(iClient)
 	
 	for(i=0; i<iArraySize; i++)
 		SetEntProp(iClient, Prop_Send, "m_iAmmo", g_iSavedWeaponAmmoReserveGlobal[iClient][i], _, i);
+	
+	// Restore passive items.
+	iArraySize = GetEntPropArraySize(iClient, Prop_Send, "m_passiveItems");
+	for(i=0; i<iArraySize; i++)
+		SetEntProp(iClient, Prop_Send, "m_passiveItems", g_iSavedPassiveItems[iClient][i], 1, i);
+	
+	// Restore parachute.
+	if(g_bLibLoaded_Parachute)
+	{
+		#if defined _parachute_included
+		if(g_bSavedHasParachute[iClient])
+			Parachute_GiveParachute(iClient);
+		#endif
+	}
 }
 
 StripClientWeapons(iClient)
 {
 	new iArraySize = GetEntPropArraySize(iClient, Prop_Send, "m_hMyWeapons");
 	
-	decl iWeapon;
-	for(new i=0; i<iArraySize; i++)
+	decl iWeapon, i;
+	for(i=0; i<iArraySize; i++)
 	{
 		iWeapon = GetEntPropEnt(iClient, Prop_Send, "m_hMyWeapons", i);
 		if(iWeapon < 1)
@@ -3331,6 +3371,17 @@ StripClientWeapons(iClient)
 		
 		UltJB_Settings_StripWeaponFromOwner(iWeapon);
 		SetEntPropEnt(iClient, Prop_Send, "m_hMyWeapons", -1, i);
+	}
+	
+	iArraySize = GetEntPropArraySize(iClient, Prop_Send, "m_passiveItems");
+	for(i=0; i<iArraySize; i++)
+		SetEntProp(iClient, Prop_Send, "m_passiveItems", 0, 1, i);
+	
+	if(g_bLibLoaded_Parachute)
+	{
+		#if defined _parachute_included
+		Parachute_RemoveParachute(iClient);
+		#endif
 	}
 }
 
