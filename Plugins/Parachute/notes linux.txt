@@ -1,0 +1,27 @@
+// server_linux_04_24_2020.c
+
+player + 5368 = parachute status 0-4
+0 = 1 second delay after landing where not usable?
+1 = does not have a parachute?
+2 = picked up ready to use?
+3 = ripcord pulled?
+4 = parachute deployed
+
+
+
+signed int __cdecl sub_C65980(int a1, int a2, char a3)
+bool CanEquipParachute(this_ent?, CBasePlayer* player, bool displayAlreadyEquippedMessage)
+55 B8 01 00 00 00 89 E5 83 EC 38 8B 55 0C 0F B6 4D 10 83 BA F8
+\x55\xB8\x01\x00\x00\x00\x89\xE5\x83\xEC\x38\x8B\x55\x0C\x0F\xB6\x4D\x10\x83\xBA\xF8
+
+
+void __cdecl sub_B2FFD0(int a1)
+void EquipParachutePlayer(CBasePlayer* player)
+55 89 E5 83 EC 28 89 5D F4 8B 5D 08 89 75 F8 89 7D FC 83 BB F8 14 00 00 01 74 15
+\x55\x89\xE5\x83\xEC\x28\x89\x5D\xF4\x8B\x5D\x08\x89\x75\xF8\x89\x7D\xFC\x83\xBB\xF8\x14\x00\x00\x01\x74\x15
+
+
+int __cdecl sub_B404C0(int a1)
+int RemoveParachutePlayer(CBasePlayer* player)
+55 89 E5 57 56 53 83 2A 2A 8B 2A 2A 8B 2A 2A 2A 2A 2A 8B 2A 2A 2A 2A 2A 83 F8 FF 74 26
+\x55\x89\xE5\x57\x56\x53\x83\x2A\x2A\x8B\x2A\x2A\x8B\x2A\x2A\x2A\x2A\x2A\x8B\x2A\x2A\x2A\x2A\x2A\x83\xF8\xFF\x74\x26
