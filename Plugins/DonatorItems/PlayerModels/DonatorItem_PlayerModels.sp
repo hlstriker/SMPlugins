@@ -237,14 +237,14 @@ new const String:g_szPlayerModelFiles[][] =
 	"models/player/custom_player/swoobles/hitler_3/hitler.phy",
 	"models/player/custom_player/swoobles/hitler_3/hitler.vvd",
 	
-	"materials/swoobles/player/hitler_3/hitlerbody_blue.vmt",
-	"materials/swoobles/player/hitler_3/hitlerbody_red.vmt",
-	"materials/swoobles/player/hitler_3/hitlerhead_colspec.vmt",
-	"materials/swoobles/player/hitler_3/hitlerbody_blue.vtf",
-	"materials/swoobles/player/hitler_3/hitlerbody_normal.vtf",
-	"materials/swoobles/player/hitler_3/hitlerbody_red.vtf",
-	"materials/swoobles/player/hitler_3/hitlerhead_colspec.vtf",
-	"materials/swoobles/player/hitler_3/hitlerhead_normal.vtf",
+	"materials/swoobles/player/hitler_2/hitlerbody_blue.vmt",
+	"materials/swoobles/player/hitler_2/hitlerbody_red.vmt",
+	"materials/swoobles/player/hitler_2/hitlerhead_colspec.vmt",
+	"materials/swoobles/player/hitler_2/hitlerbody_blue.vtf",
+	"materials/swoobles/player/hitler_2/hitlerbody_normal.vtf",
+	"materials/swoobles/player/hitler_2/hitlerbody_red.vtf",
+	"materials/swoobles/player/hitler_2/hitlerhead_colspec.vtf",
+	"materials/swoobles/player/hitler_2/hitlerhead_normal.vtf",
 	
 	// Hitman Agent 47
 	"models/player/custom_player/swoobles/hitman_2/hitman.phy",
