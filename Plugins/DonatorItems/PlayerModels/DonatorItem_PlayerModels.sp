@@ -17,7 +17,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Donator Item: Player Models";
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
 {
@@ -63,7 +63,7 @@ new const String:g_szPlayerModelPaths[][] =
 	"models/player/custom_player/swoobles/deadpool_2/deadpool.mdl",					// Deadpool
 	"models/player/custom_player/swoobles/duke_2/duke.mdl",							// Duke Nukem
 	"models/player/custom_player/swoobles/ezio_2/ezio.mdl",							// Ezio Auditore da Firenze
-	"models/player/custom_player/swoobles/hitler_2/hitler.mdl",						// Hitler
+	"models/player/custom_player/swoobles/hitler_3/hitler.mdl",						// Hitler
 	"models/player/custom_player/swoobles/hitman_2/hitman.mdl",						// Hitman Agent 47
 	"models/player/custom_player/swoobles/lilith_2/lilith.mdl",						// Lilith
 	"models/player/custom_player/swoobles/nanosuit_2/nanosuit.mdl",					// Nanosuit
@@ -233,9 +233,9 @@ new const String:g_szPlayerModelFiles[][] =
 	"materials/swoobles/player/ezio_2/cr_u_ezio_shoulderpad_r3_diffusemap_blue.vtf",
 	
 	// Hitler
-	"models/player/custom_player/swoobles/hitler_2/hitler.dx90.vtx",
-	"models/player/custom_player/swoobles/hitler_2/hitler.phy",
-	"models/player/custom_player/swoobles/hitler_2/hitler.vvd",
+	"models/player/custom_player/swoobles/hitler_3/hitler.dx90.vtx",
+	"models/player/custom_player/swoobles/hitler_3/hitler.phy",
+	"models/player/custom_player/swoobles/hitler_3/hitler.vvd",
 	
 	"materials/swoobles/player/hitler_2/hitlerbody_blue.vmt",
 	"materials/swoobles/player/hitler_2/hitlerbody_red.vmt",
