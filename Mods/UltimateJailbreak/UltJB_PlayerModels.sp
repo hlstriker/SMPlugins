@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Player Models";
-new const String:PLUGIN_VERSION[] = "1.16";
+new const String:PLUGIN_VERSION[] = "1.17";
 
 public Plugin:myinfo =
 {
@@ -314,10 +314,10 @@ GetHelpModelIndex(iClient)
 	
 	new iSecondsPlayed = DBUserStats_GetServerTimePlayed(iClient);
 	
-	if(GetConVarInt(cvar_help1_seconds) > 0 && GetConVarInt(cvar_help1_seconds) < iSecondsPlayed)
+	if(GetConVarInt(cvar_help1_seconds) > 0 && iSecondsPlayed < GetConVarInt(cvar_help1_seconds))
 		return 0;
 	
-	if(GetConVarInt(cvar_help2_seconds) > 0 && GetConVarInt(cvar_help2_seconds) < iSecondsPlayed)
+	if(GetConVarInt(cvar_help2_seconds) > 0 && iSecondsPlayed < GetConVarInt(cvar_help2_seconds))
 		return 1;
 	#endif
 	
