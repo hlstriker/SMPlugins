@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Player Models";
-new const String:PLUGIN_VERSION[] = "1.15";
+new const String:PLUGIN_VERSION[] = "1.16";
 
 public Plugin:myinfo =
 {
@@ -131,6 +131,7 @@ new bool:g_bLibLoaded_DatabaseUserStats;
 
 new Handle:g_hFwd_OnApplied;
 
+#define NUM_HELP_MODELS	2
 new Handle:cvar_help1_seconds;
 new Handle:cvar_help2_seconds;
 new Handle:cvar_help1_bonushealth;
@@ -249,7 +250,7 @@ public UltJB_Settings_OnSpawnPost(iClient)
 			}
 			else
 			{
-				iIndex = GetRandomInt(0, sizeof(PLAYER_MODELS_T)-1);
+				iIndex = GetRandomInt(NUM_HELP_MODELS, sizeof(PLAYER_MODELS_T)-1);
 			}
 			
 			if(g_bLibLoaded_ModelSkinManager)
