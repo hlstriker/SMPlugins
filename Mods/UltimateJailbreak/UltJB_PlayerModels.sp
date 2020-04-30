@@ -124,9 +124,6 @@ new const String:PLAYER_MODEL_T_FILES[][] =
 	"materials/swoobles/player/prisoners/shared/prisoner1_body_normal.vtf"
 };
 
-#define TIME_PLAYED_HELP_MODEL_1	54000	// 15 hours
-#define TIME_PLAYED_HELP_MODEL_2	54000	// 15 hours
-
 new bool:g_bLibLoaded_ItemPlayerModels;
 new bool:g_bLibLoaded_ItemEquipment;
 new bool:g_bLibLoaded_ModelSkinManager;
