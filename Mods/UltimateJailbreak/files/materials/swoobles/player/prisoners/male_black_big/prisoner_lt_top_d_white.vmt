@@ -1,6 +1,6 @@
 vertexlitgeneric
 {
-	"$basetexture" 		"swoobles\player\prisoners\male_black_big\prisoner_lt_top_d_frozen"
+	"$basetexture" 		"swoobles\player\prisoners\male_black_big\prisoner_lt_top_d_white"
 	"$bumpmap" 		"swoobles\player\prisoners\male_black_big\prisoner_lt_top_normal"
 
 	$phong 1

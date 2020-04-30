@@ -8,12 +8,13 @@
 //#include "../Swoobles 5.0/Plugins/StoreItems/Equipment/item_equipment"
 #include "../../Plugins/DonatorItems/PlayerModels/donatoritem_player_models"
 #include "../../Libraries/ModelSkinManager/model_skin_manager"
+#include "../../Libraries/DatabaseUserStats/database_user_stats"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Player Models";
-new const String:PLUGIN_VERSION[] = "1.14";
+new const String:PLUGIN_VERSION[] = "1.15";
 
 public Plugin:myinfo =
 {
@@ -36,14 +37,70 @@ new const String:PLAYER_MODEL_CT[] = "models/player/custom_player/legacy/ctm_swa
 
 new const String:PLAYER_MODELS_T[][] =
 {
+	"models/player/custom_player/swoobles/prisoners/male_black_big_new/male_black_big_new.mdl",
+	"models/player/custom_player/swoobles/prisoners/female_asian_new/female_asian_new.mdl",
 	"models/player/custom_player/swoobles/prisoners/male_white_hair_new/male_white_hair_new.mdl"
 };
 
 new const String:PLAYER_MODEL_T_FILES[][] =
 {
+	"models/player/custom_player/swoobles/prisoners/male_black_big_new/male_black_big_new.dx90.vtx",
+	"models/player/custom_player/swoobles/prisoners/male_black_big_new/male_black_big_new.phy",
+	"models/player/custom_player/swoobles/prisoners/male_black_big_new/male_black_big_new.vvd",
+	
+	"models/player/custom_player/swoobles/prisoners/female_asian_new/female_asian_new.dx90.vtx",
+	"models/player/custom_player/swoobles/prisoners/female_asian_new/female_asian_new.phy",
+	"models/player/custom_player/swoobles/prisoners/female_asian_new/female_asian_new.vvd",
+	
 	"models/player/custom_player/swoobles/prisoners/male_white_hair_new/male_white_hair_new.dx90.vtx",
 	"models/player/custom_player/swoobles/prisoners/male_white_hair_new/male_white_hair_new.phy",
 	"models/player/custom_player/swoobles/prisoners/male_white_hair_new/male_white_hair_new.vvd",
+	
+	"materials/swoobles/player/prisoners/male_black_big/eye_d.vmt",
+	"materials/swoobles/player/prisoners/male_black_big/eye_d.vtf",
+	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_bottom_d.vmt",
+	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_bottom_d.vtf",
+	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_bottom_d_white.vmt",
+	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_bottom_d_white.vtf",
+	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_bottom_normal.vtf",
+	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_head_d.vmt",
+	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_head_d.vtf",
+	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_head_normal.vtf",
+	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_top_d.vmt",
+	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_top_d.vtf",
+	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_top_d_white.vmt",
+	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_top_d_white.vtf",
+	"materials/swoobles/player/prisoners/male_black_big/prisoner_lt_top_normal.vtf",
+	"materials/swoobles/player/prisoners/male_black_big/prisoners_torso_d.vmt",
+	"materials/swoobles/player/prisoners/male_black_big/prisoners_torso_d.vtf",
+	
+	"materials/swoobles/player/prisoners/female_asian/denise_head01_d.vmt",
+	"materials/swoobles/player/prisoners/female_asian/denise_head01_d.vtf",
+	"materials/swoobles/player/prisoners/female_asian/denise_head01_normal.vtf",
+	"materials/swoobles/player/prisoners/female_asian/lara_brow_d.vmt",
+	"materials/swoobles/player/prisoners/female_asian/lara_brow_d.vtf",
+	"materials/swoobles/player/prisoners/female_asian/lara_eye_d.vmt",
+	"materials/swoobles/player/prisoners/female_asian/lara_eye_d.vtf",
+	"materials/swoobles/player/prisoners/female_asian/lara_eye_normal.vtf",
+	"materials/swoobles/player/prisoners/female_asian/lara_face_d.vmt",
+	"materials/swoobles/player/prisoners/female_asian/lara_face_d.vtf",
+	"materials/swoobles/player/prisoners/female_asian/lara_face_normal.vtf",
+	"materials/swoobles/player/prisoners/female_asian/lara_hair1_d.vmt",
+	"materials/swoobles/player/prisoners/female_asian/lara_hair1_d.vtf",
+	"materials/swoobles/player/prisoners/female_asian/lara_hair1_d_tr.vmt",
+	"materials/swoobles/player/prisoners/female_asian/lara_hair1_normal.vtf",
+	"materials/swoobles/player/prisoners/female_asian/lara_hair2_d.vmt",
+	"materials/swoobles/player/prisoners/female_asian/lara_hair2_d.vtf",
+	"materials/swoobles/player/prisoners/female_asian/lara_hair2_d_tr.vmt",
+	"materials/swoobles/player/prisoners/female_asian/lara_hair2_normal.vtf",
+	"materials/swoobles/player/prisoners/female_asian/lara_lashes_d.vmt",
+	"materials/swoobles/player/prisoners/female_asian/lara_lashes_d.vtf",
+	"materials/swoobles/player/prisoners/female_asian/lara_mouth_d.vmt",
+	"materials/swoobles/player/prisoners/female_asian/lara_mouth_d.vtf",
+	"materials/swoobles/player/prisoners/female_asian/lara_sh_d.vmt",
+	"materials/swoobles/player/prisoners/female_asian/lara_sh_d.vtf",
+	"materials/swoobles/player/prisoners/female_asian/shirt_d.vmt",
+	"materials/swoobles/player/prisoners/female_asian/shirt_d.vtf",
 	
 	"materials/swoobles/player/prisoners/male_white_hair/charles01_body01_au_d.vmt",
 	"materials/swoobles/player/prisoners/male_white_hair/charles01_body01_au_d.vtf",
@@ -56,6 +113,10 @@ new const String:PLAYER_MODEL_T_FILES[][] =
 	"materials/swoobles/player/prisoners/male_white_hair/hair01_au_normal.vtf",
 	"materials/swoobles/player/prisoners/male_white_hair/hair02_au_d.vmt",
 	
+	"materials/swoobles/player/prisoners/shared/brown_eye_normal.vtf",
+	"materials/swoobles/player/prisoners/shared/brown_eye01_an_d.vmt",
+	"materials/swoobles/player/prisoners/shared/brown_eye01_an_d.vtf",
+	
 	"materials/swoobles/player/prisoners/shared/prisoner1_body.vmt",
 	"materials/swoobles/player/prisoners/shared/prisoner1_body.vtf",
 	"materials/swoobles/player/prisoners/shared/prisoner1_body_white.vmt",
@@ -63,16 +124,34 @@ new const String:PLAYER_MODEL_T_FILES[][] =
 	"materials/swoobles/player/prisoners/shared/prisoner1_body_normal.vtf"
 };
 
+#define TIME_PLAYED_HELP_MODEL_1	54000	// 15 hours
+#define TIME_PLAYED_HELP_MODEL_2	54000	// 15 hours
+
 new bool:g_bLibLoaded_ItemPlayerModels;
 new bool:g_bLibLoaded_ItemEquipment;
 new bool:g_bLibLoaded_ModelSkinManager;
+new bool:g_bLibLoaded_DatabaseUserStats;
 
 new Handle:g_hFwd_OnApplied;
+
+new Handle:cvar_help1_seconds;
+new Handle:cvar_help2_seconds;
+new Handle:cvar_help1_bonushealth;
+new Handle:cvar_help2_bonushealth;
 
 
 public OnPluginStart()
 {
 	CreateConVar("ultjb_player_models_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
+	
+	// 15 hours default
+	cvar_help1_seconds = CreateConVar("ultjb_playermodels_help1_seconds", "54000", "The number of seconds to use help model 1.", _, true, 0.0);
+	
+	// 30 hours default
+	cvar_help2_seconds = CreateConVar("ultjb_playermodels_help2_seconds", "108000", "The number of seconds to use help model 2.", _, true, 0.0);
+	
+	cvar_help1_bonushealth = CreateConVar("ultjb_playermodels_help1_bonushealth", "30", "The amount of bonus health to give to help model 1.", _, true, 0.0);
+	cvar_help2_bonushealth = CreateConVar("ultjb_playermodels_help2_bonushealth", "15", "The amount of bonus health to give to help model 2.", _, true, 0.0);
 	
 	g_hFwd_OnApplied = CreateGlobalForward("UltJB_PlayerModels_OnApplied", ET_Ignore, Param_Cell);
 }
@@ -88,6 +167,7 @@ public OnAllPluginsLoaded()
 	g_bLibLoaded_ItemPlayerModels = LibraryExists("donatoritem_player_models");
 	g_bLibLoaded_ItemEquipment = LibraryExists("item_equipment");
 	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
+	g_bLibLoaded_DatabaseUserStats = LibraryExists("database_user_stats");
 }
 
 public OnLibraryAdded(const String:szName[])
@@ -104,6 +184,10 @@ public OnLibraryAdded(const String:szName[])
 	{
 		g_bLibLoaded_ModelSkinManager = true;
 	}
+	else if(StrEqual(szName, "database_user_stats"))
+	{
+		g_bLibLoaded_DatabaseUserStats = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
@@ -119,6 +203,10 @@ public OnLibraryRemoved(const String:szName[])
 	else if(StrEqual(szName, "model_skin_manager"))
 	{
 		g_bLibLoaded_ModelSkinManager = false;
+	}
+	else if(StrEqual(szName, "database_user_stats"))
+	{
+		g_bLibLoaded_DatabaseUserStats = false;
 	}
 }
 
@@ -142,7 +230,9 @@ public OnMapStart()
 
 public UltJB_Settings_OnSpawnPost(iClient)
 {
-	if(g_bLibLoaded_ItemPlayerModels)
+	new iHelpModelIndex = GetHelpModelIndex(iClient);
+	
+	if(iHelpModelIndex == -1 && g_bLibLoaded_ItemPlayerModels)
 	{
 		#if defined _donatoritem_player_models_included
 		if(DItemPlayerModels_HasUsableModelActivated(iClient))
@@ -154,7 +244,16 @@ public UltJB_Settings_OnSpawnPost(iClient)
 	{
 		case TEAM_PRISONERS:
 		{
-			new iIndex = GetRandomInt(0, sizeof(PLAYER_MODELS_T)-1);
+			decl iIndex;
+			if(iHelpModelIndex != -1)
+			{
+				iIndex = iHelpModelIndex;
+				UltJB_LR_SetClientsHealth(iClient, GetEntProp(iClient, Prop_Data, "m_iHealth") + GetHelpModelBonusHealth(iHelpModelIndex));
+			}
+			else
+			{
+				iIndex = GetRandomInt(0, sizeof(PLAYER_MODELS_T)-1);
+			}
 			
 			if(g_bLibLoaded_ModelSkinManager)
 			{
@@ -204,4 +303,36 @@ Forward_OnApplied(iClient)
 	Call_StartForward(g_hFwd_OnApplied);
 	Call_PushCell(iClient);
 	Call_Finish(result);
+}
+
+GetHelpModelIndex(iClient)
+{
+	if(!g_bLibLoaded_DatabaseUserStats)
+		return -1;
+	
+	#if defined _database_user_stats_included
+	if(!DBUserStats_HasServerStatsLoaded(iClient))
+		return -1;
+	
+	new iSecondsPlayed = DBUserStats_GetServerTimePlayed(iClient);
+	
+	if(GetConVarInt(cvar_help1_seconds) > 0 && GetConVarInt(cvar_help1_seconds) < iSecondsPlayed)
+		return 0;
+	
+	if(GetConVarInt(cvar_help2_seconds) > 0 && GetConVarInt(cvar_help2_seconds) < iSecondsPlayed)
+		return 1;
+	#endif
+	
+	return -1;
+}
+
+GetHelpModelBonusHealth(iIndex)
+{
+	switch(iIndex)
+	{
+		case 0:	return GetConVarInt(cvar_help1_bonushealth);
+		case 1:	return GetConVarInt(cvar_help2_bonushealth);
+	}
+	
+	return 0;
 }
