@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Lock state";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -20,6 +20,8 @@ public Plugin:myinfo =
 
 #define SF_DOOR_SILENT		4096
 #define SF_NO_USER_CONTROL	2
+
+#define SF_ONLY_BREAK_ON_TRIGGER	1
 
 
 public OnPluginStart()
@@ -70,6 +72,7 @@ LockState_FuncDoor(iEnt)
 LockState_FuncBreakable(iEnt)
 {
 	SetEntProp(iEnt, Prop_Data, "m_takedamage", DAMAGE_NO);
+	SetEntProp(iEnt, Prop_Data, "m_spawnflags", SF_ONLY_BREAK_ON_TRIGGER);
 }
 
 LockState_FuncTrain(iEnt)
