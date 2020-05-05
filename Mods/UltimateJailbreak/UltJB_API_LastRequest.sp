@@ -28,7 +28,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Last Request API";
-new const String:PLUGIN_VERSION[] = "1.44";
+new const String:PLUGIN_VERSION[] = "1.45";
 
 public Plugin:myinfo =
 {
@@ -3796,7 +3796,7 @@ public Action:Timer_GetLastRequestTeleportOrigins(Handle:hTimer)
 		g_iLastRequestTeleportOrigins_OldHealth[iClient] = iHealth;
 		
 		// Continue if the player isn't on the ground.
-		if(GetEntProp(iClient, Prop_Send, "m_hGroundEntity") == -1)
+		if(GetEntPropEnt(iClient, Prop_Send, "m_hGroundEntity") == -1)
 			continue;
 		
 		// Continue if the player is ducking.

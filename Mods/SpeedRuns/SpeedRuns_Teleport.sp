@@ -21,7 +21,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Speed Runs: Teleport";
-new const String:PLUGIN_VERSION[] = "1.24";
+new const String:PLUGIN_VERSION[] = "1.25";
 
 public Plugin:myinfo =
 {
@@ -184,7 +184,7 @@ bool:IsAllowedToTeleport(iClient)
 
 	if(!GetConVarBool(cvar_allow_in_air))
 	{
-		if(GetEntProp(iClient, Prop_Send, "m_hGroundEntity") == -1)
+		if(GetEntPropEnt(iClient, Prop_Send, "m_hGroundEntity") == -1)
 		{
 			CPrintToChat(iClient, "{lightgreen}-- {red}You must be on the ground to teleport.");
 			return false;

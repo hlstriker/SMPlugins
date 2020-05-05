@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] LR: Contest - Race";
-new const String:PLUGIN_VERSION[] = "1.5";
+new const String:PLUGIN_VERSION[] = "1.6";
 
 public Plugin:myinfo =
 {
@@ -273,7 +273,7 @@ bool:CheckPlacementCriteria(iClient)
 		return false;
 	}
 	
-	if(GetEntProp(iClient, Prop_Send, "m_hGroundEntity") == -1)
+	if(GetEntPropEnt(iClient, Prop_Send, "m_hGroundEntity") == -1)
 	{
 		PrintToChat(iClient, "[SM] You must be on the ground.");
 		return false;

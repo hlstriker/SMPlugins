@@ -15,7 +15,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Speed Runs: Checkpoints";
-new const String:PLUGIN_VERSION[] = "2.7";
+new const String:PLUGIN_VERSION[] = "2.8";
 
 public Plugin:myinfo =
 {
@@ -557,7 +557,7 @@ SavePosition(iClient)
 	// If checkpoints are usable during a speed run make sure the player is standing on the ground before saving.
 	if(AreUsableDuringSpeedRun())
 	{
-		if(GetEntProp(iClient, Prop_Send, "m_hGroundEntity") == -1)
+		if(GetEntPropEnt(iClient, Prop_Send, "m_hGroundEntity") == -1)
 		{
 			CPrintToChat(iClient, "{lightgreen}-- {red}You must be on the ground to do this.");
 			return;
