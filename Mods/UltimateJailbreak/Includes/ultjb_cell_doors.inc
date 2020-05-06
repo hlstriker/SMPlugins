@@ -38,6 +38,23 @@ native bool:UltJB_CellDoors_HaveOpened();
  */
 native bool:UltJB_CellDoors_DoExist();
 
+/**
+ * Adds an entity as a cell door.
+ *
+ * @param entity		The entity index to add as a cell door.
+ * @noreturn
+ */
+native bool:UltJB_CellDoors_AddEntityAsDoor(entity);
+
+/**
+ * Removes an entity from being a cell door.
+ *
+ * @param entity		The entity index to remove from being a cell door.
+ * @noreturn
+ */
+native bool:UltJB_CellDoors_RemoveEntityFromBeingDoor(entity);
+
+
 
 /**
  * Called when the cell doors have been opened.

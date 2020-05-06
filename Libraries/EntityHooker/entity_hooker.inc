@@ -25,6 +25,7 @@ public SharedPlugin:__pl_entity_hooker =
 #define EH_TYPE_TRIGGER_PUSH_NO_EMULATION	6
 #define EH_TYPE_LOCK_STATE					7
 #define EH_TYPE_OPEN_AREAPORTALS			8
+#define EH_TYPE_JAILBREAK_CELL_DOORS		9
 
 
 forward EntityHooker_OnRegisterReady();

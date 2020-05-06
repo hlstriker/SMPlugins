@@ -1,10 +1,14 @@
 #include <sourcemod>
 #include "Includes/ultjb_cell_doors"
 
+#undef REQUIRE_PLUGIN
+#include "../../Libraries/EntityHooker/entity_hooker"
+#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Cell Doors";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -30,6 +34,36 @@ public OnPluginStart()
 	
 	HookEvent("round_start", EventRoundStart_Post, EventHookMode_PostNoCopy);
 }
+
+#if defined _entity_hooker_included
+public EntityHooker_OnRegisterReady()
+{
+	EntityHooker_Register(EH_TYPE_JAILBREAK_CELL_DOORS, "Cell Doors");
+	
+	EntityHooker_RegisterAdditional(EH_TYPE_JAILBREAK_CELL_DOORS,
+		"func_door", "func_door_rotating", "prop_door_rotating", "func_breakable", "func_movelinear", "func_tracktrain", "func_wall_toggle", "func_brush");
+	
+	EntityHooker_RegisterProperty(EH_TYPE_JAILBREAK_CELL_DOORS, Prop_Send, PropField_String, "m_iName");
+	EntityHooker_RegisterProperty(EH_TYPE_JAILBREAK_CELL_DOORS, Prop_Data, PropField_String, "m_target");
+	EntityHooker_RegisterProperty(EH_TYPE_JAILBREAK_CELL_DOORS, Prop_Data, PropField_String, "m_iParent");
+}
+
+public EntityHooker_OnEntityHooked(iHookType, iEnt)
+{
+	if(iHookType != EH_TYPE_JAILBREAK_CELL_DOORS)
+		return;
+	
+	UltJB_CellDoors_AddEntityAsDoor(iEnt);
+}
+
+public EntityHooker_OnEntityUnhooked(iHookType, iEnt)
+{
+	if(iHookType != EH_TYPE_JAILBREAK_CELL_DOORS)
+		return;
+	
+	UltJB_CellDoors_RemoveEntityFromBeingDoor(iEnt);
+}
+#endif
 
 public Action:OnCellDoorsOpen(iClient, iArgNum)
 {
