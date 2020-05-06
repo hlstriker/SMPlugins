@@ -1,0 +1,16 @@
+CREATE TABLE IF NOT EXISTS plugin_pathpoints_points
+(
+	map_id		MEDIUMINT UNSIGNED	NOT NULL,
+	path_name	VARCHAR( 255 )		NOT NULL,
+	point_num	INT UNSIGNED		NOT NULL,
+
+	origin0		FLOAT( 11, 6 )		NOT NULL,
+	origin1		FLOAT( 11, 6 )		NOT NULL,
+	origin2		FLOAT( 11, 6 )		NOT NULL,
+
+	angles0		FLOAT( 11, 6 )		NOT NULL,
+	angles1		FLOAT( 11, 6 )		NOT NULL,
+	angles2		FLOAT( 11, 6 )		NOT NULL,
+
+	PRIMARY KEY ( map_id, path_name, point_num )
+) ENGINE = INNODB;
