@@ -12,7 +12,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Path Points";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -95,6 +95,11 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	//CreateNative("PathPoints_GetPathNamePoints", _PathPoints_GetPathNamePoints);
 	
 	return APLRes_Success;
+}
+
+public OnClientPutInServer(iClient)
+{
+	g_iEditingPathIndex[iClient] = -1;
 }
 
 public OnMapStart()
