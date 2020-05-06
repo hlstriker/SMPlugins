@@ -623,6 +623,18 @@ DeletePath(iPathIndex)
 		if(g_iEditingPathIndex[iPlayer] > iPathIndex)
 			g_iEditingPathIndex[iPlayer]--;
 	}
+	
+	// Repopulate the pathname to index trie.
+	RepopulatePathNameToIndexTrie();
+}
+
+RepopulatePathNameToIndexTrie()
+{
+	ClearTrie(g_hTrie_PathNameToIndex);
+	
+	decl ePath[PPPath];
+	for(new i=0; i<GetArraySize(g_aPaths); i++)
+		SetTrieValue(g_hTrie_PathNameToIndex, ePath[Path_Name], i, true);
 }
 
 bool:IsValidClientIndex(iClient)
