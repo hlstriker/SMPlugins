@@ -37,6 +37,9 @@ enum DayType
 
 #define DAY_MAX_NAME_LENGTH		48
 
+#define FREEZE_TEAM_GUARDS		(1<<0)
+#define FREEZE_TEAM_PRISONERS	(1<<1)
+
 
 
 /**
@@ -129,6 +132,15 @@ native DayType:UltJB_Day_GetCurrentDayType();
  * @return				True if set, false otherwise.
  */
 native bool:UltJB_Day_SetFreezeTime(day_id, time);
+
+/**
+ * Sets the teams that should be frozen during freezetime.
+ *
+ * @param day_id			The days ID.
+ * @param freeze_team_bits	A bitmask of the FREEZE_TEAM_* defines.
+ * @return					True if set, false otherwise.
+ */
+native bool:UltJB_Day_SetFreezeTeams(day_id, freeze_team_bits);
 
 /**
  * Force ends any freeze time in progress.

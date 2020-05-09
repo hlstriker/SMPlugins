@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.18";
+new const String:PLUGIN_VERSION[] = "1.19";
 
 public Plugin:myinfo =
 {
@@ -41,6 +41,7 @@ enum _:Day
 	Day_Flags,
 	DayType:Day_Type,
 	Day_FreezeTime,
+	Day_FreezeTeamBits,
 	bool:Day_Enabled
 };
 
@@ -66,8 +67,6 @@ new Handle:g_hTimer_WardayFreeze;
 new g_iRoundsAfterDay[DayType];
 new Handle:g_aUsedSteamIDs;
 
-new bool:g_bArePrisonersFrozen;
-
 new Handle:g_hFwd_OnSpawnPost;
 new g_iSpawnedTick[MAXPLAYERS+1];
 
@@ -75,13 +74,18 @@ new bool:g_bInDaysSpawnPostForward[MAXPLAYERS+1];
 
 new g_iOffset_CCSPlayer_m_bSpotted = -1;
 
+#define FFADE_STAYOUT	0x0008
+#define FFADE_PURGE		0x0010
+
+new UserMsg:g_msgFade;
+
 
 public OnPluginStart()
 {
 	CreateConVar("ultjb_api_days_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	
 	cvar_select_time = CreateConVar("ultjb_day_select_time", "15", "The number of seconds a day can be selected after the warden is selected.", _, true, 1.0);
-	cvar_warday_freeze_time = CreateConVar("ultjb_warday_freeze_time", "30", "The number of seconds the prisoners should be frozen before warday starts.", _, true, 1.0);
+	cvar_warday_freeze_time = CreateConVar("ultjb_warday_freeze_time", "30", "The number of seconds the players should be frozen before warday starts.", _, true, 1.0);
 	cvar_force_allow_override = CreateConVar("ultjb_day_force_allow_override", "0", "Set to 1 to allow days every round.", _, true, 0.0, true, 1.0);
 	
 	g_hFwd_OnSpawnPost = CreateGlobalForward("UltJB_Day_OnSpawnPost", ET_Ignore, Param_Cell);
@@ -109,6 +113,8 @@ public OnPluginStart()
 	RegAdminCmd("sm_daysedit", OnDaysEdit, ADMFLAG_UNBAN, "Edits the day configuration for the current map.");
 	
 	g_iOffset_CCSPlayer_m_bSpotted = FindSendPropInfo("CCSPlayer", "m_bSpotted");
+	
+	g_msgFade = GetUserMessageId("Fade");
 }
 
 public OnClientPutInServer(iClient)
@@ -250,7 +256,8 @@ bool:ShouldBlockWeaponGain(iClient, iWeapon)
 		return true;
 	}
 	
-	if(g_bArePrisonersFrozen && GetClientTeam(iClient) == TEAM_PRISONERS)
+	// Block if frozen.
+	if(GetEntityMoveType(iClient) == MOVETYPE_NONE)
 		return true;
 	
 	decl eDay[Day];
@@ -457,6 +464,7 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	CreateNative("UltJB_Day_IsInProgress", _UltJB_Day_IsInProgress);
 	CreateNative("UltJB_Day_SetFlags", _UltJB_Day_SetFlags);
 	CreateNative("UltJB_Day_SetFreezeTime", _UltJB_Day_SetFreezeTime);
+	CreateNative("UltJB_Day_SetFreezeTeams", _UltJB_Day_SetFreezeTeams);
 	CreateNative("UltJB_Day_FreezeTimeForceEnd", _UltJB_Day_FreezeTimeForceEnd);
 	CreateNative("UltJB_Day_GetFreezeTimeRemaining", _UltJB_Day_GetFreezeTimeRemaining);
 	CreateNative("UltJB_Day_GetCurrentDayType", _UltJB_Day_GetCurrentDayType);
@@ -593,6 +601,33 @@ public _UltJB_Day_SetFreezeTime(Handle:hPlugin, iNumParams)
 	return false;
 }
 
+public _UltJB_Day_SetFreezeTeams(Handle:hPlugin, iNumParams)
+{
+	if(iNumParams != 2)
+	{
+		LogError("Invalid number of parameters.");
+		return false;
+	}
+	
+	new iDayID = GetNativeCell(1);
+	
+	decl eDay[Day];
+	for(new i=0; i<GetArraySize(g_aDays); i++)
+	{
+		GetArrayArray(g_aDays, i, eDay);
+		
+		if(eDay[Day_ID] != iDayID)
+			continue;
+		
+		eDay[Day_FreezeTeamBits] = GetNativeCell(2);
+		SetArrayArray(g_aDays, i, eDay);
+		
+		return true;
+	}
+	
+	return false;
+}
+
 public _UltJB_Day_IsInProgress(Handle:hPlugin, iNumParams)
 {
 	if(IsDayInProgress())
@@ -705,6 +740,7 @@ public _UltJB_Day_RegisterDay(Handle:hPlugin, iNumParams)
 	eDay[Day_Type] = iDayType;
 	eDay[Day_Flags] = GetNativeCell(3);
 	eDay[Day_FreezeTime] = GetConVarInt(cvar_warday_freeze_time);
+	eDay[Day_FreezeTeamBits] = FREEZE_TEAM_PRISONERS;
 	eDay[Day_Enabled] = true;
 	
 	g_iDayIDToIndex[eDay[Day_ID]] = PushArrayArray(g_aDays, eDay);
@@ -847,7 +883,7 @@ InitDayType(iClient, const eDay[Day], String:szDayType[], iMaxLen)
 		case DAY_TYPE_WARDAY:
 		{
 			strcopy(szDayType, iMaxLen, "Warday");
-			InitWarday(iClient, eDay[Day_FreezeTime], eDay[Day_ForwardFreezeEnd]);
+			InitWarday(iClient, eDay[Day_FreezeTime], eDay[Day_ForwardFreezeEnd], eDay[Day_FreezeTeamBits]);
 		}
 		default:
 		{
@@ -856,7 +892,7 @@ InitDayType(iClient, const eDay[Day], String:szDayType[], iMaxLen)
 	}
 }
 
-InitWarday(iClient, iFreezeTime, Handle:hForwardFreezeEnd)
+InitWarday(iClient, iFreezeTime, Handle:hForwardFreezeEnd, iFreezeTeamBits)
 {
 	if(!UltJB_CellDoors_HaveOpened())
 		UltJB_CellDoors_ForceOpen();
@@ -864,9 +900,9 @@ InitWarday(iClient, iFreezeTime, Handle:hForwardFreezeEnd)
 	g_iWardayFreezeTime = iFreezeTime;
 	g_iTimerCountdown = 0;
 	
-	if(iFreezeTime > 0)
+	if(iFreezeTeamBits && iFreezeTime > 0)
 	{
-		FreezeAllPrisoners();
+		FreezePlayers(true, bool:(iFreezeTeamBits & FREEZE_TEAM_PRISONERS), bool:(iFreezeTeamBits & FREEZE_TEAM_GUARDS));
 		
 		Forward_OnWardayStart(iClient);
 		StartTimer_WardayFreeze();
@@ -917,7 +953,7 @@ public _UltJB_Day_GetFreezeTimeRemaining(Handle:hPlugin, iNumParams)
 
 ShowCountdown_Unfreeze()
 {
-	PrintHintTextToAll("<font color='#6FC41A'>Unfreezing prisoners in:</font>\n<font color='#DE2626'>%i</font> <font color='#6FC41A'>seconds.</font>", g_iWardayFreezeTime - g_iTimerCountdown);
+	PrintHintTextToAll("<font color='#6FC41A'>Unfreezing players in:</font>\n<font color='#DE2626'>%i</font> <font color='#6FC41A'>seconds.</font>", g_iWardayFreezeTime - g_iTimerCountdown);
 }
 
 StopTimer_WardayFreeze()
@@ -959,7 +995,7 @@ EndFreezeTimer(bool:bFromTimerFunc)
 	else
 		StopTimer_WardayFreeze();
 	
-	FreezeAllPrisoners(false);
+	FreezePlayers(false);
 	
 	if(!IsDayInProgress())
 		return;
@@ -971,7 +1007,7 @@ EndFreezeTimer(bool:bFromTimerFunc)
 	GetArrayArray(g_aDays, g_iDayIDToIndex[g_iCurrentDayID], eDay);
 	Forward_FreezeEnd(eDay[Day_ForwardFreezeEnd]);
 	
-	PrintHintTextToAll("<font color='#6FC41A'>Prisoners have been unfrozen!</font>");
+	PrintHintTextToAll("<font color='#6FC41A'>Players have been unfrozen!</font>");
 }
 
 Forward_FreezeEnd(Handle:hForwardFreezeEnd)
@@ -1004,23 +1040,31 @@ Forward_OnWardayStart(iClient)
 	Call_Finish(result);
 }
 
-FreezeAllPrisoners(bool:bFreeze=true)
+FreezePlayers(bool:bFreeze=true, bool:bTargetPrisoners=true, bool:bTargetGuards=true)
 {
+	decl iTeam;
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
 		if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
 			continue;
 		
-		if(bFreeze)
-		{
-			if(GetClientTeam(iClient) != TEAM_PRISONERS)
-				continue;
-		}
+		iTeam = GetClientTeam(iClient);
 		
-		SetEntityMoveType(iClient, bFreeze ? MOVETYPE_NONE : MOVETYPE_WALK);
+		if((bTargetPrisoners && iTeam == TEAM_PRISONERS)
+		|| (bTargetGuards && iTeam == TEAM_GUARDS))
+		{
+			if(bFreeze)
+			{
+				FadeScreen(iClient, 0, 0, {0, 0, 0, 255}, FFADE_STAYOUT | FFADE_PURGE);
+				SetEntityMoveType(iClient, MOVETYPE_NONE);
+			}
+			else
+			{
+				FadeScreen(iClient, 0, 0, {0, 0, 0, 255}, FFADE_PURGE);
+				SetEntityMoveType(iClient, MOVETYPE_WALK);
+			}
+		}
 	}
-	
-	g_bArePrisonersFrozen = bFreeze;
 }
 
 bool:EndDay(iClient=0)
@@ -1032,7 +1076,7 @@ bool:EndDay(iClient=0)
 		return false;
 	
 	g_iWardayFreezeTime = 0;
-	FreezeAllPrisoners(false);
+	FreezePlayers(false);
 	StopTimer_WardayFreeze();
 	
 	decl eDay[Day];
@@ -1509,4 +1553,32 @@ StringToLower(String:szString[])
 {
 	for(new i=0; i<strlen(szString); i++)
 		szString[i] = CharToLower(szString[i]);
+}
+
+FadeScreen(iClient, iDurationMilliseconds, iHoldMilliseconds, iColor[4], iFlags)
+{
+	decl iClients[1];
+	iClients[0] = iClient;
+	
+	new Handle:hMessage = StartMessageEx(g_msgFade, iClients, 1);
+	
+	if(GetUserMessageType() == UM_Protobuf)
+	{
+		PbSetInt(hMessage, "duration", iDurationMilliseconds);
+		PbSetInt(hMessage, "hold_time", iHoldMilliseconds);
+		PbSetInt(hMessage, "flags", iFlags);
+		PbSetColor(hMessage, "clr", iColor);
+	}
+	else
+	{
+		BfWriteShort(hMessage, iDurationMilliseconds);
+		BfWriteShort(hMessage, iHoldMilliseconds);
+		BfWriteShort(hMessage, iFlags);
+		BfWriteByte(hMessage, iColor[0]);
+		BfWriteByte(hMessage, iColor[1]);
+		BfWriteByte(hMessage, iColor[2]);
+		BfWriteByte(hMessage, iColor[3]);
+	}
+	
+	EndMessage();
 }
