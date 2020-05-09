@@ -80,5 +80,6 @@ public __pl_path_points_SetNTVOptional()
 	MarkNativeAsOptional("PathPoints_GetPoint");
 	MarkNativeAsOptional("PathPoints_GetFurthestTwoPoints");
 	MarkNativeAsOptional("PathPoints_GetNextFurthestPoint");
+	MarkNativeAsOptional("PathPoints_GetNextRandomPoint");
 }
 #endif
