@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Cell Doors API";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -396,6 +396,9 @@ AddCellDoor(const String:szName[])
 		
 		PushArrayCell(g_aDoorEntRefs, EntIndexToEntRef(iEnt));
 		// Note: These "doors" cannot be detected when opened.
+		
+		// Just force enable func_brush cell doors when they are added.
+		AcceptEntityInput(iEnt, "Enable");
 	}
 }
 
@@ -596,7 +599,9 @@ bool:OpenCellDoors()
 		}
 		else if(StrEqual(szClassName[5], "brus"))
 		{
-			AcceptEntityInput(iEnt, "KillHierarchy"); // Since this can't be detected when open let's just kill it instead.
+			// WARNING: Do not kill a func_brush. They are not restored on new rounds.
+			//AcceptEntityInput(iEnt, "KillHierarchy"); // Since this can't be detected when open let's just kill it instead.
+			AcceptEntityInput(iEnt, "Disable");
 		}
 	}
 	
