@@ -12,7 +12,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Path Points";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -65,6 +65,8 @@ enum _:PPPoint
 new g_iEditingPathIndex[MAXPLAYERS+1];
 new bool:g_bEditingPathName[MAXPLAYERS+1];
 
+new Handle:g_aPointCheckIndexes;
+
 
 public OnPluginStart()
 {
@@ -74,6 +76,8 @@ public OnPluginStart()
 	
 	g_aPaths = CreateArray(PPPath);
 	g_hTrie_PathNameToIndex = CreateTrie();
+	
+	g_aPointCheckIndexes = CreateArray();
 	
 	RegAdminCmd("sm_pathpoints", OnPathPoints, ADMFLAG_BAN, "Opens the path points menu.");
 }
@@ -92,9 +96,126 @@ public DB_OnStartConnectionSetup()
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
 {
 	RegPluginLibrary("path_points");
-	//CreateNative("PathPoints_GetPathNamePoints", _PathPoints_GetPathNamePoints);
+	CreateNative("PathPoints_GetPointCount", _PathPoints_GetPointCount);
+	CreateNative("PathPoints_GetPoint", _PathPoints_GetPoint);
+	CreateNative("PathPoints_GetFurthestTwoPoints", _PathPoints_GetFurthestTwoPoints);
+	CreateNative("PathPoints_GetNextFurthestPoint", _PathPoints_GetNextFurthestPoint);
+	CreateNative("PathPoints_GetNextRandomPoint", _PathPoints_GetNextRandomPoint);
 	
 	return APLRes_Success;
+}
+
+public _PathPoints_GetNextRandomPoint(Handle:hPlugin, iNumParams)
+{
+	if(iNumParams != 3)
+	{
+		LogError("Invalid number of parameters.");
+		return false;
+	}
+	
+	static String:szPathName[MAX_PATHPOINT_NAME_LEN];
+	GetNativeString(1, szPathName, MAX_PATHPOINT_NAME_LEN);
+	
+	static iRet, iPointIndex;
+	iRet = GetNextRandomPoint(szPathName, GetNativeCell(2), iPointIndex);
+	
+	SetNativeCellRef(3, iPointIndex);
+	
+	return iRet;
+}
+
+public _PathPoints_GetFurthestTwoPoints(Handle:hPlugin, iNumParams)
+{
+	if(iNumParams != 3)
+	{
+		LogError("Invalid number of parameters.");
+		return false;
+	}
+	
+	static String:szPathName[MAX_PATHPOINT_NAME_LEN];
+	GetNativeString(1, szPathName, MAX_PATHPOINT_NAME_LEN);
+	
+	static iRet, iPointIndex1, iPointIndex2;
+	iRet = GetFurthestTwoPoints(szPathName, iPointIndex1, iPointIndex2);
+	
+	SetNativeCellRef(2, iPointIndex1);
+	SetNativeCellRef(3, iPointIndex2);
+	
+	return iRet;
+}
+
+public _PathPoints_GetNextFurthestPoint(Handle:hPlugin, iNumParams)
+{
+	if(iNumParams != 2)
+	{
+		LogError("Invalid number of parameters.");
+		return false;
+	}
+	
+	static String:szPathName[MAX_PATHPOINT_NAME_LEN];
+	GetNativeString(1, szPathName, MAX_PATHPOINT_NAME_LEN);
+	
+	static iRet, iPointIndex;
+	iRet = GetNextFurthestPoint(szPathName, iPointIndex);
+	
+	SetNativeCellRef(2, iPointIndex);
+	
+	return iRet;
+}
+
+public _PathPoints_GetPointCount(Handle:hPlugin, iNumParams)
+{
+	static String:szPathName[MAX_PATHPOINT_NAME_LEN];
+	GetNativeString(1, szPathName, MAX_PATHPOINT_NAME_LEN);
+	
+	static iIndex;
+	iIndex = GetPathIndexFromName(szPathName);
+	if(iIndex == -1)
+		return 0;
+	
+	static ePath[PPPath];
+	GetArrayArray(g_aPaths, iIndex, ePath);
+	
+	return GetArraySize(ePath[Path_Points]);
+}
+
+public _PathPoints_GetPoint(Handle:hPlugin, iNumParams)
+{
+	if(iNumParams != 4)
+	{
+		LogError("Invalid number of parameters.");
+		return false;
+	}
+	
+	static iPointIndex;
+	iPointIndex = GetNativeCell(2);
+	if(iPointIndex < 0)
+	{
+		LogError("Invalid point index of %i", iPointIndex);
+		return false;
+	}
+	
+	static String:szPathName[MAX_PATHPOINT_NAME_LEN];
+	GetNativeString(1, szPathName, MAX_PATHPOINT_NAME_LEN);
+	
+	static iIndex;
+	iIndex = GetPathIndexFromName(szPathName);
+	if(iIndex == -1)
+		return false;
+	
+	static ePath[PPPath];
+	GetArrayArray(g_aPaths, iIndex, ePath);
+	
+	if(iPointIndex >= GetArraySize(ePath[Path_Points]))
+		return false;
+	
+	static ePoint[PPPoint];
+	GetArrayArray(ePath[Path_Points], iPointIndex, ePoint);
+	
+	SetNativeArray(3, ePoint[Point_Origin], 3);
+	SetNativeArray(4, ePoint[Point_Angles], 3);
+	
+	return true;
 }
 
 public OnClientPutInServer(iClient)
@@ -908,4 +1029,213 @@ ShowBeamPoint(iClient, iPointIndex, iOpacity)
 	
 	TE_SetupBeamPoints(fOrigin, fEndOrigin, g_iBeamIndex, 0, 1, 1, DISPLAY_BEAM_DELAY+0.1, BEAM_WIDTH, BEAM_WIDTH, 0, 1.0, iBeamColor, 5);
 	TE_SendToClient(iClient);
+}
+
+bool:GetFurthestTwoPoints(const String:szPathName[], &iPointIndex1, &iPointIndex2)
+{
+	ClearArray(g_aPointCheckIndexes);
+	
+	iPointIndex1 = -1;
+	iPointIndex2 = -1;
+	
+	static iIndex;
+	iIndex = GetPathIndexFromName(szPathName);
+	if(iIndex == -1)
+		return false;
+	
+	static ePath[PPPath];
+	GetArrayArray(g_aPaths, iIndex, ePath);
+	
+	static iArraySize;
+	iArraySize = GetArraySize(ePath[Path_Points]);
+	if(2 >= iArraySize)
+		return false;
+	
+	static Float:fDist, Float:fDistFurthest;
+	fDistFurthest = -1.0;
+	
+	static iPoint1Furthest, iPoint2Furthest;
+	iPoint1Furthest = -1;
+	iPoint2Furthest = -1;
+	
+	static iPoint1, iPoint2;
+	static ePoint1[PPPoint], ePoint2[PPPoint];
+	static Float:fOrigin1[3], Float:fOrigin2[3];
+	for(iPoint1=0; iPoint1<iArraySize; iPoint1++)
+	{
+		GetArrayArray(ePath[Path_Points], iPoint1, ePoint1);
+		fOrigin1[0] = ePoint1[Point_Origin][0];
+		fOrigin1[1] = ePoint1[Point_Origin][1];
+		fOrigin1[2] = ePoint1[Point_Origin][2];
+		
+		for(iPoint2=iPoint1+1; iPoint2<iArraySize; iPoint2++)
+		{
+			GetArrayArray(ePath[Path_Points], iPoint2, ePoint2);
+			fOrigin2[0] = ePoint2[Point_Origin][0];
+			fOrigin2[1] = ePoint2[Point_Origin][1];
+			fOrigin2[2] = ePoint2[Point_Origin][2];
+			
+			fDist = GetVectorDistance(fOrigin1, fOrigin2, true);
+			
+			if(fDist > fDistFurthest)
+			{
+				fDistFurthest = fDist;
+				iPoint1Furthest = iPoint1;
+				iPoint2Furthest = iPoint2;
+			}
+		}
+	}
+	
+	if(iPoint1Furthest == -1)
+		return false;
+	
+	PushArrayCell(g_aPointCheckIndexes, iPoint1Furthest);
+	PushArrayCell(g_aPointCheckIndexes, iPoint2Furthest);
+	
+	iPointIndex1 = iPoint1Furthest;
+	iPointIndex2 = iPoint2Furthest;
+	
+	return true;
+}
+
+bool:GetNextFurthestPoint(const String:szPathName[], &iPointIndex)
+{
+	iPointIndex = -1;
+	
+	static iIndex;
+	iIndex = GetPathIndexFromName(szPathName);
+	if(iIndex == -1)
+		return false;
+	
+	static ePath[PPPath];
+	GetArrayArray(g_aPaths, iIndex, ePath);
+	
+	static iArraySize;
+	iArraySize = GetArraySize(ePath[Path_Points]);
+	
+	static iNumPointsInPointCheckArray;
+	iNumPointsInPointCheckArray = GetArraySize(g_aPointCheckIndexes);
+	
+	if((iNumPointsInPointCheckArray + 1) >= iArraySize)
+		return false;
+	
+	static Float:fDistFurthest;
+	fDistFurthest = -1.0;
+	
+	static iPoint2Furthest;
+	iPoint2Furthest = -1;
+	
+	static i, iPoint1, iPoint2;
+	static ePoint1[PPPoint], ePoint2[PPPoint];
+	static Float:fOrigin1[3], Float:fOrigin2[3];
+	
+	new Float:fAllIndexDist[iArraySize];
+	new Float:fDistForPoints[iNumPointsInPointCheckArray];
+	static Float:fSmallest;
+	
+	// Get the shortest distance for each point compared to the points already in the dist check array.
+	for(iPoint2=0; iPoint2<iArraySize; iPoint2++)
+	{
+		if(FindValueInArray(g_aPointCheckIndexes, iPoint2) != -1)
+			continue;
+		
+		GetArrayArray(ePath[Path_Points], iPoint2, ePoint2);
+		fOrigin2[0] = ePoint2[Point_Origin][0];
+		fOrigin2[1] = ePoint2[Point_Origin][1];
+		fOrigin2[2] = ePoint2[Point_Origin][2];
+		
+		for(i=0; i<iNumPointsInPointCheckArray; i++)
+		{
+			iPoint1 = GetArrayCell(g_aPointCheckIndexes, i);
+			
+			GetArrayArray(ePath[Path_Points], iPoint1, ePoint1);
+			fOrigin1[0] = ePoint1[Point_Origin][0];
+			fOrigin1[1] = ePoint1[Point_Origin][1];
+			fOrigin1[2] = ePoint1[Point_Origin][2];
+			
+			fDistForPoints[i] = GetVectorDistance(fOrigin1, fOrigin2, true);
+		}
+		
+		fSmallest = 9999999999.0;
+		for(i=0; i<iNumPointsInPointCheckArray; i++)
+		{
+			if(fDistForPoints[i] < fSmallest)
+				fSmallest = fDistForPoints[i];
+		}
+		
+		fAllIndexDist[iPoint2] = fSmallest;
+	}
+	
+	// Now find the largest of fAllIndexDist.
+	for(iPoint2=0; iPoint2<iArraySize; iPoint2++)
+	{
+		if(FindValueInArray(g_aPointCheckIndexes, iPoint2) != -1)
+			continue;
+		
+		if(fAllIndexDist[iPoint2] > fDistFurthest)
+		{
+			fDistFurthest = fAllIndexDist[iPoint2];
+			iPoint2Furthest = iPoint2;
+		}
+	}
+	
+	if(iPoint2Furthest == -1)
+		return false;
+	
+	PushArrayCell(g_aPointCheckIndexes, iPoint2Furthest);
+	iPointIndex = iPoint2Furthest;
+	
+	return true;
+}
+
+bool:GetNextRandomPoint(const String:szPathName[], bool:bResetPointCheckArray, &iPointIndex)
+{
+	if(bResetPointCheckArray)
+		ClearArray(g_aPointCheckIndexes);
+	
+	iPointIndex = -1;
+	
+	static iIndex;
+	iIndex = GetPathIndexFromName(szPathName);
+	if(iIndex == -1)
+		return false;
+	
+	static ePath[PPPath];
+	GetArrayArray(g_aPaths, iIndex, ePath);
+	
+	static iArraySize;
+	iArraySize = GetArraySize(ePath[Path_Points]);
+	
+	static iNumPointsInPointCheckArray;
+	iNumPointsInPointCheckArray = GetArraySize(g_aPointCheckIndexes);
+	
+	if((iNumPointsInPointCheckArray + 1) >= iArraySize)
+		return false;
+	
+	static iPoint, Handle:hIndexes;
+	hIndexes = CreateArray();
+	
+	for(iPoint=0; iPoint<iArraySize; iPoint++)
+	{
+		if(FindValueInArray(g_aPointCheckIndexes, iPoint) != -1)
+			continue;
+		
+		PushArrayCell(hIndexes, iPoint);
+	}
+	
+	static iIndexArraySize;
+	iIndexArraySize = GetArraySize(hIndexes);
+	
+	if(!iIndexArraySize)
+	{
+		CloseHandle(hIndexes);
+		return false;
+	}
+	
+	iPointIndex = GetArrayCell(hIndexes, GetRandomInt(0, iIndexArraySize-1));
+	PushArrayCell(g_aPointCheckIndexes, iPointIndex);
+	
+	CloseHandle(hIndexes);
+	
+	return true;
 }
