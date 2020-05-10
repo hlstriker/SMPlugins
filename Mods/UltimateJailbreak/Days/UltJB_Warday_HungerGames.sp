@@ -12,7 +12,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Hunger Games";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -184,6 +184,11 @@ SpawnWeaponBoxes()
 	decl Float:fOrigin[3], Float:fAngles[3];
 	
 	new iNumToSpawn = RoundFloat(GetNumberClientsOnTeams() * 1.3);
+	if(iNumToSpawn < 20)
+		iNumToSpawn = 20;
+	
+	// Spawn some additional boxes if there are a lot of points on this map.
+	iNumToSpawn += RoundFloat(float(PathPoints_GetPointCount("rebels")) * 0.02);
 	
 	decl iEnt, iPointIndex;
 	for(new i=0; i<iNumToSpawn; i++)
