@@ -25,7 +25,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warden";
-new const String:PLUGIN_VERSION[] = "1.40";
+new const String:PLUGIN_VERSION[] = "1.41";
 
 public Plugin:myinfo =
 {
@@ -1212,7 +1212,7 @@ GetPrimaryWarden()
 	for(iIndex=0; iIndex<iArraySize; iIndex++)
 	{
 		iClient = GetArrayCell(g_aQueuePrimary, iIndex);
-		if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
+		if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient) || IsFakeClient(iClient))
 			continue;
 		
 		break;
@@ -1240,7 +1240,7 @@ GetSecondaryWarden()
 	for(iIndex=0; iIndex<iArraySize; iIndex++)
 	{
 		iClient = GetArrayCell(g_aQueueSecondary, iIndex);
-		if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
+		if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient) || IsFakeClient(iClient))
 			continue;
 		
 		if(GetClientTeam(iClient) != TEAM_GUARDS)
