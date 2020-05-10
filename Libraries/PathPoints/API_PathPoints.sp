@@ -12,7 +12,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Path Points";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
@@ -760,7 +760,10 @@ RepopulatePathNameToIndexTrie()
 	
 	decl ePath[PPPath];
 	for(new i=0; i<GetArraySize(g_aPaths); i++)
+	{
+		GetArrayArray(g_aPaths, i, ePath);
 		SetTrieValue(g_hTrie_PathNameToIndex, ePath[Path_Name], i, true);
+	}
 }
 
 bool:IsValidClientIndex(iClient)
@@ -881,6 +884,9 @@ public OnClientSayCommand_Post(iClient, const String:szCommand[], const String:s
 	GetArrayArray(g_aPaths, iPathIndex, ePath);
 	strcopy(ePath[Path_Name], MAX_PATHPOINT_NAME_LEN, szString);
 	SetArrayArray(g_aPaths, iPathIndex, ePath);
+	
+	// Repopulate path name to index trie.
+	RepopulatePathNameToIndexTrie();
 	
 	DisplayMenu_View(iClient, iPathIndex);
 }
