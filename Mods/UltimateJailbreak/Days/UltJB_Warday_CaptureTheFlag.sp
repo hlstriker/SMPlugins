@@ -17,7 +17,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Capture the Flag";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -186,6 +186,7 @@ public UltJB_Day_OnRegisterReady()
 {
 	g_iThisDayID = UltJB_Day_RegisterDay(DAY_NAME, DAY_TYPE, g_iInitialDayFlags, OnDayStart, OnDayEnd);
 	UltJB_Day_SetFreezeTime(g_iThisDayID, SIDE_SELECTION_TIME);
+	UltJB_Day_SetFreezeTeams(g_iThisDayID, FREEZE_TEAM_GUARDS | FREEZE_TEAM_PRISONERS);
 }
 
 public OnMapEnd()
