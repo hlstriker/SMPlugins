@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.19";
+new const String:PLUGIN_VERSION[] = "1.20";
 
 public Plugin:myinfo =
 {
@@ -100,6 +100,7 @@ public OnPluginStart()
 	
 	HookEvent("round_end", Event_RoundEnd_Post, EventHookMode_PostNoCopy);
 	HookEvent("cs_match_end_restart", Event_RoundEnd_Post, EventHookMode_PostNoCopy);
+	HookEvent("cs_pre_restart", Event_RoundEnd_Post, EventHookMode_PostNoCopy);
 	HookEvent("round_start", Event_RoundStart_Post, EventHookMode_PostNoCopy);
 	HookEvent("player_death", Event_PlayerDeath_Post, EventHookMode_PostNoCopy);
 	
