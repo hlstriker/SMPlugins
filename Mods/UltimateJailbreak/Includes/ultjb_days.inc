@@ -29,10 +29,11 @@ enum DayType
 #define DAY_FLAG_STRIP_GUARDS_WEAPONS			(1<<2)
 #define DAY_FLAG_GIVE_GUARDS_INFINITE_AMMO		(1<<3)
 #define DAY_FLAG_STRIP_PRISONERS_WEAPONS		(1<<4)
-#define DAY_FLAG_KILL_WEAPON_EQUIPS				(1<<5)
+#define DAY_FLAG_KILL_WORLD_WEAPONS				(1<<5)
 #define DAY_FLAG_GIVE_PRISONERS_INFINITE_AMMO	(1<<6)
 #define DAY_FLAG_DISABLE_PRISONERS_RADAR		(1<<7)
 #define DAY_FLAG_DISABLE_GUARDS_RADAR			(1<<8)
+#define DAY_FLAG_FORCE_FREE_FOR_ALL				(1<<9)
 
 
 #define DAY_MAX_NAME_LENGTH		48
@@ -158,6 +159,23 @@ native UltJB_Day_FreezeTimeForceEnd();
  */
 native UltJB_Day_GetFreezeTimeRemaining();
 
+/**
+ * Sets if this day is allowed to choose free for all.
+ *
+ * @param day_id		The days ID.
+ * @param enabled		The allowed state.
+ * @return				True if day found, false otherwise.
+ */
+native bool:UltJB_Day_AllowFreeForAll(day_id, bool:allow);
+
+/**
+ * Gets whether the current day is in free for all or not.
+ *
+ * @noparam
+ * @return				True if in free-for-all, false otherwise.
+ */
+native bool:UltJB_Day_IsFreeForAll();
+
 
 
 /**
@@ -174,7 +192,7 @@ forward UltJB_Day_OnRegisterReady();
  * @param day_type			The type of day.
  * @noreturn
  */
-forward UltJB_Day_OnStart(client, DayType:day_type);
+forward UltJB_Day_OnStart(client, DayType:day_type, bool:is_free_for_all);
 
 /**
  * Called when a warday starts (after OnStart and before OnWardayFreezeEnd).

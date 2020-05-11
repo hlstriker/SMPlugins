@@ -12,7 +12,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Voice Chat";
-new const String:PLUGIN_VERSION[] = "1.17";
+new const String:PLUGIN_VERSION[] = "1.18";
 
 public Plugin:myinfo =
 {
@@ -111,7 +111,7 @@ public Action:Timer_UnmutePrisoners(Handle:hTimer)
 	CPrintToChatAll("{green}[{lightred}SM{green}] {olive}The prisoners may now speak quietly.");
 }
 
-public UltJB_Day_OnStart(iClient, DayType:iDayType)
+public UltJB_Day_OnStart(iClient, DayType:iDayType, bool:bIsFreeForAll)
 {
 	CancelUnmuteTimer();
 	UnmuteAllAlivePlayers();

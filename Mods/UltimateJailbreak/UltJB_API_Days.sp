@@ -4,17 +4,19 @@
 #include <hls_color_chat>
 #include <sdktools_functions>
 #include <sdktools_entinput>
+#include <emitsoundany>
 #include "Includes/ultjb_last_request"
 #include "Includes/ultjb_days"
 #include "Includes/ultjb_warden"
 #include "Includes/ultjb_cell_doors"
 #include "Includes/ultjb_settings"
 #include "Includes/ultjb_logger"
+#include "../../Libraries/PathPoints/path_points"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.20";
+new const String:PLUGIN_VERSION[] = "1.21";
 
 public Plugin:myinfo =
 {
@@ -42,7 +44,8 @@ enum _:Day
 	DayType:Day_Type,
 	Day_FreezeTime,
 	Day_FreezeTeamBits,
-	bool:Day_Enabled
+	bool:Day_Enabled,
+	bool:Day_AllowFreeForAll
 };
 
 new Handle:g_hFwd_OnRegisterReady;
@@ -53,9 +56,12 @@ new Handle:g_hFwd_OnWardayFreezeEnd;
 new g_iCurrentDayID = 0;
 new DayType:g_iCurrentDayType = DAY_TYPE_NONE;
 
+new bool:g_bIsDayInFreeForAll;
+
 new g_iWardenCountForRound;
 new Float:g_fWardenSelectedTime;
 
+new Handle:cvar_mp_teammates_are_enemies;
 new Handle:cvar_force_allow_override;
 new Handle:cvar_select_time;
 new Handle:cvar_warday_freeze_time;
@@ -79,6 +85,8 @@ new g_iOffset_CCSPlayer_m_bSpotted = -1;
 
 new UserMsg:g_msgFade;
 
+new const String:SZ_SOUND_ALARM[] = "sound/survival/rocketalarmclose.wav";
+
 
 public OnPluginStart()
 {
@@ -92,7 +100,7 @@ public OnPluginStart()
 	
 	g_aDays = CreateArray(Day);
 	g_hFwd_OnRegisterReady = CreateGlobalForward("UltJB_Day_OnRegisterReady", ET_Ignore);
-	g_hFwd_OnStart = CreateGlobalForward("UltJB_Day_OnStart", ET_Ignore, Param_Cell, Param_Cell);
+	g_hFwd_OnStart = CreateGlobalForward("UltJB_Day_OnStart", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
 	g_hFwd_OnWardayStart = CreateGlobalForward("UltJB_Day_OnWardayStart", ET_Ignore, Param_Cell);
 	g_hFwd_OnWardayFreezeEnd = CreateGlobalForward("UltJB_Day_OnWardayFreezeEnd", ET_Ignore);
 	
@@ -116,6 +124,20 @@ public OnPluginStart()
 	g_iOffset_CCSPlayer_m_bSpotted = FindSendPropInfo("CCSPlayer", "m_bSpotted");
 	
 	g_msgFade = GetUserMessageId("Fade");
+}
+
+public OnConfigsExecuted()
+{
+	cvar_mp_teammates_are_enemies = FindConVar("mp_teammates_are_enemies");
+	
+	/*
+	if(cvar_mp_teammates_are_enemies != INVALID_HANDLE)
+	{
+		new iCvarFlags = GetConVarFlags(cvar_mp_teammates_are_enemies);
+		iCvarFlags &= ~FCVAR_NOTIFY;
+		SetConVarFlags(cvar_mp_teammates_are_enemies, iCvarFlags);
+	}
+	*/
 }
 
 public OnClientPutInServer(iClient)
@@ -470,12 +492,16 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	CreateNative("UltJB_Day_GetFreezeTimeRemaining", _UltJB_Day_GetFreezeTimeRemaining);
 	CreateNative("UltJB_Day_GetCurrentDayType", _UltJB_Day_GetCurrentDayType);
 	CreateNative("UltJB_Day_GetCurrentDayID", _UltJB_Day_GetCurrentDayID);
+	CreateNative("UltJB_Day_AllowFreeForAll", _UltJB_Day_AllowFreeForAll);
+	CreateNative("UltJB_Day_IsFreeForAll", _UltJB_Day_IsFreeForAll);
 	
 	return APLRes_Success;
 }
 
 public OnMapStart()
 {
+	PrecacheSound(SZ_SOUND_ALARM[6]);
+	
 	ClearArray(g_aUsedSteamIDs);
 	
 	g_iWardenCountForRound = 0;
@@ -647,6 +673,29 @@ public _UltJB_Day_GetCurrentDayType(Handle:hPlugin, iNumParams)
 	return _:g_iCurrentDayType;
 }
 
+public _UltJB_Day_AllowFreeForAll(Handle:hPlugin, iNumParams)
+{
+	if(iNumParams != 2)
+	{
+		LogError("Invalid number of parameters.");
+		return false;
+	}
+	
+	new iDayID = GetNativeCell(1);
+	
+	decl eDay[Day];
+	GetArrayArray(g_aDays, g_iDayIDToIndex[iDayID], eDay);
+	eDay[Day_AllowFreeForAll] = GetNativeCell(2);
+	SetArrayArray(g_aDays, g_iDayIDToIndex[iDayID], eDay);
+	
+	return true;
+}
+
+public _UltJB_Day_IsFreeForAll(Handle:hPlugin, iNumParams)
+{
+	return g_bIsDayInFreeForAll;
+}
+
 public _UltJB_Day_SetEnabled(Handle:hPlugin, iNumParams)
 {
 	if(iNumParams != 2)
@@ -742,6 +791,7 @@ public _UltJB_Day_RegisterDay(Handle:hPlugin, iNumParams)
 	eDay[Day_Flags] = GetNativeCell(3);
 	eDay[Day_FreezeTime] = GetConVarInt(cvar_warday_freeze_time);
 	eDay[Day_FreezeTeamBits] = FREEZE_TEAM_PRISONERS;
+	eDay[Day_AllowFreeForAll] = bool:(eDay[Day_Flags] & DAY_FLAG_FORCE_FREE_FOR_ALL);
 	eDay[Day_Enabled] = true;
 	
 	g_iDayIDToIndex[eDay[Day_ID]] = PushArrayArray(g_aDays, eDay);
@@ -749,7 +799,40 @@ public _UltJB_Day_RegisterDay(Handle:hPlugin, iNumParams)
 	return eDay[Day_ID];
 }
 
-bool:StartDay(iClient, iDayID)
+bool:CanDayBeFreeForAll(iDayID)
+{
+	if(!HasEnoughRebelPointsForFreeForAll())
+		return false;
+	
+	if(g_iDayIDToIndex[iDayID] == INVALID_DAY_INDEX)
+		return false;
+	
+	decl eDay[Day];
+	GetArrayArray(g_aDays, g_iDayIDToIndex[iDayID], eDay);
+	
+	if(eDay[Day_Flags] & DAY_FLAG_FORCE_FREE_FOR_ALL)
+		return true;
+	
+	return eDay[Day_AllowFreeForAll];
+}
+
+bool:HasEnoughRebelPointsForFreeForAll()
+{
+	return (PathPoints_GetPointCount("rebels") >= 90);
+}
+
+GetDayFlags(iDayID)
+{
+	if(g_iDayIDToIndex[iDayID] == INVALID_DAY_INDEX)
+		return 0;
+	
+	decl eDay[Day];
+	GetArrayArray(g_aDays, g_iDayIDToIndex[iDayID], eDay);
+	
+	return eDay[Day_Flags];
+}
+
+bool:StartDay(iClient, iDayID, bool:bUseFreeForAll=false)
 {
 	if(IsDayInProgress())
 	{
@@ -763,6 +846,47 @@ bool:StartDay(iClient, iDayID)
 	decl eDay[Day];
 	GetArrayArray(g_aDays, g_iDayIDToIndex[iDayID], eDay);
 	
+	if(!CanDayBeFreeForAll(iDayID))
+	{
+		if(eDay[Day_Flags] & DAY_FLAG_FORCE_FREE_FOR_ALL)
+		{
+			PrintToChat(iClient, "[SM] WARNING: This day is a forced free-for-all, but it can't load probably due to not enough rebel points.");
+			return false;
+		}
+		
+		if(bUseFreeForAll)
+		{
+			PrintToChat(iClient, "[SM] WARNING: This day tried to be free-for-all but it isn't allowed to be.");
+			bUseFreeForAll = false;
+		}
+	}
+	
+	if(UltJB_CellDoors_HaveOpened() && eDay[Day_Type] == DAY_TYPE_WARDAY)
+	{
+		PrintToChat(iClient, "[SM] Cells are open, you cannot do a warday.");
+		return false;
+	}
+	
+	decl String:szDayType[9];
+	DayTypeToName(_:eDay[Day_Type], szDayType, sizeof(szDayType));
+	CPrintToChatAll("{green}[{lightred}SM{green}] {lightred}%N {olive}has started {lightred}%s {olive}- {lightred}%s{olive}.", iClient, szDayType, eDay[Day_Name]);
+	
+	g_iCurrentDayID = iDayID;
+	g_iCurrentDayType = eDay[Day_Type];
+	g_iRoundsAfterDay[eDay[Day_Type]] = 0;
+	
+	g_bIsDayInFreeForAll = bUseFreeForAll;
+	
+	if(bUseFreeForAll)
+	{
+		if(cvar_mp_teammates_are_enemies != INVALID_HANDLE)
+			SetConVarBool(cvar_mp_teammates_are_enemies, true, true);
+		
+		CPrintToChatAll("{red}WARNING: {lightred}Free for all activated. Kill teammates too!");
+		
+		EmitSoundToAll(SZ_SOUND_ALARM[6], _, _, SNDLEVEL_NONE);
+	}
+	
 	Call_StartForward(eDay[Day_ForwardStart]);
 	Call_PushCell(iClient);
 	
@@ -770,29 +894,15 @@ bool:StartDay(iClient, iDayID)
 	if(Call_Finish(result) != SP_ERROR_NONE)
 	{
 		PrintToChat(iClient, "[SM] There was an error loading this day.");
+		EndDay();
 		return false;
 	}
 	
-	g_iCurrentDayID = iDayID;
-	g_iCurrentDayType = eDay[Day_Type];
-	g_iRoundsAfterDay[eDay[Day_Type]] = 0;
-	
-	if(UltJB_CellDoors_HaveOpened() && g_iCurrentDayType == DAY_TYPE_WARDAY)
-	{
-		PrintToChat(iClient, "[SM] Cells are open, you cannot do a warday.");
-		return false;
-	}
-	
-	Forward_OnStart(iClient, eDay[Day_Type]);
-	
-	decl String:szDayType[8];
-	InitDayType(iClient, eDay, szDayType, sizeof(szDayType));
-	
-	CPrintToChatAll("{green}[{lightred}SM{green}] {lightred}%N {olive}has started {lightred}%s {olive}- {lightred}%s{olive}.", iClient, szDayType, eDay[Day_Name]);
-	
+	Forward_OnStart(iClient, eDay[Day_Type], bUseFreeForAll);
+	InitDayType(iClient, eDay);
 	SetDayUsed(iClient);
 	
-	new String:szMessage[512];
+	decl String:szMessage[256];
 	Format(szMessage, sizeof(szMessage), "%N has started %s - %s.", iClient, szDayType, eDay[Day_Name]);
 	UltJB_Logger_LogEvent(szMessage, iClient, 0, LOGTYPE_ANY);
 	
@@ -864,10 +974,10 @@ public OnPostThinkPost(iClient)
 	}
 }
 
-InitDayType(iClient, const eDay[Day], String:szDayType[], iMaxLen)
+InitDayType(iClient, const eDay[Day])
 {
-	if(eDay[Day_Flags] & DAY_FLAG_KILL_WEAPON_EQUIPS)
-		KillWeaponEqiuips();
+	if(eDay[Day_Flags] & DAY_FLAG_KILL_WORLD_WEAPONS)
+		KillWorldWeapons();
 	
 	if(eDay[Day_Flags] & DAY_FLAG_STRIP_PRISONERS_WEAPONS)
 		StripTeamsWeapons(TEAM_PRISONERS);
@@ -875,7 +985,17 @@ InitDayType(iClient, const eDay[Day], String:szDayType[], iMaxLen)
 	if(eDay[Day_Flags] & DAY_FLAG_STRIP_GUARDS_WEAPONS)
 		StripTeamsWeapons(TEAM_GUARDS);
 	
-	switch(eDay[Day_Type])
+	if(eDay[Day_Type] == DAY_TYPE_WARDAY)
+	{
+		new iFreezeTime = (g_bIsDayInFreeForAll && eDay[Day_FreezeTime] < 5) ? 5 : eDay[Day_FreezeTime];
+		new iFreezeTeamBits = g_bIsDayInFreeForAll ? (FREEZE_TEAM_GUARDS | FREEZE_TEAM_PRISONERS) : eDay[Day_FreezeTeamBits];
+		InitWarday(iClient, iFreezeTime, eDay[Day_ForwardFreezeEnd], iFreezeTeamBits);
+	}
+}
+
+DayTypeToName(iDayType, String:szDayType[], iMaxLen)
+{
+	switch(iDayType)
 	{
 		case DAY_TYPE_FREEDAY:
 		{
@@ -884,7 +1004,6 @@ InitDayType(iClient, const eDay[Day], String:szDayType[], iMaxLen)
 		case DAY_TYPE_WARDAY:
 		{
 			strcopy(szDayType, iMaxLen, "Warday");
-			InitWarday(iClient, eDay[Day_FreezeTime], eDay[Day_ForwardFreezeEnd], eDay[Day_FreezeTeamBits]);
 		}
 		default:
 		{
@@ -913,14 +1032,101 @@ InitWarday(iClient, iFreezeTime, Handle:hForwardFreezeEnd, iFreezeTeamBits)
 		Forward_OnWardayStart(iClient);
 		Forward_FreezeEnd(hForwardFreezeEnd);
 	}
+	
+	if(g_bIsDayInFreeForAll)
+		TeleportPlayersToFreeForAllPoints();
 }
 
-KillWeaponEqiuips()
+TeleportPlayersToFreeForAllPoints()
+{
+	new iPointIndex1, iPointIndex2;
+	if(!PathPoints_GetFurthestTwoPoints("rebels", iPointIndex1, iPointIndex2))
+	{
+		EndDay();
+		return;
+	}
+	
+	decl Float:fOrigin[3], Float:fAngles[3];
+	
+	decl iClient;
+	new Handle:hClients = CreateArray();
+	for(iClient=1; iClient<=MaxClients; iClient++)
+	{
+		if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
+			continue;
+		
+		PushArrayCell(hClients, iClient);
+	}
+	
+	new iNumClientsSet = 0;
+	new iNumClientsInArray = GetArraySize(hClients);
+	decl iIndex;
+	
+	while((iNumClientsInArray = GetArraySize(hClients)))
+	{
+		iIndex = GetRandomInt(0, iNumClientsInArray-1);
+		iClient = GetArrayCell(hClients, iIndex);
+		RemoveFromArray(hClients, iIndex);
+		
+		iNumClientsSet++;
+		
+		switch(iNumClientsSet)
+		{
+			case 1:
+			{
+				if(!PathPoints_GetPoint("rebels", iPointIndex1, fOrigin, fAngles))
+					continue;
+			}
+			case 2:
+			{
+				if(!PathPoints_GetPoint("rebels", iPointIndex2, fOrigin, fAngles))
+					continue;
+			}
+			default:
+			{
+				if(!PathPoints_GetNextFurthestPoint("rebels", iPointIndex1))
+					continue;
+				
+				if(!PathPoints_GetPoint("rebels", iPointIndex1, fOrigin, fAngles))
+					continue;
+			}
+		}
+		
+		GetClientEyeAngles(iClient, fAngles);
+		fAngles[1] += GetRandomFloat(0.0, 360.0);
+		TeleportEntity(iClient, fOrigin, fAngles, Float:{0.0, 0.0, 0.0});
+	}
+	
+	CloseHandle(hClients);
+}
+
+KillWorldWeapons()
 {
 	new iEnt = -1;
 	while((iEnt = FindEntityByClassname(iEnt, "game_player_equip")) != -1)
 	{
-		AcceptEntityInput(iEnt, "Kill");
+		AcceptEntityInput(iEnt, "KillHierarchy");
+	}
+	
+	// Kill weapons on the ground.
+	decl String:szClassName[8];
+	new iCount = GetEntityCount();
+	for(iEnt=1; iEnt<=iCount; iEnt++)
+	{
+		if(!IsValidEntity(iEnt))
+			continue;
+		
+		if(!GetEntityClassname(iEnt, szClassName, sizeof(szClassName)))
+			continue;
+		
+		szClassName[7] = '\x0';
+		if(!StrEqual(szClassName, "weapon_"))
+			continue;
+		
+		if(GetEntPropEnt(iEnt, Prop_Data, "m_hOwnerEntity") != -1)
+			continue;
+		
+		AcceptEntityInput(iEnt, "KillHierarchy");
 	}
 }
 
@@ -1024,12 +1230,13 @@ Forward_FreezeEnd(Handle:hForwardFreezeEnd)
 	Call_Finish(result);
 }
 
-Forward_OnStart(iClient, DayType:iDayType)
+Forward_OnStart(iClient, DayType:iDayType, bool:bIsFreeForAll)
 {
 	new result;
 	Call_StartForward(g_hFwd_OnStart);
 	Call_PushCell(iClient);
 	Call_PushCell(iDayType);
+	Call_PushCell(bIsFreeForAll);
 	Call_Finish(result);
 }
 
@@ -1075,6 +1282,9 @@ bool:EndDay(iClient=0)
 	
 	if(g_iDayIDToIndex[g_iCurrentDayID] == INVALID_DAY_INDEX)
 		return false;
+	
+	if(cvar_mp_teammates_are_enemies != INVALID_HANDLE)
+		SetConVarBool(cvar_mp_teammates_are_enemies, false, true);
 	
 	g_iWardayFreezeTime = 0;
 	FreezePlayers(false);
@@ -1270,7 +1480,7 @@ DisplayMenu_DaySelect(iClient, DayType:iDayType)
 		default: return;
 	}
 	
-	decl eDay[Day], String:szInfo[6];
+	decl eDay[Day], String:szInfo[6], bool:bForcedFFA;
 	for(new i=0; i<GetArraySize(g_aDays); i++)
 	{
 		GetArrayArray(g_aDays, i, eDay);
@@ -1280,7 +1490,9 @@ DisplayMenu_DaySelect(iClient, DayType:iDayType)
 		
 		IntToString(eDay[Day_ID], szInfo, sizeof(szInfo));
 		
-		if(eDay[Day_Enabled])
+		bForcedFFA = bool:(eDay[Day_Flags] & DAY_FLAG_FORCE_FREE_FOR_ALL);
+		
+		if(eDay[Day_Enabled] && (!bForcedFFA || (bForcedFFA && HasEnoughRebelPointsForFreeForAll())))
 			AddMenuItem(hMenu, szInfo, eDay[Day_Name]);
 		else
 			AddMenuItem(hMenu, szInfo, eDay[Day_Name], ITEMDRAW_DISABLED);
@@ -1325,12 +1537,71 @@ public MenuHandle_DaySelect(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 	decl String:szInfo[6];
 	GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
 	
-	StartDay(iParam1, StringToInt(szInfo));
+	new iDayID = StringToInt(szInfo);
+	
+	new bool:bForceFFA = bool:(GetDayFlags(iDayID) & DAY_FLAG_FORCE_FREE_FOR_ALL);
+	if(!bForceFFA && CanDayBeFreeForAll(iDayID))
+	{
+		DisplayMenu_DaySelectFreeForAll(iParam1, iDayID);
+		return;
+	}
+	
+	StartDay(iParam1, iDayID, bForceFFA);
+}
+
+DisplayMenu_DaySelectFreeForAll(iClient, iDayID)
+{
+	if(UltJB_Warden_GetWarden() != iClient)
+		return;
+	
+	new Handle:hMenu = CreateMenu(MenuHandle_DaySelectFreeForAll);
+	SetMenuTitle(hMenu, "Select mode");
+	
+	decl String:szInfo[12];
+	FormatEx(szInfo, sizeof(szInfo), "%d/0", iDayID);
+	AddMenuItem(hMenu, szInfo, "Team play");
+	
+	FormatEx(szInfo, sizeof(szInfo), "%d/1", iDayID);
+	AddMenuItem(hMenu, szInfo, "Free-for-all");
+	
+	if(!DisplayMenu(hMenu, iClient, 0))
+	{
+		PrintToChat(iClient, "[SM] Error showing free for all menu.");
+		DisplayMenu_DayTypeSelect(iClient);
+	}
+}
+
+public MenuHandle_DaySelectFreeForAll(Handle:hMenu, MenuAction:action, iParam1, iParam2)
+{
+	if(action == MenuAction_End)
+	{
+		CloseHandle(hMenu);
+		return;
+	}
+	
+	if(action != MenuAction_Select)
+		return;
+	
+	if(UltJB_Warden_GetWarden() != iParam1)
+		return;
+	
+	if(HasSelectTimeExpired())
+	{
+		ShowSelectTimeExpiredMessage(iParam1);
+		return;
+	}
+	
+	decl String:szInfo[24];
+	GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
+	
+	decl String:szExplode[2][12];
+	ExplodeString(szInfo, "/", szExplode, sizeof(szExplode), sizeof(szExplode[]));
+	
+	StartDay(iParam1, StringToInt(szExplode[0]), bool:StringToInt(szExplode[1]));
 }
 
 DisplayMenu_EditTypeSelect(iClient)
 {
-	
 	new Handle:hMenu = CreateMenu(MenuHandle_EditTypeSelect);
 	SetMenuTitle(hMenu, "Custom Day");
 	
@@ -1339,13 +1610,11 @@ DisplayMenu_EditTypeSelect(iClient)
 	IntToString(_:DAY_TYPE_FREEDAY, szInfo, sizeof(szInfo));
 	AddMenuItem(hMenu, szInfo, "Freeday");
 	
-	
 	IntToString(_:DAY_TYPE_WARDAY, szInfo, sizeof(szInfo));
 	AddMenuItem(hMenu, szInfo, "Warday");
 	
 	if(!DisplayMenu(hMenu, iClient, 0))
 		PrintToChat(iClient, "[SM] There are no day types.");
-
 }
 
 DisplayMenu_EditDay(iClient, DayType:iDayType)
