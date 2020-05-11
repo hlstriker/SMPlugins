@@ -30,9 +30,6 @@ new const DayType:DAY_TYPE = DAY_TYPE_WARDAY;
 
 new g_iThisDayID;
 
-new Handle:cvar_mp_teammates_are_enemies;
-
-new const String:SZ_SOUND_ALARM[] = "sound/survival/rocketalarmclose.wav";
 new const String:SZ_SOUND_WEAPONBOX[] = "sound/physics/wood/wood_box_impact_hard1.wav";
 new const String:SZ_SOUND_UNFREEZE[] = "sound/music/finalfight.wav";
 
@@ -48,136 +45,45 @@ new const FSOLID_TRIGGER = 0x0008;
 public OnPluginStart()
 {
 	CreateConVar("warday_hunger_games_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
-	
-	HookEvent("round_start", Event_RoundStart_Post, EventHookMode_PostNoCopy);
 }
 
 public OnMapStart()
 {
-	PrecacheSound(SZ_SOUND_ALARM[6]);
 	PrecacheSound(SZ_SOUND_WEAPONBOX[6]);
 	PrecacheSound(SZ_SOUND_UNFREEZE[6]);
 	PrecacheModel(MODEL_WEAPON_BOX);
-}
-
-public OnConfigsExecuted()
-{
-	cvar_mp_teammates_are_enemies = FindConVar("mp_teammates_are_enemies");
-	
-	/*
-	if(cvar_mp_teammates_are_enemies != INVALID_HANDLE)
-	{
-		new iCvarFlags = GetConVarFlags(cvar_mp_teammates_are_enemies);
-		iCvarFlags &= ~FCVAR_NOTIFY;
-		SetConVarFlags(cvar_mp_teammates_are_enemies, iCvarFlags);
-	}
-	*/
 }
 
 public UltJB_Day_OnRegisterReady()
 {
 	g_iThisDayID = UltJB_Day_RegisterDay(DAY_NAME, DAY_TYPE,
 		DAY_FLAG_ALLOW_WEAPON_PICKUPS | DAY_FLAG_ALLOW_WEAPON_DROPS | DAY_FLAG_STRIP_GUARDS_WEAPONS | DAY_FLAG_STRIP_PRISONERS_WEAPONS | 
-		DAY_FLAG_KILL_WEAPON_EQUIPS | DAY_FLAG_DISABLE_PRISONERS_RADAR | DAY_FLAG_DISABLE_GUARDS_RADAR,
-		OnDayStart, OnDayEnd, OnFreezeEnd);
+		DAY_FLAG_KILL_WORLD_WEAPONS | DAY_FLAG_DISABLE_PRISONERS_RADAR | DAY_FLAG_DISABLE_GUARDS_RADAR | DAY_FLAG_FORCE_FREE_FOR_ALL,
+		OnDayStart, _, OnFreezeEnd);
 	
 	UltJB_Day_SetFreezeTime(g_iThisDayID, FREEZE_TIME);
 	UltJB_Day_SetFreezeTeams(g_iThisDayID, FREEZE_TEAM_GUARDS | FREEZE_TEAM_PRISONERS);
 }
 
-public Action:Event_RoundStart_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
-{
-	// Need at least X amount of rebels path points to activate this day.
-	if(g_iThisDayID)
-		UltJB_Day_SetEnabled(g_iThisDayID, (PathPoints_GetPointCount("rebels") >= 90) ? true : false);
-}
-
 public OnDayStart(iClient)
 {
-	if(cvar_mp_teammates_are_enemies != INVALID_HANDLE)
-		SetConVarBool(cvar_mp_teammates_are_enemies, true, true);
-	
-	CPrintToChatAll("{red}WARNING: {lightred}Free for all activated. Kill teammates too!");
 	CPrintToChatAll("{red}WARNING: {lightred}Find and run into a wooden box to get a weapon.");
 	
-	EmitSoundToAll(SZ_SOUND_ALARM[6], _, _, SNDLEVEL_NONE);
-	
-	TeleportPlayersToPoints();
-	SpawnWeaponBoxes();
+	// Spawn the weapon boxes on the next frame since we need it to happen after players are set to their path point locations.
+	RequestFrame(OnDayStartNextFrame);
 }
 
-public OnDayEnd(iClient)
+public OnDayStartNextFrame(any:data)
 {
-	if(cvar_mp_teammates_are_enemies != INVALID_HANDLE)
-		SetConVarBool(cvar_mp_teammates_are_enemies, false, true);
+	if(!UltJB_Day_GetCurrentDayID())
+		return;
+	
+	SpawnWeaponBoxes();
 }
 
 public OnFreezeEnd()
 {
 	EmitSoundToAll(SZ_SOUND_UNFREEZE[6], _, _, SNDLEVEL_NONE);
-}
-
-TeleportPlayersToPoints()
-{
-	new iPointIndex1, iPointIndex2;
-	if(!PathPoints_GetFurthestTwoPoints("rebels", iPointIndex1, iPointIndex2))
-	{
-		// TODO: Force end day.
-		return;
-	}
-	
-	decl Float:fOrigin[3], Float:fAngles[3];
-	
-	decl iClient;
-	new Handle:hClients = CreateArray();
-	for(iClient=1; iClient<=MaxClients; iClient++)
-	{
-		if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
-			continue;
-		
-		PushArrayCell(hClients, iClient);
-	}
-	
-	new iNumClientsSet = 0;
-	new iNumClientsInArray = GetArraySize(hClients);
-	decl iIndex;
-	
-	while((iNumClientsInArray = GetArraySize(hClients)))
-	{
-		iIndex = GetRandomInt(0, iNumClientsInArray-1);
-		iClient = GetArrayCell(hClients, iIndex);
-		RemoveFromArray(hClients, iIndex);
-		
-		iNumClientsSet++;
-		
-		switch(iNumClientsSet)
-		{
-			case 1:
-			{
-				if(!PathPoints_GetPoint("rebels", iPointIndex1, fOrigin, fAngles))
-					continue;
-			}
-			case 2:
-			{
-				if(!PathPoints_GetPoint("rebels", iPointIndex2, fOrigin, fAngles))
-					continue;
-			}
-			default:
-			{
-				if(!PathPoints_GetNextFurthestPoint("rebels", iPointIndex1))
-					continue;
-				
-				if(!PathPoints_GetPoint("rebels", iPointIndex1, fOrigin, fAngles))
-					continue;
-			}
-		}
-		
-		GetClientEyeAngles(iClient, fAngles);
-		fAngles[1] += GetRandomFloat(0.0, 360.0);
-		TeleportEntity(iClient, fOrigin, fAngles, Float:{0.0, 0.0, 0.0});
-	}
-	
-	CloseHandle(hClients);
 }
 
 SpawnWeaponBoxes()
@@ -280,6 +186,8 @@ bool:IsPlayer(iEnt)
 SpawnWeaponEnt(iWeaponBox)
 {
 	new iFlags[NUM_WPN_CATS];
+	iFlags[WPN_CAT_RIFLES] = WPN_FLAGS_DISABLE_RIFLE_AWP | WPN_FLAGS_DISABLE_RIFLE_G3SG1 | WPN_FLAGS_DISABLE_RIFLE_SCAR20;
+	
 	new iWeaponID = UltJB_Weapons_GetRandomWeaponFromFlags(iFlags);
 	if(iWeaponID == _:CSWeapon_NONE)
 		return -1;
