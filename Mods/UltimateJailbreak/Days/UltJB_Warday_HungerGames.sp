@@ -12,7 +12,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Hunger Games";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -98,6 +98,7 @@ public OnDayStart(iClient)
 		SetConVarBool(cvar_mp_teammates_are_enemies, true, true);
 	
 	CPrintToChatAll("{red}WARNING: {lightred}Free for all activated. Kill teammates too!");
+	CPrintToChatAll("{red}WARNING: {lightred}Find and run into a wooden box to get a weapon.");
 	
 	EmitSoundToAll(SZ_SOUND_ALARM[6], _, _, SNDLEVEL_NONE);
 	
