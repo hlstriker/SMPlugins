@@ -6,12 +6,13 @@
 #include <hls_color_chat>
 #include <emitsoundany>
 #include "Includes/ultjb_last_request"
+#include "Includes/ultjb_days"
 #include "../../Libraries/TimedPunishments/timed_punishments"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Voice Chat";
-new const String:PLUGIN_VERSION[] = "1.16";
+new const String:PLUGIN_VERSION[] = "1.17";
 
 public Plugin:myinfo =
 {
@@ -108,6 +109,12 @@ public Action:Timer_UnmutePrisoners(Handle:hTimer)
 	UnmuteAllAlivePlayers();
 	
 	CPrintToChatAll("{green}[{lightred}SM{green}] {olive}The prisoners may now speak quietly.");
+}
+
+public UltJB_Day_OnStart(iClient, DayType:iDayType)
+{
+	CancelUnmuteTimer();
+	UnmuteAllAlivePlayers();
 }
 
 public Action:Event_RoundEnd_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
