@@ -7,7 +7,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Weapon Selection";
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
 {
@@ -33,7 +33,8 @@ public OnPluginStart()
 
 public UltJB_Day_OnRegisterReady()
 {
-	UltJB_Day_RegisterDay(DAY_NAME, DAY_TYPE, DAY_FLAG_STRIP_PRISONERS_WEAPONS | DAY_FLAG_STRIP_GUARDS_WEAPONS | DAY_FLAG_GIVE_GUARDS_INFINITE_AMMO | DAY_FLAG_KILL_WORLD_WEAPONS, OnDayStart, OnDayEnd, OnFreezeEnd);
+	new iDayID = UltJB_Day_RegisterDay(DAY_NAME, DAY_TYPE, DAY_FLAG_STRIP_PRISONERS_WEAPONS | DAY_FLAG_STRIP_GUARDS_WEAPONS | DAY_FLAG_GIVE_GUARDS_INFINITE_AMMO | DAY_FLAG_KILL_WORLD_WEAPONS, OnDayStart, OnDayEnd, OnFreezeEnd);
+	UltJB_Day_AllowFreeForAll(iDayID, true);
 }
 
 public OnDayStart(iClient)
@@ -52,8 +53,8 @@ public OnWeaponSelected_Success(iClient, iWeaponID, const iFlags[NUM_WPN_CATS])
 	new String:szName[64];
 	UltJB_Weapons_GetEntNameFromWeaponID(iWeaponID, szName, sizeof(szName));
 	
-	new String:szMessage[512];
-	Format(szMessage, sizeof(szMessage), "%N selected weapon %s.", iClient, szName);
+	decl String:szMessage[128];
+	FormatEx(szMessage, sizeof(szMessage), "%N selected weapon %s.", iClient, szName);
 	UltJB_Logger_LogEvent(szMessage, iClient, 0, LOGTYPE_ANY);
 	
 	//if(iWeaponID == _:CSWeapon_TASER)

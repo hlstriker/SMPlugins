@@ -17,7 +17,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: RPG";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -161,6 +161,8 @@ new const String:g_szBlockFallDamageSounds[][] =
 new Handle:cvar_rpg_max_damage;
 new Handle:cvar_rpg_guard_damage_multiplier;
 
+new bool:g_bIsFFA;
+
 
 public OnPluginStart()
 {
@@ -220,7 +222,8 @@ public OnMapStart()
 
 public UltJB_Day_OnRegisterReady()
 {
-	UltJB_Day_RegisterDay(DAY_NAME, DAY_TYPE, DAY_FLAG_STRIP_PRISONERS_WEAPONS | DAY_FLAG_STRIP_GUARDS_WEAPONS | DAY_FLAG_KILL_WORLD_WEAPONS, OnDayStart, OnDayEnd, OnFreezeEnd);
+	new iDayID = UltJB_Day_RegisterDay(DAY_NAME, DAY_TYPE, DAY_FLAG_STRIP_PRISONERS_WEAPONS | DAY_FLAG_STRIP_GUARDS_WEAPONS | DAY_FLAG_KILL_WORLD_WEAPONS, OnDayStart, OnDayEnd, OnFreezeEnd);
+	UltJB_Day_AllowFreeForAll(iDayID, true);
 }
 
 public UltJB_Day_OnSpawnPost(iClient)
@@ -268,7 +271,7 @@ public Action:OnNormalSound(iClients[64], &iNumClients, String:szSample[PLATFORM
 
 public OnDayStart(iClient)
 {
-	//
+	g_bIsFFA = UltJB_Day_IsFreeForAll();
 }
 
 public OnDayEnd(iClientEnder)
@@ -818,7 +821,7 @@ TryDamageClient(iClient, iRocket, const Float:fDist, bool:bIsDirectHit)
 	}
 	else
 	{
-		if(GetClientTeam(iClient) == GetClientTeam(iOwner))
+		if(!g_bIsFFA && GetClientTeam(iClient) == GetClientTeam(iOwner))
 			return;
 		
 		if(bIsDirectHit && GetEntPropEnt(iClient, Prop_Send, "m_hGroundEntity") == -1)
@@ -830,7 +833,7 @@ TryDamageClient(iClient, iRocket, const Float:fDist, bool:bIsDirectHit)
 			
 			PlaySound_Airshot(iOwner);
 		}
-		else if(GetClientTeam(iOwner) == TEAM_GUARDS)
+		else if(!g_bIsFFA && GetClientTeam(iOwner) == TEAM_GUARDS)
 		{
 			fDamage *= GetConVarFloat(cvar_rpg_guard_damage_multiplier);
 		}
