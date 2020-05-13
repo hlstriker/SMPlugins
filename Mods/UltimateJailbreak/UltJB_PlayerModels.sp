@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Player Models";
-new const String:PLUGIN_VERSION[] = "1.17";
+new const String:PLUGIN_VERSION[] = "1.18";
 
 public Plugin:myinfo =
 {
@@ -157,6 +157,9 @@ public OnPluginStart()
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
 {
 	RegPluginLibrary("ultjb_player_models");
+	CreateNative("UltJB_PlayerModels_ApplyGuardModel", _UltJB_PlayerModels_ApplyGuardModel);
+	CreateNative("UltJB_PlayerModels_ApplyPrisonerModel", _UltJB_PlayerModels_ApplyPrisonerModel);
+	
 	return APLRes_Success;
 }
 
@@ -226,6 +229,17 @@ public OnMapStart()
 	PrecacheModel(PLAYER_MODEL_CT);
 }
 
+public _UltJB_PlayerModels_ApplyGuardModel(Handle:hPlugin, iNumParams)
+{
+	return ApplyGuardModel(GetNativeCell(1));
+}
+
+public _UltJB_PlayerModels_ApplyPrisonerModel(Handle:hPlugin, iNumParams)
+{
+	new iClient = GetNativeCell(1);
+	return ApplyPrisonerModel(iClient, GetHelpModelIndex(iClient));
+}
+
 public UltJB_Settings_OnSpawnPost(iClient)
 {
 	new iHelpModelIndex = GetHelpModelIndex(iClient);
@@ -242,44 +256,14 @@ public UltJB_Settings_OnSpawnPost(iClient)
 	{
 		case TEAM_PRISONERS:
 		{
-			decl iIndex;
-			if(iHelpModelIndex != -1)
-			{
-				iIndex = iHelpModelIndex;
-				UltJB_LR_SetClientsHealth(iClient, GetEntProp(iClient, Prop_Data, "m_iHealth") + GetHelpModelBonusHealth(iHelpModelIndex));
-			}
-			else
-			{
-				iIndex = GetRandomInt(NUM_HELP_MODELS, sizeof(PLAYER_MODELS_T)-1);
-			}
+			ApplyPrisonerModel(iClient, iHelpModelIndex);
 			
-			if(g_bLibLoaded_ModelSkinManager)
-			{
-				#if defined _model_skin_manager_included
-				MSManager_SetPlayerModel(iClient, PLAYER_MODELS_T[iIndex]);
-				#else
-				SetEntityModel(iClient, PLAYER_MODELS_T[iIndex]);
-				#endif
-			}
-			else
-			{
-				SetEntityModel(iClient, PLAYER_MODELS_T[iIndex]);
-			}
+			if(iHelpModelIndex != -1)
+				UltJB_LR_SetClientsHealth(iClient, GetEntProp(iClient, Prop_Data, "m_iHealth") + GetHelpModelBonusHealth(iHelpModelIndex));
 		}
 		case TEAM_GUARDS:
 		{
-			if(g_bLibLoaded_ModelSkinManager)
-			{
-				#if defined _model_skin_manager_included
-				MSManager_SetPlayerModel(iClient, PLAYER_MODEL_CT);
-				#else
-				SetEntityModel(iClient, PLAYER_MODEL_CT);
-				#endif
-			}
-			else
-			{
-				SetEntityModel(iClient, PLAYER_MODEL_CT);
-			}
+			ApplyGuardModel(iClient);
 		}
 	}
 	
@@ -293,6 +277,52 @@ public UltJB_Settings_OnSpawnPost(iClient)
 	}
 	
 	Forward_OnApplied(iClient);
+}
+
+ApplyPrisonerModel(iClient, iHelpModelIndex=-1)
+{
+	decl iIndex;
+	if(iHelpModelIndex != -1)
+	{
+		iIndex = iHelpModelIndex;
+	}
+	else
+	{
+		iIndex = GetRandomInt(NUM_HELP_MODELS, sizeof(PLAYER_MODELS_T)-1);
+	}
+	
+	if(g_bLibLoaded_ModelSkinManager)
+	{
+		#if defined _model_skin_manager_included
+		MSManager_SetPlayerModel(iClient, PLAYER_MODELS_T[iIndex]);
+		#else
+		SetEntityModel(iClient, PLAYER_MODELS_T[iIndex]);
+		#endif
+	}
+	else
+	{
+		SetEntityModel(iClient, PLAYER_MODELS_T[iIndex]);
+	}
+	
+	return true;
+}
+
+ApplyGuardModel(iClient)
+{
+	if(g_bLibLoaded_ModelSkinManager)
+	{
+		#if defined _model_skin_manager_included
+		MSManager_SetPlayerModel(iClient, PLAYER_MODEL_CT);
+		#else
+		SetEntityModel(iClient, PLAYER_MODEL_CT);
+		#endif
+	}
+	else
+	{
+		SetEntityModel(iClient, PLAYER_MODEL_CT);
+	}
+	
+	return true;
 }
 
 Forward_OnApplied(iClient)
