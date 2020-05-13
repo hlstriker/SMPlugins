@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.21";
+new const String:PLUGIN_VERSION[] = "1.22";
 
 public Plugin:myinfo =
 {
@@ -934,13 +934,25 @@ bool:ShouldHookPostThinkPost()
 	if(eDay[Day_Flags] & DAY_FLAG_DISABLE_GUARDS_RADAR)
 		return true;
 	
+	if(g_bIsDayInFreeForAll)
+		return true;
+	
 	return false;
 }
 
 public OnPostThinkPost(iClient)
 {
 	if(!IsDayInProgress())
+	{
+		SDKUnhook(iClient, SDKHook_PostThinkPost, OnPostThinkPost);
 		return;
+	}
+	
+	if(g_bIsDayInFreeForAll)
+	{
+		RadarUnspot(iClient);
+		return;
+	}
 	
 	decl eDay[Day];
 	GetArrayArray(g_aDays, g_iDayIDToIndex[g_iCurrentDayID], eDay);
@@ -950,28 +962,24 @@ public OnPostThinkPost(iClient)
 		case TEAM_GUARDS:
 		{
 			if(eDay[Day_Flags] & DAY_FLAG_DISABLE_PRISONERS_RADAR)
-			{
-				SetEntProp(iClient, Prop_Send, "m_bSpotted", 0);
-				SetEntProp(iClient, Prop_Send, "m_bSpottedByMask", 0, 4, 0);
-				SetEntProp(iClient, Prop_Send, "m_bSpottedByMask", 0, 4, 1);
-				
-				if(g_iOffset_CCSPlayer_m_bSpotted > 0)
-					SetEntData(iClient, g_iOffset_CCSPlayer_m_bSpotted - 4, 0); // m_bCanBeSpotted address = m_bSpotted - 4
-			}
+				RadarUnspot(iClient);
 		}
 		case TEAM_PRISONERS:
 		{
 			if(eDay[Day_Flags] & DAY_FLAG_DISABLE_GUARDS_RADAR)
-			{
-				SetEntProp(iClient, Prop_Send, "m_bSpotted", 0);
-				SetEntProp(iClient, Prop_Send, "m_bSpottedByMask", 0, 4, 0);
-				SetEntProp(iClient, Prop_Send, "m_bSpottedByMask", 0, 4, 1);
-				
-				if(g_iOffset_CCSPlayer_m_bSpotted > 0)
-					SetEntData(iClient, g_iOffset_CCSPlayer_m_bSpotted - 4, 0); // m_bCanBeSpotted address = m_bSpotted - 4
-			}
+				RadarUnspot(iClient);
 		}
 	}
+}
+
+RadarUnspot(iClient)
+{
+	SetEntProp(iClient, Prop_Send, "m_bSpotted", 0);
+	SetEntProp(iClient, Prop_Send, "m_bSpottedByMask", 0, 4, 0);
+	SetEntProp(iClient, Prop_Send, "m_bSpottedByMask", 0, 4, 1);
+	
+	if(g_iOffset_CCSPlayer_m_bSpotted > 0)
+		SetEntData(iClient, g_iOffset_CCSPlayer_m_bSpotted - 4, 0); // m_bCanBeSpotted address = m_bSpotted - 4
 }
 
 InitDayType(iClient, const eDay[Day])
