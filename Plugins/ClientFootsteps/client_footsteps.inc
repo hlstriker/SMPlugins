@@ -1,4 +1,4 @@
-#if defined _client_air_accelerate
+#if defined _client_footsteps
  #endinput
 #endif
 #define _client_footsteps
