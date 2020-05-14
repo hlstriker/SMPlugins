@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.22";
+new const String:PLUGIN_VERSION[] = "1.23";
 
 public Plugin:myinfo =
 {
@@ -887,6 +887,20 @@ bool:StartDay(iClient, iDayID, bool:bUseFreeForAll=false)
 		EmitSoundToAll(SZ_SOUND_ALARM[6], _, _, SNDLEVEL_NONE);
 	}
 	
+	new bool:bHookPostThink = ShouldHookPostThinkPost();
+	
+	for(new iPlayer=1; iPlayer<=MaxClients; iPlayer++)
+	{
+		if(!IsClientInGame(iPlayer))
+			continue;
+		
+		if(bHookPostThink)
+			SDKHook(iPlayer, SDKHook_PostThinkPost, OnPostThinkPost);
+		
+		SetEntProp(iPlayer, Prop_Send, "m_ArmorValue", 0);
+		SetEntProp(iPlayer, Prop_Send, "m_bHasHelmet", 0);
+	}
+	
 	Call_StartForward(eDay[Day_ForwardStart]);
 	Call_PushCell(iClient);
 	
@@ -905,17 +919,6 @@ bool:StartDay(iClient, iDayID, bool:bUseFreeForAll=false)
 	decl String:szMessage[256];
 	Format(szMessage, sizeof(szMessage), "%N has started %s - %s.", iClient, szDayType, eDay[Day_Name]);
 	UltJB_Logger_LogEvent(szMessage, iClient, 0, LOGTYPE_ANY);
-	
-	if(ShouldHookPostThinkPost())
-	{
-		for(new iPlayer=1; iPlayer<=MaxClients; iPlayer++)
-		{
-			if(!IsClientInGame(iPlayer))
-				continue;
-			
-			SDKHook(iPlayer, SDKHook_PostThinkPost, OnPostThinkPost);
-		}
-	}
 	
 	return true;
 }
