@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Player Models";
-new const String:PLUGIN_VERSION[] = "1.18";
+new const String:PLUGIN_VERSION[] = "1.19";
 
 public Plugin:myinfo =
 {
@@ -242,27 +242,35 @@ public _UltJB_PlayerModels_ApplyPrisonerModel(Handle:hPlugin, iNumParams)
 
 public UltJB_Settings_OnSpawnPost(iClient)
 {
-	new iHelpModelIndex = GetHelpModelIndex(iClient);
-	
-	if(iHelpModelIndex == -1 && g_bLibLoaded_ItemPlayerModels)
-	{
-		#if defined _donatoritem_player_models_included
-		if(DItemPlayerModels_HasUsableModelActivated(iClient))
-			return;
-		#endif
-	}
-	
 	switch(GetClientTeam(iClient))
 	{
 		case TEAM_PRISONERS:
 		{
-			ApplyPrisonerModel(iClient, iHelpModelIndex);
+			new iHelpModelIndex = GetHelpModelIndex(iClient);
 			
 			if(iHelpModelIndex != -1)
 				UltJB_LR_SetClientsHealth(iClient, GetEntProp(iClient, Prop_Data, "m_iHealth") + GetHelpModelBonusHealth(iHelpModelIndex));
+			
+			if(g_bLibLoaded_ItemPlayerModels)
+			{
+				#if defined _donatoritem_player_models_included
+				if(DItemPlayerModels_HasUsableModelActivated(iClient))
+					return;
+				#endif
+			}
+			
+			ApplyPrisonerModel(iClient, iHelpModelIndex);
 		}
 		case TEAM_GUARDS:
 		{
+			if(g_bLibLoaded_ItemPlayerModels)
+			{
+				#if defined _donatoritem_player_models_included
+				if(DItemPlayerModels_HasUsableModelActivated(iClient))
+					return;
+				#endif
+			}
+			
 			ApplyGuardModel(iClient);
 		}
 	}
