@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.23";
+new const String:PLUGIN_VERSION[] = "1.24";
 
 public Plugin:myinfo =
 {
@@ -998,7 +998,7 @@ InitDayType(iClient, const eDay[Day])
 	
 	if(eDay[Day_Type] == DAY_TYPE_WARDAY)
 	{
-		new iFreezeTime = (g_bIsDayInFreeForAll && eDay[Day_FreezeTime] < 5) ? 5 : eDay[Day_FreezeTime];
+		new iFreezeTime = g_bIsDayInFreeForAll ? 5 : eDay[Day_FreezeTime];
 		new iFreezeTeamBits = g_bIsDayInFreeForAll ? (FREEZE_TEAM_GUARDS | FREEZE_TEAM_PRISONERS) : eDay[Day_FreezeTeamBits];
 		InitWarday(iClient, iFreezeTime, eDay[Day_ForwardFreezeEnd], iFreezeTeamBits);
 	}
