@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.24";
+new const String:PLUGIN_VERSION[] = "1.25";
 
 public Plugin:myinfo =
 {
@@ -254,7 +254,13 @@ Forward_OnSpawnPost(iClient)
 
 public Action:OnWeaponCanUse(iClient, iWeapon)
 {
+	if(!IsDayInProgress())
+		return Plugin_Continue;
+	
 	if(ShouldBlockWeaponGain(iClient, iWeapon))
+		return Plugin_Handled;
+	
+	if(ShouldBlockWeaponPickup())
 		return Plugin_Handled;
 	
 	return Plugin_Continue;
@@ -262,7 +268,16 @@ public Action:OnWeaponCanUse(iClient, iWeapon)
 
 public Action:CS_OnBuyCommand(iClient, const String:szWeaponName[])
 {
+	if(!IsDayInProgress())
+		return Plugin_Continue;
+	
 	if(ShouldBlockWeaponGain(iClient, 0))
+		return Plugin_Handled;
+	
+	if(ShouldBlockWeaponPickup())
+		return Plugin_Handled;
+	
+	if(ShouldBlockWeaponBuy())
 		return Plugin_Handled;
 	
 	return Plugin_Continue;
@@ -270,9 +285,6 @@ public Action:CS_OnBuyCommand(iClient, const String:szWeaponName[])
 
 bool:ShouldBlockWeaponGain(iClient, iWeapon)
 {
-	if(!IsDayInProgress())
-		return false;
-	
 	if(!g_bInDaysSpawnPostForward[iClient] && iWeapon > 0 && g_iSpawnedTick[iClient] == GetGameTickCount())
 	{
 		UltJB_Settings_StripWeaponFromOwner(iWeapon);
@@ -283,13 +295,32 @@ bool:ShouldBlockWeaponGain(iClient, iWeapon)
 	if(GetEntityMoveType(iClient) == MOVETYPE_NONE)
 		return true;
 	
-	decl eDay[Day];
+	return false;
+}
+
+bool:ShouldBlockWeaponPickup()
+{
+	static eDay[Day];
 	GetArrayArray(g_aDays, g_iDayIDToIndex[g_iCurrentDayID], eDay);
 	
 	if(eDay[Day_Flags] & DAY_FLAG_ALLOW_WEAPON_PICKUPS)
 		return false;
 	
 	return true;
+}
+
+bool:ShouldBlockWeaponBuy()
+{
+	static eDay[Day];
+	GetArrayArray(g_aDays, g_iDayIDToIndex[g_iCurrentDayID], eDay);
+	
+	if(eDay[Day_Flags] & DAY_FLAG_DISABLE_WEAPON_BUYING)
+		return true;
+	
+	if(g_bIsDayInFreeForAll)
+		return true;
+	
+	return false;
 }
 
 public Action:OnWeaponDrop(iClient, const String:szCommand[], iArgCount)
