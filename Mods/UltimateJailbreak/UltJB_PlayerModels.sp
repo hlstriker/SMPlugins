@@ -8,13 +8,12 @@
 //#include "../Swoobles 5.0/Plugins/StoreItems/Equipment/item_equipment"
 #include "../../Plugins/DonatorItems/PlayerModels/donatoritem_player_models"
 #include "../../Libraries/ModelSkinManager/model_skin_manager"
-#include "../../Libraries/DatabaseUserStats/database_user_stats"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Player Models";
-new const String:PLUGIN_VERSION[] = "1.19";
+new const String:PLUGIN_VERSION[] = "1.20";
 
 public Plugin:myinfo =
 {
@@ -127,13 +126,10 @@ new const String:PLAYER_MODEL_T_FILES[][] =
 new bool:g_bLibLoaded_ItemPlayerModels;
 new bool:g_bLibLoaded_ItemEquipment;
 new bool:g_bLibLoaded_ModelSkinManager;
-new bool:g_bLibLoaded_DatabaseUserStats;
 
 new Handle:g_hFwd_OnApplied;
 
 #define NUM_HELP_MODELS	2
-new Handle:cvar_help1_seconds;
-new Handle:cvar_help2_seconds;
 new Handle:cvar_help1_bonushealth;
 new Handle:cvar_help2_bonushealth;
 
@@ -141,12 +137,6 @@ new Handle:cvar_help2_bonushealth;
 public OnPluginStart()
 {
 	CreateConVar("ultjb_player_models_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
-	
-	// 15 hours default
-	cvar_help1_seconds = CreateConVar("ultjb_playermodels_help1_seconds", "54000", "The number of seconds to use help model 1.", _, true, 0.0);
-	
-	// 30 hours default
-	cvar_help2_seconds = CreateConVar("ultjb_playermodels_help2_seconds", "108000", "The number of seconds to use help model 2.", _, true, 0.0);
 	
 	cvar_help1_bonushealth = CreateConVar("ultjb_playermodels_help1_bonushealth", "30", "The amount of bonus health to give to help model 1.", _, true, 0.0);
 	cvar_help2_bonushealth = CreateConVar("ultjb_playermodels_help2_bonushealth", "15", "The amount of bonus health to give to help model 2.", _, true, 0.0);
@@ -168,7 +158,6 @@ public OnAllPluginsLoaded()
 	g_bLibLoaded_ItemPlayerModels = LibraryExists("donatoritem_player_models");
 	g_bLibLoaded_ItemEquipment = LibraryExists("item_equipment");
 	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
-	g_bLibLoaded_DatabaseUserStats = LibraryExists("database_user_stats");
 }
 
 public OnLibraryAdded(const String:szName[])
@@ -185,10 +174,6 @@ public OnLibraryAdded(const String:szName[])
 	{
 		g_bLibLoaded_ModelSkinManager = true;
 	}
-	else if(StrEqual(szName, "database_user_stats"))
-	{
-		g_bLibLoaded_DatabaseUserStats = true;
-	}
 }
 
 public OnLibraryRemoved(const String:szName[])
@@ -204,10 +189,6 @@ public OnLibraryRemoved(const String:szName[])
 	else if(StrEqual(szName, "model_skin_manager"))
 	{
 		g_bLibLoaded_ModelSkinManager = false;
-	}
-	else if(StrEqual(szName, "database_user_stats"))
-	{
-		g_bLibLoaded_DatabaseUserStats = false;
 	}
 }
 
@@ -343,23 +324,7 @@ Forward_OnApplied(iClient)
 
 GetHelpModelIndex(iClient)
 {
-	if(!g_bLibLoaded_DatabaseUserStats)
-		return -1;
-	
-	#if defined _database_user_stats_included
-	if(!DBUserStats_HasServerStatsLoaded(iClient))
-		return -1;
-	
-	new iSecondsPlayed = DBUserStats_GetServerTimePlayed(iClient);
-	
-	if(GetConVarInt(cvar_help1_seconds) > 0 && iSecondsPlayed < GetConVarInt(cvar_help1_seconds))
-		return 0;
-	
-	if(GetConVarInt(cvar_help2_seconds) > 0 && iSecondsPlayed < GetConVarInt(cvar_help2_seconds))
-		return 1;
-	#endif
-	
-	return -1;
+	return (UltJB_Settings_GetClientHelpNumber(iClient) - 1);
 }
 
 GetHelpModelBonusHealth(iIndex)

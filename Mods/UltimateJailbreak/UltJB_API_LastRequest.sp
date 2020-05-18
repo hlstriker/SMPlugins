@@ -28,7 +28,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Last Request API";
-new const String:PLUGIN_VERSION[] = "1.45";
+new const String:PLUGIN_VERSION[] = "1.46";
 
 public Plugin:myinfo =
 {
@@ -64,6 +64,7 @@ new Handle:g_hFwd_OnOpponentSelectedFailed[MAXPLAYERS+1];
 
 new Handle:cvar_prisoners_can_use_percent;
 new Handle:cvar_select_last_request_time;
+new Handle:cvar_select_last_request_time_help1;
 new Handle:cvar_select_opponent_time;
 new Handle:cvar_guards_needed_for_rebel;
 new Handle:cvar_disable_freeday_lr_time;
@@ -192,6 +193,7 @@ public OnPluginStart()
 	
 	cvar_prisoners_can_use_percent = CreateConVar("ultjb_lr_prisoners_can_use_percent", "8", "The percent of prisoners who can use LR.", _, true, 1.0, true, 100.0);
 	cvar_select_last_request_time = CreateConVar("ultjb_lr_select_last_request_time", "20", "The number of seconds a prisoner has to select a LR.", _, true, 1.0);
+	cvar_select_last_request_time_help1 = CreateConVar("ultjb_lr_select_last_request_time_help1", "15", "The additional time to give for player's with help number 1.", _, true, 0.0);
 	cvar_select_opponent_time = CreateConVar("ultjb_lr_select_opponent_time", "15", "The number of seconds a prisoner has to select their opponent.", _, true, 1.0);
 	cvar_guards_needed_for_rebel = CreateConVar("ultjb_lr_guards_needed_for_rebel", "3", "The number of guards needed before rebel LRs are allowed.", _, true, 1.0);
 	cvar_disable_freeday_lr_time = CreateConVar("ultjb_lr_disable_freeday_lr_time", "150", "Disable freeday last requests this many seconds before the map change.", _, true, 0.0);
@@ -2179,8 +2181,9 @@ InitializeLastRequest(iClient)
 	EmitSoundToAllAny(SZ_SOUND_LR_ACTIVATED[6], _, _, SNDLEVEL_NONE, _, _, 90);
 	CPrintToChatAll("{green}[{lightred}SM{green}] {olive}LR initialized for {lightred}%N{olive}.", iClient);
 	
-	g_hTimer_SelectLastRequest[iClient] = CreateTimer(GetConVarFloat(cvar_select_last_request_time), Timer_SelectLastRequest, GetClientSerial(iClient));
-	PrintToChat(iClient, "[SM] You have %i seconds to select a last request.", GetConVarInt(cvar_select_last_request_time));
+	new Float:fSelectTime = GetLastRequestSelectTime(iClient);
+	g_hTimer_SelectLastRequest[iClient] = CreateTimer(fSelectTime, Timer_SelectLastRequest, GetClientSerial(iClient));
+	PrintToChat(iClient, "[SM] You have %i seconds to select a last request.", RoundFloat(fSelectTime));
 	
 	//TeleportToWarden(iClient);
 	TeleportToLRZone(iClient);
@@ -2189,6 +2192,17 @@ InitializeLastRequest(iClient)
 	Call_StartForward(g_hFwd_OnLastRequestInitialized);
 	Call_PushCell(iClient);
 	Call_Finish(result);
+}
+
+Float:GetLastRequestSelectTime(iClient)
+{
+	new Float:fSelectTime = GetConVarFloat(cvar_select_last_request_time);
+	
+	new iHelpNum = UltJB_Settings_GetClientHelpNumber(iClient);
+	if(iHelpNum)
+		fSelectTime += (GetConVarFloat(cvar_select_last_request_time_help1) / float(iHelpNum));
+	
+	return fSelectTime;
 }
 
 TeleportToWarden(iClient)
