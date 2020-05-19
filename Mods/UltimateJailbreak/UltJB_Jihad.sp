@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Jihad";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -25,9 +25,6 @@ public Plugin:myinfo =
 	url = "www.swoobles.com"
 }
 
-#define PERCENT_CHANCE_TO_GIVE_JIHAD	10
-#define EXPLODE_RADIUS		750.0
-#define EXPLODE_MAX_DAMAGE	235.0
 new bool:g_bHooked[MAXPLAYERS+1];
 new bool:g_bIsJihad[MAXPLAYERS+1];
 new bool:g_bIsBombActivated[MAXPLAYERS+1];
@@ -45,16 +42,25 @@ new const String:SZ_SOUND_EXPLODE[] = "sound/weapons/c4/c4_explode1.wav";
 new const String:PARTICLE_FILE_PATH[] = "particles/explosions_fx.pcf";
 new const String:PEFFECT_EXPLODE[] = "explosion_coop_mission_c4";
 
+#define MODEL_BOMB	"models/weapons/w_c4_planted.mdl"
+
 new Handle:cvar_bomb_timer;
+new Handle:cvar_percent_chance_to_give;
+new Handle:cvar_explode_radius;
+new Handle:cvar_max_damage;
 
 
 public OnPluginStart()
 {
 	CreateConVar("ultjb_jihad_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	
-	cvar_bomb_timer = CreateConVar("ultjb_jihad_bomb_timer", "3.4", "The number of seconds before the bomb explodes.", _, true, 0.0);
+	cvar_bomb_timer = CreateConVar("ultjb_jihad_bomb_timer", "4.2", "The number of seconds before the bomb explodes.", _, true, 0.0);
+	cvar_percent_chance_to_give = CreateConVar("ultjb_jihad_percent_chance_to_give", "40", "The percent chance a single prisoner will get jihad.", _, true, 0.0, true, 100.0);
+	cvar_explode_radius = CreateConVar("ultjb_jihad_explode_radius", "750.0", "The jihad bomb explosion radius.", _, true, 1.0);
+	cvar_max_damage = CreateConVar("ultjb_jihad_max_damage", "235.0", "The jihad bomb's max damage.", _, true, 0.0);
 	
 	HookEvent("round_start", Event_RoundStart_Post, EventHookMode_PostNoCopy);
+	HookEvent("player_death", Event_PlayerDeath_Post, EventHookMode_Post);
 	
 	AddCommandListener(OnWeaponDrop, "drop");
 }
@@ -76,10 +82,20 @@ public Action:Event_RoundStart_Post(Handle:hEvent, const String:szName[], bool:b
 	if(!UltJB_CellDoors_DoExist())
 		return;
 	
-	if(GetRandomInt(1, 100) > PERCENT_CHANCE_TO_GIVE_JIHAD)
+	if(GetRandomInt(1, 100) > GetConVarInt(cvar_percent_chance_to_give))
 		return;
 	
 	SetRandomClientAsJihad();
+}
+
+public Action:Event_PlayerDeath_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
+{
+	new iClient = GetClientOfUserId(GetEventInt(hEvent, "userid"));
+	if(!IsJihad(iClient))
+		return;
+	
+	ClearJihad(iClient);
+	DetonateBomb(iClient);
 }
 
 public UltJB_Day_OnStart(iClient, DayType:iDayType, bool:bIsFreeForAll)
@@ -164,7 +180,7 @@ RestoreJihadBombWeaponIfNeeded(iClient)
 	if(!IsJihad(iClient))
 		return -1;
 	
-	if(g_bIsBombActivated[iClient])
+	if(g_bIsBombActivated[iClient] || GetClientTeam(iClient) != TEAM_PRISONERS)
 	{
 		ClearJihad(iClient);
 		return -1;
@@ -441,7 +457,7 @@ CreateBomb(iClient)
 	new iBomb = EntRefToEntIndex(g_iJihadBombEntRef[iClient]);
 	if(iBomb < 1)
 	{
-		iBomb = CreateEntityByName("planted_c4");
+		iBomb = CreateEntityByName("prop_dynamic_override");
 		g_iJihadBombEntRef[iClient] = EntIndexToEntRef(iBomb);
 	}
 	
@@ -452,16 +468,14 @@ CreateBomb(iClient)
 		return;
 	}
 	
+	SetEntityModel(iBomb, MODEL_BOMB);
+	
 	DispatchSpawn(iBomb);
+	ActivateEntity(iBomb);
 	
-	SetEntProp(iBomb, Prop_Send, "m_bBombTicking", 1);
-	
-	new Float:fBombTimer = GetConVarFloat(cvar_bomb_timer);
-	SetEntPropFloat(iBomb, Prop_Send, "m_flC4Blow", GetGameTime() + fBombTimer);
-	SetEntPropFloat(iBomb, Prop_Send, "m_flTimerLength", fBombTimer);
-	
+	SetEntProp(iBomb, Prop_Send, "m_nSolidType", 0);
 	SetEntProp(iBomb, Prop_Send, "m_ScaleType", 0);
-	SetEntPropFloat(iBomb, Prop_Send, "m_flModelScale", 3.5);
+	SetEntPropFloat(iBomb, Prop_Send, "m_flModelScale", 1.5);
 	
 	// Attach bomb to player.
 	decl Float:fOrigin[3];
@@ -485,7 +499,7 @@ CreateBomb(iClient)
 	SetEntityRenderColor(iClient, 255, 0, 199, 255);
 	SetEntProp(iClient, Prop_Send, "m_nSkin", 1);
 	
-	StartTimer_DetonateBomb(iClient, fBombTimer + 0.8);
+	StartTimer_DetonateBomb(iClient, GetConVarFloat(cvar_bomb_timer));
 	
 	EmitSoundToAllAny(SZ_SOUND_AKBAR[6], iClient, SNDCHAN_VOICE, _, _, 0.27);
 }
@@ -535,11 +549,8 @@ KillPlayersInRadius(iExplodingClient, Float:fExplodeOrigin[3], iC4)
 	// Kill self first.
 	SDKHooks_TakeDamage(iExplodingClient, iC4, iExplodingClient, float(GetClientHealth(iExplodingClient) + 1), _, iC4);
 	
-	new iFoundAliveT;
-	new iFoundAliveCT;
-	
 	// Damage other clients in radius.
-	decl Float:fOrigin[3], Float:fDist, Float:fDamage, iTeam;
+	decl Float:fOrigin[3], Float:fDist, Float:fDamage;
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
 		if(iClient == iExplodingClient)
@@ -548,47 +559,18 @@ KillPlayersInRadius(iExplodingClient, Float:fExplodeOrigin[3], iC4)
 		if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
 			continue;
 		
-		iTeam = GetClientTeam(iClient);
-		switch(iTeam)
-		{
-			case TEAM_PRISONERS:
-			{
-				iFoundAliveT++;
-			}
-			case TEAM_GUARDS:
-			{
-				iFoundAliveCT++;
-			}
-		}
-		
 		GetClientAbsOrigin(iClient, fOrigin);
 		
 		fDist = GetVectorDistance(fExplodeOrigin, fOrigin);
-		if(fDist > EXPLODE_RADIUS)
+		if(fDist > GetConVarFloat(cvar_explode_radius))
 			continue;
 		
-		fDamage = EXPLODE_MAX_DAMAGE * (1.0 - (fDist / EXPLODE_RADIUS));
+		fDamage = GetConVarFloat(cvar_max_damage) * (1.0 - (fDist / GetConVarFloat(cvar_explode_radius)));
+		
+		// Cut damage in half if dealt to other prisoners.
+		if(GetClientTeam(iClient) == TEAM_PRISONERS)
+			fDamage * 0.5;
 		
 		SDKHooks_TakeDamage(iClient, iC4, iExplodingClient, fDamage, _, iC4);
-		
-		// Check IsPlayerAlive again after SDKHooks_TakeDamage.
-		if(!IsPlayerAlive(iClient))
-		{
-			switch(iTeam)
-			{
-				case TEAM_PRISONERS:
-				{
-					iFoundAliveT--;
-				}
-				case TEAM_GUARDS:
-				{
-					iFoundAliveCT--;
-				}
-			}
-		}
 	}
-	
-	// Some reason the round doesn't end if there are no terrorists remaining but there are CT remaining.
-	if(!iFoundAliveT && iFoundAliveCT)
-		CS_TerminateRound(3.0, CSRoundEnd_CTWin);
 }
