@@ -12,7 +12,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Hunger Games";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -202,6 +202,7 @@ SpawnWeaponEnt(iWeaponBox)
 {
 	new iFlags[NUM_WPN_CATS];
 	iFlags[WPN_CAT_RIFLES] = WPN_FLAGS_DISABLE_RIFLE_AWP | WPN_FLAGS_DISABLE_RIFLE_G3SG1 | WPN_FLAGS_DISABLE_RIFLE_SCAR20;
+	iFlags[WPN_CAT_KNIFE] = WPN_FLAGS_DISABLE_KNIFE_KNIFE;
 	
 	new iWeaponID = UltJB_Weapons_GetRandomWeaponFromFlags(iFlags);
 	if(iWeaponID == _:CSWeapon_NONE)
