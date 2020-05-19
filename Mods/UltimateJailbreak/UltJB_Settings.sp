@@ -14,12 +14,13 @@
 #undef REQUIRE_PLUGIN
 #include "../../Libraries/ModelSkinManager/model_skin_manager"
 #include "../../Plugins/SkinsForMapWeapons/skins_for_map_weapons"
+#include "../../Libraries/DatabaseUserStats/database_user_stats"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Settings";
-new const String:PLUGIN_VERSION[] = "1.33";
+new const String:PLUGIN_VERSION[] = "1.34";
 
 public Plugin:myinfo =
 {
@@ -75,6 +76,8 @@ new Float:g_fAutoRespawnDelay_Prisoners;
 new Float:g_fAutoRespawnDelay_Guards;
 
 new Handle:cvar_cells_closed_auto_respawn_seconds;
+new Handle:cvar_help1_seconds;
+new Handle:cvar_help2_seconds;
 
 new Float:g_fTimeOfDeath[MAXPLAYERS+1];
 
@@ -94,6 +97,7 @@ new Handle:g_hFwd_OnSpawnPost;
 
 new bool:g_bLibLoaded_ModelSkinManager;
 new bool:g_bPluginLoaded_SkinsForMapWeapons;
+new bool:g_bLibLoaded_DatabaseUserStats;
 
 new bool:g_bUseNextRoundEndReason;
 new CSRoundEndReason:g_nextRoundEndReason;
@@ -104,6 +108,12 @@ public OnPluginStart()
 	CreateConVar("ultjb_settings_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	
 	cvar_cells_closed_auto_respawn_seconds = CreateConVar("ultjb_cells_closed_auto_respawn_seconds", "60", "The number of seconds to wait before disabling auto-respawn while cells are closed.", _, true, 0.0);
+	
+	// 15 hours default
+	cvar_help1_seconds = CreateConVar("ultjb_settings_help1_seconds", "54000", "The number of seconds to use help number 1.", _, true, 0.0);
+	
+	// 30 hours default
+	cvar_help2_seconds = CreateConVar("ultjb_settings_help2_seconds", "108000", "The number of seconds to use help number 2.", _, true, 0.0);
 	
 	g_aInCellWeapons = CreateArray();
 	
@@ -134,24 +144,39 @@ public OnAllPluginsLoaded()
 {
 	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
 	g_bPluginLoaded_SkinsForMapWeapons = LibraryExists("skins_for_map_weapons");
+	g_bLibLoaded_DatabaseUserStats = LibraryExists("database_user_stats");
 }
 
 public OnLibraryAdded(const String:szName[])
 {
 	if(StrEqual(szName, "model_skin_manager"))
+	{
 		g_bLibLoaded_ModelSkinManager = true;
-		
-	if(StrEqual(szName, "skins_for_map_weapons"))
+	}
+	else if(StrEqual(szName, "skins_for_map_weapons"))
+	{
 		g_bPluginLoaded_SkinsForMapWeapons = true;
+	}
+	else if(StrEqual(szName, "database_user_stats"))
+	{
+		g_bLibLoaded_DatabaseUserStats = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
 {
 	if(StrEqual(szName, "model_skin_manager"))
+	{
 		g_bLibLoaded_ModelSkinManager = false;
-		
-	if(StrEqual(szName, "skins_for_map_weapons"))
+	}
+	else if(StrEqual(szName, "skins_for_map_weapons"))
+	{
 		g_bPluginLoaded_SkinsForMapWeapons = false;
+	}
+	else if(StrEqual(szName, "database_user_stats"))
+	{
+		g_bLibLoaded_DatabaseUserStats = false;
+	}
 }
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
@@ -163,8 +188,32 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	CreateNative("UltJB_Settings_SetAutoRespawnDelay", _UltJB_Settings_SetAutoRespawnDelay);
 	CreateNative("UltJB_Settings_BlockTerminateRound", _UltJB_Settings_BlockTerminateRound);
 	CreateNative("UltJB_Settings_SetNextRoundEndReason", _UltJB_Settings_SetNextRoundEndReason);
+	CreateNative("UltJB_Settings_GetClientHelpNumber", _UltJB_Settings_GetClientHelpNumber);
 	
 	return APLRes_Success;
+}
+
+public _UltJB_Settings_GetClientHelpNumber(Handle:hPlugin, iNumParams)
+{	
+	if(!g_bLibLoaded_DatabaseUserStats)
+		return 0;
+	
+	#if defined _database_user_stats_included
+	new iClient = GetNativeCell(1);
+	
+	if(!DBUserStats_HasServerStatsLoaded(iClient))
+		return 0;
+	
+	new iSecondsPlayed = DBUserStats_GetServerTimePlayed(iClient);
+	
+	if(GetConVarInt(cvar_help1_seconds) > 0 && iSecondsPlayed < GetConVarInt(cvar_help1_seconds))
+		return 1;
+	
+	if(GetConVarInt(cvar_help2_seconds) > 0 && iSecondsPlayed < GetConVarInt(cvar_help2_seconds))
+		return 2;
+	#endif
+	
+	return 0;
 }
 
 public _UltJB_Settings_SetNextRoundEndReason(Handle:hPlugin, iNumParams)

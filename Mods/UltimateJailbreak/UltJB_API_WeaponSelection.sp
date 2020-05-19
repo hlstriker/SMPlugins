@@ -7,7 +7,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Weapon Selection";
-new const String:PLUGIN_VERSION[] = "1.8";
+new const String:PLUGIN_VERSION[] = "1.9";
 
 public Plugin:myinfo =
 {
@@ -68,8 +68,23 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	CreateNative("UltJB_Weapons_IsWeaponFromLR", _UltJB_Weapons_IsWeaponFromLR);
 	CreateNative("UltJB_Weapons_IsGettingItem", _UltJB_Weapons_IsGettingItem);
 	CreateNative("UltJB_Weapons_GivePlayerItem", _UltJB_Weapons_GivePlayerItem);
+	CreateNative("UltJB_Weapons_GetRandomWeaponFromFlags", _UltJB_Weapons_GetRandomWeaponFromFlags);
 	
 	return APLRes_Success;
+}
+
+public _UltJB_Weapons_GetRandomWeaponFromFlags(Handle:hPlugin, iNumParams)
+{
+	if(iNumParams != 1)
+	{
+		LogError("Invalid number of parameters.");
+		return _:CSWeapon_NONE;
+	}
+	
+	decl iFlags[NUM_WPN_CATS];
+	GetNativeArray(1, iFlags, sizeof(iFlags));
+	
+	return GetRandomWeaponFromFlags(iFlags);
 }
 
 public _UltJB_Weapons_GivePlayerItem(Handle:hPlugin, iNumParams)
@@ -374,14 +389,14 @@ StopTimer_WeaponSelection(iClient)
 	g_hTimer_WeaponSelection[iClient] = INVALID_HANDLE;
 }
 
-SelectRandomWeapon(iClient)
+GetRandomWeaponFromFlags(const iFlags[NUM_WPN_CATS])
 {
 	new iNumAllowed;
 	decl iAllowedWeaponIDs[128];
 	
-	if(g_iWeaponSelectionFlags[iClient][WPN_CAT_KNIFE] != WPN_FLAGS_DISABLE_KNIVES)
+	if(iFlags[WPN_CAT_KNIFE] != WPN_FLAGS_DISABLE_KNIVES)
 	{
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_KNIFE] & WPN_FLAGS_DISABLE_KNIFE_KNIFE))
+		if(!(iFlags[WPN_CAT_KNIFE] & WPN_FLAGS_DISABLE_KNIFE_KNIFE))
 		{
 			switch(GetRandomInt(0, 1))
 			{
@@ -390,132 +405,142 @@ SelectRandomWeapon(iClient)
 			}
 		}
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_KNIFE] & WPN_FLAGS_DISABLE_KNIFE_TASER))
+		if(!(iFlags[WPN_CAT_KNIFE] & WPN_FLAGS_DISABLE_KNIFE_TASER))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_TASER;
 	}
 	
-	if(g_iWeaponSelectionFlags[iClient][WPN_CAT_PISTOLS] != WPN_FLAGS_DISABLE_PISTOLS)
+	if(iFlags[WPN_CAT_PISTOLS] != WPN_FLAGS_DISABLE_PISTOLS)
 	{
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_GLOCK))
+		if(!(iFlags[WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_GLOCK))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_GLOCK;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_HPK2000))
+		if(!(iFlags[WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_HPK2000))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_HKP2000;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_USP_SILENCER))
+		if(!(iFlags[WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_USP_SILENCER))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_USP_SILENCER;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_ELITE))
+		if(!(iFlags[WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_ELITE))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_ELITE;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_P250))
+		if(!(iFlags[WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_P250))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_P250;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_CZ75A))
+		if(!(iFlags[WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_CZ75A))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_CZ75A;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_FIVESEVEN))
+		if(!(iFlags[WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_FIVESEVEN))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_FIVESEVEN;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_TEC9))
+		if(!(iFlags[WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_TEC9))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_TEC9;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_DEAGLE))
+		if(!(iFlags[WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_DEAGLE))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_DEAGLE;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_REVOLVER))
+		if(!(iFlags[WPN_CAT_PISTOLS] & WPN_FLAGS_DISABLE_PISTOL_REVOLVER))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_REVOLVER;
 	}
 	
-	if(g_iWeaponSelectionFlags[iClient][WPN_CAT_HEAVY] != WPN_FLAGS_DISABLE_HEAVYS)
+	if(iFlags[WPN_CAT_HEAVY] != WPN_FLAGS_DISABLE_HEAVYS)
 	{
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_HEAVY] & WPN_FLAGS_DISABLE_HEAVY_NOVA))
+		if(!(iFlags[WPN_CAT_HEAVY] & WPN_FLAGS_DISABLE_HEAVY_NOVA))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_NOVA;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_HEAVY] & WPN_FLAGS_DISABLE_HEAVY_XM1014))
+		if(!(iFlags[WPN_CAT_HEAVY] & WPN_FLAGS_DISABLE_HEAVY_XM1014))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_XM1014;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_HEAVY] & WPN_FLAGS_DISABLE_HEAVY_SAWEDOFF))
+		if(!(iFlags[WPN_CAT_HEAVY] & WPN_FLAGS_DISABLE_HEAVY_SAWEDOFF))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_SAWEDOFF;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_HEAVY] & WPN_FLAGS_DISABLE_HEAVY_MAG7))
+		if(!(iFlags[WPN_CAT_HEAVY] & WPN_FLAGS_DISABLE_HEAVY_MAG7))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_MAG7;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_HEAVY] & WPN_FLAGS_DISABLE_HEAVY_M249))
+		if(!(iFlags[WPN_CAT_HEAVY] & WPN_FLAGS_DISABLE_HEAVY_M249))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_M249;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_HEAVY] & WPN_FLAGS_DISABLE_HEAVY_NEGEV))
+		if(!(iFlags[WPN_CAT_HEAVY] & WPN_FLAGS_DISABLE_HEAVY_NEGEV))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_NEGEV;
 	}
 	
-	if(g_iWeaponSelectionFlags[iClient][WPN_CAT_SMGS] != WPN_FLAGS_DISABLE_SMGS)
+	if(iFlags[WPN_CAT_SMGS] != WPN_FLAGS_DISABLE_SMGS)
 	{
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_SMGS] & WPN_FLAGS_DISABLE_SMG_MAC10))
+		if(!(iFlags[WPN_CAT_SMGS] & WPN_FLAGS_DISABLE_SMG_MAC10))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_MAC10;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_SMGS] & WPN_FLAGS_DISABLE_SMG_MP7))
+		if(!(iFlags[WPN_CAT_SMGS] & WPN_FLAGS_DISABLE_SMG_MP7))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_MP7;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_SMGS] & WPN_FLAGS_DISABLE_SMG_MP9))
+		if(!(iFlags[WPN_CAT_SMGS] & WPN_FLAGS_DISABLE_SMG_MP9))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_MP9;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_SMGS] & WPN_FLAGS_DISABLE_SMG_UMP45))
+		if(!(iFlags[WPN_CAT_SMGS] & WPN_FLAGS_DISABLE_SMG_UMP45))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_UMP45;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_SMGS] & WPN_FLAGS_DISABLE_SMG_P90))
+		if(!(iFlags[WPN_CAT_SMGS] & WPN_FLAGS_DISABLE_SMG_P90))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_P90;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_SMGS] & WPN_FLAGS_DISABLE_SMG_BIZON))
+		if(!(iFlags[WPN_CAT_SMGS] & WPN_FLAGS_DISABLE_SMG_BIZON))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_BIZON;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_SMGS] & WPN_FLAGS_DISABLE_SMG_MP5NAVY))
+		if(!(iFlags[WPN_CAT_SMGS] & WPN_FLAGS_DISABLE_SMG_MP5NAVY))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_MP5NAVY;
 	}
 	
-	if(g_iWeaponSelectionFlags[iClient][WPN_CAT_RIFLES] != WPN_FLAGS_DISABLE_RIFLES)
+	if(iFlags[WPN_CAT_RIFLES] != WPN_FLAGS_DISABLE_RIFLES)
 	{
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_GALILAR))
+		if(!(iFlags[WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_GALILAR))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_GALILAR;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_FAMAS))
+		if(!(iFlags[WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_FAMAS))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_FAMAS;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_AK47))
+		if(!(iFlags[WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_AK47))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_AK47;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_M4A1))
+		if(!(iFlags[WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_M4A1))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_M4A1;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_M4A1_SILENCER))
+		if(!(iFlags[WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_M4A1_SILENCER))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_M4A1_SILENCER;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_SSG08))
+		if(!(iFlags[WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_SSG08))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_SSG08;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_SG556))
+		if(!(iFlags[WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_SG556))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_SG556;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_AUG))
+		if(!(iFlags[WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_AUG))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_AUG;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_AWP))
+		if(!(iFlags[WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_AWP))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_AWP;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_G3SG1))
+		if(!(iFlags[WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_G3SG1))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_G3SG1;
 		
-		if(!(g_iWeaponSelectionFlags[iClient][WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_SCAR20))
+		if(!(iFlags[WPN_CAT_RIFLES] & WPN_FLAGS_DISABLE_RIFLE_SCAR20))
 			iAllowedWeaponIDs[iNumAllowed++] = _:CSWeapon_SCAR20;
 	}
 	
 	if(!iNumAllowed)
+		return _:CSWeapon_NONE;
+	
+	return iAllowedWeaponIDs[GetRandomInt(0, iNumAllowed-1)];
+}
+
+SelectRandomWeapon(iClient)
+{
+	new iWeaponID = GetRandomWeaponFromFlags(g_iWeaponSelectionFlags[iClient]);
+	
+	if(iWeaponID == _:CSWeapon_NONE)
 	{
 		PrintToChat(iClient, "[SM] There was an error selecting a random weapon.");
 		Forward_OnWeaponSelectedFailed(iClient);
 		return;
 	}
 	
-	SelectWeapon(iClient, iAllowedWeaponIDs[GetRandomInt(0, iNumAllowed-1)]);
+	SelectWeapon(iClient, iWeaponID);
 }
 
 SelectWeapon(iClient, iWeaponID)

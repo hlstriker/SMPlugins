@@ -241,3 +241,11 @@ native bool:UltJB_Weapons_IsGettingItem(client);
  * @return						True if from LR, false otherwise.
  */
 native bool:UltJB_Weapons_IsWeaponFromLR(weapon);
+
+/**
+ * Gets a random weapon ID from weapon selection flags.
+ * 
+ * @param flags					The weapon selection flags.
+ * @return						The weapon ID.
+ */
+native UltJB_Weapons_GetRandomWeaponFromFlags(const flags[NUM_WPN_CATS]);

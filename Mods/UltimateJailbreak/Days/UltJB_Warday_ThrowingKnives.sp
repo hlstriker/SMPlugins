@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Throwing Knives";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -43,6 +43,8 @@ new g_iBeamIndex;
 
 #define KNIFE_DAMAGE 100.0
 
+new bool:g_bIsFFA;
+
 
 public OnPluginStart()
 {
@@ -51,17 +53,21 @@ public OnPluginStart()
 
 public UltJB_Day_OnRegisterReady()
 {
-	UltJB_Day_RegisterDay(DAY_NAME, DAY_TYPE, DAY_FLAG_STRIP_PRISONERS_WEAPONS | DAY_FLAG_STRIP_GUARDS_WEAPONS | DAY_FLAG_KILL_WEAPON_EQUIPS, OnDayStart, OnDayEnd, OnFreezeEnd);
+	new iDayID = UltJB_Day_RegisterDay(DAY_NAME, DAY_TYPE, DAY_FLAG_STRIP_PRISONERS_WEAPONS | DAY_FLAG_STRIP_GUARDS_WEAPONS | DAY_FLAG_KILL_WORLD_WEAPONS, OnDayStart, OnDayEnd, OnFreezeEnd);
+	UltJB_Day_AllowFreeForAll(iDayID, true);
 }
 
 public OnDayStart(iClient)
 {
+	g_bIsFFA = UltJB_Day_IsFreeForAll();
+	
 	AddNormalSoundHook(SoundHook);
 	HookEvent("weapon_fire", Event_WeaponFire, EventHookMode_Post);
 }
 
 public OnDayEnd(iClient)
 {
+	RemoveNormalSoundHook(SoundHook);
 	UnhookEvent("weapon_fire", Event_WeaponFire, EventHookMode_Post);
 }
 
@@ -95,6 +101,9 @@ public OnFreezeEnd()
 				SetEntPropEnt(iClient, Prop_Send, "m_hActiveWeapon", iWeapon);
 			}
 		}
+		
+		SetEntProp(iClient, Prop_Send, "m_ArmorValue", 0);
+		SetEntProp(iClient, Prop_Send, "m_bHasHelmet", 0);
 	}
 }
 
@@ -115,12 +124,19 @@ public Event_WeaponFire(Handle:hEvent, const String:szName[], bool:bDontBroadcas
 	
 	if(ThrowKnife(iClient))
 	{
-		switch(GetClientTeam(iClient))
+		if(g_bIsFFA)
 		{
-			case TEAM_PRISONERS:
-				SetEntPropFloat(iClient, Prop_Send, "m_flNextAttack", GetGameTime() + 1.0);
-			case TEAM_GUARDS:
-				SetEntPropFloat(iClient, Prop_Send, "m_flNextAttack", GetGameTime() + 1.2);
+			SetEntPropFloat(iClient, Prop_Send, "m_flNextAttack", GetGameTime() + 1.0);
+		}
+		else
+		{
+			switch(GetClientTeam(iClient))
+			{
+				case TEAM_PRISONERS:
+					SetEntPropFloat(iClient, Prop_Send, "m_flNextAttack", GetGameTime() + 1.0);
+				case TEAM_GUARDS:
+					SetEntPropFloat(iClient, Prop_Send, "m_flNextAttack", GetGameTime() + 1.2);
+			}
 		}
 	}
 }
@@ -183,10 +199,10 @@ public OnTouchPost(iEnt, iOther)
 	// Return if the knife hit a teammate.
 	new iOwner = GetEntPropEnt(iEnt, Prop_Send, "m_hOwnerEntity");
 	
-	if(iOwner == -1)
+	if(iOwner == -1 || iOwner == iOther)
 		return;
 	
-	if(GetClientTeam(iOwner) == GetClientTeam(iOther))
+	if(!g_bIsFFA && GetClientTeam(iOwner) == GetClientTeam(iOther))
 		return;
 	
 	new iKnife = GetPlayerWeaponSlot(iOwner, CS_SLOT_KNIFE);

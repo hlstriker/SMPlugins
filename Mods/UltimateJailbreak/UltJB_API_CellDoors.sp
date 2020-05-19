@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Cell Doors API";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -45,7 +45,7 @@ public OnPluginStart()
 	g_aDoorNames = CreateArray(MAX_VALUE);
 	g_aDoorEntRefs = CreateArray();
 	
-	HookEvent("round_start", EventRoundStart_Pre, EventHookMode_Pre);
+	HookEvent("round_start", EventRoundStart_Post, EventHookMode_PostNoCopy);
 	
 	RegAdminCmd("sm_celldoors_edit", OnCellDoorsEdit, ADMFLAG_ROOT, "Allows you to edit which doors are cell doors.");
 	
@@ -59,8 +59,26 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	CreateNative("UltJB_CellDoors_ForceOpen", _UltJB_CellDoors_ForceOpen);
 	CreateNative("UltJB_CellDoors_HaveOpened", _UltJB_CellDoors_HaveOpened);
 	CreateNative("UltJB_CellDoors_DoExist", _UltJB_CellDoors_DoExist);
+	CreateNative("UltJB_CellDoors_AddEntityAsDoor", _UltJB_CellDoors_AddEntityAsDoor);
+	CreateNative("UltJB_CellDoors_RemoveEntityFromBeingDoor", _UltJB_CellDoors_RemoveEntityFromBeingDoor);
 	
 	return APLRes_Success;
+}
+
+public _UltJB_CellDoors_AddEntityAsDoor(Handle:hPlugin, iNumParams)
+{
+	decl String:szName[MAX_VALUE];
+	GetEntPropString(GetNativeCell(1), Prop_Data, "m_iName", szName, sizeof(szName));
+	
+	AddCellDoor(szName);
+}
+
+public _UltJB_CellDoors_RemoveEntityFromBeingDoor(Handle:hPlugin, iNumParams)
+{
+	decl String:szName[MAX_VALUE];
+	GetEntPropString(GetNativeCell(1), Prop_Data, "m_iName", szName, sizeof(szName));
+	
+	RemoveCellDoor(szName);
 }
 
 public _UltJB_CellDoors_DoExist(Handle:hPlugin, iNumParams)
@@ -104,34 +122,13 @@ public OnPostThinkPost(iClient)
 	GetClientEyePosition(iClient, fEyePosition);
 	GetClientEyeAngles(iClient, fEyeAngles);
 	
-	TR_TraceRayFilter(fEyePosition, fEyeAngles, MASK_PLAYERSOLID, RayType_Infinite, TraceFilter_OnlyHitDoors);
-	iHit = TR_GetEntityIndex();
+	iHit = GetLookedAtDoorEnt(fEyePosition, fEyeAngles, MASK_SOLID); // Can go through player clips to get entities behind them.
+	if(iHit == -1)
+		iHit = GetLookedAtDoorEnt(fEyePosition, fEyeAngles, MASK_PLAYERSOLID); // Will not go through player clips but can detect func_brush.
 	
 	iOldLookingAtEnt = EntRefToEntIndex(g_iLookingAtEntRef[iClient]);
 	
-	if(iHit < 1)
-	{
-		g_iLookingAtEntRef[iClient] = INVALID_ENT_REFERENCE;
-		
-		if(iOldLookingAtEnt != INVALID_ENT_REFERENCE)
-			DisplayMenu_EditCellDoors(iClient);
-		
-		return;
-	}
-	
-	// Make sure we are getting the parent of whatever we hit.
-	static iParent;
-	do
-	{
-		iParent = GetEntPropEnt(iHit, Prop_Data, "m_hParent");
-		if(iParent > 0)
-			iHit = iParent;
-	}
-	while(iParent > 0);
-	
-	static String:szClassName[10];
-	GetEntityClassname(iHit, szClassName, sizeof(szClassName));
-	if(StrEqual(szClassName[5], "dyna"))
+	if(iHit == -1)
 	{
 		g_iLookingAtEntRef[iClient] = INVALID_ENT_REFERENCE;
 		
@@ -149,15 +146,51 @@ public OnPostThinkPost(iClient)
 	}
 }
 
-public bool:TraceFilter_OnlyHitDoors(iEnt, iMask, any:iData)
+GetLookedAtDoorEnt(const Float:fEyePosition[3], const Float:fEyeAngles[3], const iContents)
+{
+	static iHit;
+	
+	TR_TraceRayFilter(fEyePosition, fEyeAngles, iContents, RayType_Infinite, TraceFilter_DontHitPlayers);
+	iHit = TR_GetEntityIndex();
+	
+	if(iHit < 1)
+		return -1;
+	
+	if(IsEntityADoorType(iHit))
+		return iHit;
+	
+	// Get the first door type within the parent chain.
+	static iParent;
+	do
+	{
+		iParent = GetEntPropEnt(iHit, Prop_Data, "m_hParent");
+		if(iParent > 0)
+		{
+			iHit = iParent;
+			if(IsEntityADoorType(iHit))
+				return iHit;
+		}
+	}
+	while(iParent > 0);
+	
+	return -1;
+}
+
+public bool:TraceFilter_DontHitPlayers(iEnt, iMask, any:iData)
+{
+	return !(1 <= iEnt <= MaxClients);
+}
+
+bool:IsEntityADoorType(iEnt)
 {
 	static String:szClassName[10];
 	GetEntityClassname(iEnt, szClassName, sizeof(szClassName));
 	
 	if(StrEqual(szClassName[5], "door")
 	|| StrEqual(szClassName[5], "brea") // For func_breakable
-	|| StrEqual(szClassName[5], "dyna") // For prop_dynamic*
 	|| StrEqual(szClassName[5], "wall") // For func_wall_toggle
+	|| StrEqual(szClassName[5], "trac") // For func_tracktrain
+	|| StrEqual(szClassName[5], "brus") // For func_brush
 	|| StrEqual(szClassName[5], "move")) // For func_movelinear
 		return true;
 	
@@ -233,14 +266,14 @@ public MenuHandle_EditCellDoors(Handle:hMenu, MenuAction:action, iParam1, iParam
 	switch(StringToInt(szInfo))
 	{
 		case EDIT_MENU_SAVE: SaveCellDoorNamesForMap(iParam1);
-		case EDIT_MENU_ADD: AddCellDoor(iParam1);
-		case EDIT_MENU_REMOVE: RemoveCellDoor(iParam1);
+		case EDIT_MENU_ADD: AddLookedAtCellDoor(iParam1);
+		case EDIT_MENU_REMOVE: RemoveLookedAtCellDoor(iParam1);
 	}
 	
 	DisplayMenu_EditCellDoors(iParam1);
 }
 
-AddCellDoor(iClient)
+AddLookedAtCellDoor(iClient)
 {
 	new iEnt = EntRefToEntIndex(g_iLookingAtEntRef[iClient]);
 	if(iEnt == INVALID_ENT_REFERENCE)
@@ -249,12 +282,28 @@ AddCellDoor(iClient)
 		return;
 	}
 	
+	ClientAddCellDoor(iClient, iEnt);
+}
+
+ClientAddCellDoor(iClient, iEnt)
+{
 	decl String:szName[MAX_VALUE];
 	GetEntPropString(iEnt, Prop_Data, "m_iName", szName, sizeof(szName));
-	PushArrayString(g_aDoorNames, szName);
+	
+	AddCellDoor(szName);
+	
+	PrintToChat(iClient, "[SM] Door \"%s\" is now a cell door.", szName);
+	LogAction(iClient, -1, "\"%L\" added cell door \"%s\"", iClient, szName);
+}
+
+AddCellDoor(const String:szName[])
+{
+	new iIndex = FindStringInArray(g_aDoorNames, szName);
+	if(iIndex == -1)
+		PushArrayString(g_aDoorNames, szName);
 	
 	// Because multiple ents might share the same name we need to loop through them all.
-	iEnt = -1;
+	new iEnt = -1;
 	decl String:szBuffer[MAX_VALUE];
 	
 	while((iEnt = FindEntityByClassname(iEnt, "func_door")) != -1)
@@ -337,11 +386,23 @@ AddCellDoor(iClient)
 		// Note: These "doors" cannot be detected when opened.
 	}
 	
-	PrintToChat(iClient, "[SM] Door \"%s\" is now a cell door.", szName);
-	LogAction(iClient, -1, "\"%L\" added cell door \"%s\"", iClient, szName);
+	// Brushes are used as doors in some maps.
+	iEnt = -1;
+	while((iEnt = FindEntityByClassname(iEnt, "func_brush")) != -1)
+	{
+		GetEntPropString(iEnt, Prop_Data, "m_iName", szBuffer, sizeof(szBuffer));
+		if(!StrEqual(szName, szBuffer))
+			continue;
+		
+		PushArrayCell(g_aDoorEntRefs, EntIndexToEntRef(iEnt));
+		// Note: These "doors" cannot be detected when opened.
+		
+		// Just force enable func_brush cell doors when they are added.
+		AcceptEntityInput(iEnt, "Enable");
+	}
 }
 
-RemoveCellDoor(iClient)
+RemoveLookedAtCellDoor(iClient)
 {
 	new iEnt = EntRefToEntIndex(g_iLookingAtEntRef[iClient]);
 	if(iEnt == INVALID_ENT_REFERENCE)
@@ -350,15 +411,28 @@ RemoveCellDoor(iClient)
 		return;
 	}
 	
+	ClientRemoveCellDoor(iClient, iEnt);
+}
+
+ClientRemoveCellDoor(iClient, iEnt)
+{
 	decl String:szName[MAX_VALUE];
 	GetEntPropString(iEnt, Prop_Data, "m_iName", szName, sizeof(szName));
 	
+	RemoveCellDoor(szName);
+	
+	PrintToChat(iClient, "[SM] Door \"%s\" is no longer a cell door.", szName);
+	LogAction(iClient, -1, "\"%L\" removed cell door \"%s\"", iClient, szName);
+}
+
+RemoveCellDoor(const String:szName[])
+{
 	new iIndex = FindStringInArray(g_aDoorNames, szName);
 	if(iIndex != -1)
 		RemoveFromArray(g_aDoorNames, iIndex);
 	
 	// Because multiple ents might share the same name we need to loop through them all.
-	iEnt = -1;
+	new iEnt = -1;
 	decl String:szBuffer[MAX_VALUE];
 	
 	while((iEnt = FindEntityByClassname(iEnt, "func_door")) != -1)
@@ -462,8 +536,20 @@ RemoveCellDoor(iClient)
 		// Note: These "doors" cannot be detected when opened.
 	}
 	
-	PrintToChat(iClient, "[SM] Door \"%s\" is no longer a cell door.", szName);
-	LogAction(iClient, -1, "\"%L\" removed cell door \"%s\"", iClient, szName);
+	// Brushes are used as doors in some maps.
+	iEnt = -1;
+	while((iEnt = FindEntityByClassname(iEnt, "func_brush")) != -1)
+	{
+		GetEntPropString(iEnt, Prop_Data, "m_iName", szBuffer, sizeof(szBuffer));
+		if(!StrEqual(szName, szBuffer))
+			continue;
+		
+		iIndex = FindValueInArray(g_aDoorEntRefs, EntIndexToEntRef(iEnt));
+		if(iIndex != -1)
+			RemoveFromArray(g_aDoorEntRefs, iIndex);
+		
+		// Note: These "doors" cannot be detected when opened.
+	}
 }
 
 public Action:OnCellDoorsEdit(iClient, iArgNum)
@@ -511,6 +597,12 @@ bool:OpenCellDoors()
 			//AcceptEntityInput(iEnt, "StartForward");
 			AcceptEntityInput(iEnt, "KillHierarchy"); // Since this can't be detected when open let's just kill it instead.
 		}
+		else if(StrEqual(szClassName[5], "brus"))
+		{
+			// WARNING: Do not kill a func_brush. They are not restored on new rounds.
+			//AcceptEntityInput(iEnt, "KillHierarchy"); // Since this can't be detected when open let's just kill it instead.
+			AcceptEntityInput(iEnt, "Disable");
+		}
 	}
 	
 	return true;
@@ -524,7 +616,7 @@ public OnMapStart()
 	GetCellDoorEnts();
 }
 
-public EventRoundStart_Pre(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
+public EventRoundStart_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
 {
 	g_bHaveCellDoorsOpened = false;
 	GetCellDoorEnts();
@@ -534,81 +626,15 @@ GetCellDoorEnts()
 {
 	ClearArray(g_aDoorEntRefs);
 	
-	if(!GetArraySize(g_aDoorNames))
+	new iArraySize = GetArraySize(g_aDoorNames);
+	if(!iArraySize)
 		return;
 	
-	new iEnt = -1;
-	while((iEnt = FindEntityByClassname(iEnt, "func_door")) != -1)
+	decl String:szName[MAX_VALUE];
+	for(new i=0; i<iArraySize; i++)
 	{
-		if(!IsEntACellDoor(iEnt))
-			continue;
-		
-		PushArrayCell(g_aDoorEntRefs, EntIndexToEntRef(iEnt));
-		HookSingleEntityOutput(iEnt, "OnOpen", OnCellDoorOpen, true);
-	}
-	
-	iEnt = -1;
-	while((iEnt = FindEntityByClassname(iEnt, "func_door_rotating")) != -1)
-	{
-		if(!IsEntACellDoor(iEnt))
-			continue;
-		
-		PushArrayCell(g_aDoorEntRefs, EntIndexToEntRef(iEnt));
-		HookSingleEntityOutput(iEnt, "OnOpen", OnCellDoorOpen, true);
-	}
-	
-	iEnt = -1;
-	while((iEnt = FindEntityByClassname(iEnt, "prop_door_rotating")) != -1)
-	{
-		if(!IsEntACellDoor(iEnt))
-			continue;
-		
-		PushArrayCell(g_aDoorEntRefs, EntIndexToEntRef(iEnt));
-		HookSingleEntityOutput(iEnt, "OnOpen", OnCellDoorOpen, true);
-	}
-	
-	// Breakables are used as doors in some maps.
-	iEnt = -1;
-	while((iEnt = FindEntityByClassname(iEnt, "func_breakable")) != -1)
-	{
-		if(!IsEntACellDoor(iEnt))
-			continue;
-		
-		PushArrayCell(g_aDoorEntRefs, EntIndexToEntRef(iEnt));
-		HookSingleEntityOutput(iEnt, "OnBreak", OnCellDoorOpen, true);
-	}
-	
-	// Movelinears are used as doors in some maps.
-	iEnt = -1;
-	while((iEnt = FindEntityByClassname(iEnt, "func_movelinear")) != -1)
-	{
-		if(!IsEntACellDoor(iEnt))
-			continue;
-		
-		PushArrayCell(g_aDoorEntRefs, EntIndexToEntRef(iEnt));
-		HookSingleEntityOutput(iEnt, "OnFullyOpen", OnCellDoorOpen, true);
-	}
-	
-	// Tracktrains are used as doors in some maps.
-	iEnt = -1;
-	while((iEnt = FindEntityByClassname(iEnt, "func_tracktrain")) != -1)
-	{
-		if(!IsEntACellDoor(iEnt))
-			continue;
-		
-		PushArrayCell(g_aDoorEntRefs, EntIndexToEntRef(iEnt));
-		// Note: These "doors" cannot be detected when opened.
-	}
-	
-	// WallToggles are used as doors in some maps.
-	iEnt = -1;
-	while((iEnt = FindEntityByClassname(iEnt, "func_wall_toggle")) != -1)
-	{
-		if(!IsEntACellDoor(iEnt))
-			continue;
-		
-		PushArrayCell(g_aDoorEntRefs, EntIndexToEntRef(iEnt));
-		// Note: These "doors" cannot be detected when opened.
+		GetArrayString(g_aDoorNames, i, szName, sizeof(szName));
+		AddCellDoor(szName);
 	}
 }
 

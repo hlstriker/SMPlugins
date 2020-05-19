@@ -22,12 +22,13 @@
 #undef REQUIRE_PLUGIN
 #include "../../Libraries/SquelchManager/squelch_manager"
 #include "../../Libraries/ModelSkinManager/model_skin_manager"
+#include "../../Plugins/Parachute/parachute"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Last Request API";
-new const String:PLUGIN_VERSION[] = "1.43";
+new const String:PLUGIN_VERSION[] = "1.46";
 
 public Plugin:myinfo =
 {
@@ -63,6 +64,7 @@ new Handle:g_hFwd_OnOpponentSelectedFailed[MAXPLAYERS+1];
 
 new Handle:cvar_prisoners_can_use_percent;
 new Handle:cvar_select_last_request_time;
+new Handle:cvar_select_last_request_time_help1;
 new Handle:cvar_select_opponent_time;
 new Handle:cvar_guards_needed_for_rebel;
 new Handle:cvar_disable_freeday_lr_time;
@@ -101,12 +103,15 @@ new bool:g_bHasRoundStarted;
 
 const MAX_WEAPONS = 128;
 const MAX_WEAPON_CLASSNAME_LENGTH = 32;
+const MAX_PASSIVE_ITEMS = 4;
 new String:g_szSavedActiveWeapon[MAXPLAYERS+1][MAX_WEAPON_CLASSNAME_LENGTH];
 new g_iSavedWeaponAmmoClip[MAXPLAYERS+1][MAX_WEAPONS];
 new g_iSavedWeaponAmmoReserveGlobal[MAXPLAYERS+1][MAX_WEAPONS];
 new g_iSavedWeaponAmmoReservePrimary[MAXPLAYERS+1][MAX_WEAPONS];
 new g_iSavedWeaponAmmoReserveSecondary[MAXPLAYERS+1][MAX_WEAPONS];
 new Handle:g_aSavedWeapons[MAXPLAYERS+1];
+new g_iSavedPassiveItems[MAXPLAYERS+1][MAX_PASSIVE_ITEMS];
+new bool:g_bSavedHasParachute[MAXPLAYERS+1];
 
 new const BEAM_COLOR_START[] = {0, 255, 0, 200};
 new const BEAM_COLOR_END[] = {255, 0, 0, 200};
@@ -172,6 +177,7 @@ new g_iAvailableLastRequestSlotCount;
 
 new bool:g_bLibLoaded_SquelchManager;
 new bool:g_bLibLoaded_ModelSkinManager;
+new bool:g_bLibLoaded_Parachute;
 
 new Float:g_fLastRequestTeleportOrigins[100][3];
 new g_iLastRequestTeleportOriginsTotal;
@@ -187,6 +193,7 @@ public OnPluginStart()
 	
 	cvar_prisoners_can_use_percent = CreateConVar("ultjb_lr_prisoners_can_use_percent", "8", "The percent of prisoners who can use LR.", _, true, 1.0, true, 100.0);
 	cvar_select_last_request_time = CreateConVar("ultjb_lr_select_last_request_time", "20", "The number of seconds a prisoner has to select a LR.", _, true, 1.0);
+	cvar_select_last_request_time_help1 = CreateConVar("ultjb_lr_select_last_request_time_help1", "15", "The additional time to give for player's with help number 1.", _, true, 0.0);
 	cvar_select_opponent_time = CreateConVar("ultjb_lr_select_opponent_time", "15", "The number of seconds a prisoner has to select their opponent.", _, true, 1.0);
 	cvar_guards_needed_for_rebel = CreateConVar("ultjb_lr_guards_needed_for_rebel", "3", "The number of guards needed before rebel LRs are allowed.", _, true, 1.0);
 	cvar_disable_freeday_lr_time = CreateConVar("ultjb_lr_disable_freeday_lr_time", "150", "Disable freeday last requests this many seconds before the map change.", _, true, 0.0);
@@ -221,6 +228,7 @@ public OnAllPluginsLoaded()
 {
 	g_bLibLoaded_SquelchManager = LibraryExists("squelch_manager");
 	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
+	g_bLibLoaded_Parachute = LibraryExists("parachute");
 }
 
 public OnLibraryAdded(const String:szName[])
@@ -233,6 +241,10 @@ public OnLibraryAdded(const String:szName[])
 	{
 		g_bLibLoaded_ModelSkinManager = true;
 	}
+	else if(StrEqual(szName, "parachute"))
+	{
+		g_bLibLoaded_Parachute = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
@@ -244,6 +256,10 @@ public OnLibraryRemoved(const String:szName[])
 	else if(StrEqual(szName, "model_skin_manager"))
 	{
 		g_bLibLoaded_ModelSkinManager = false;
+	}
+	else if(StrEqual(szName, "parachute"))
+	{
+		g_bLibLoaded_Parachute = false;
 	}
 }
 
@@ -2165,8 +2181,9 @@ InitializeLastRequest(iClient)
 	EmitSoundToAllAny(SZ_SOUND_LR_ACTIVATED[6], _, _, SNDLEVEL_NONE, _, _, 90);
 	CPrintToChatAll("{green}[{lightred}SM{green}] {olive}LR initialized for {lightred}%N{olive}.", iClient);
 	
-	g_hTimer_SelectLastRequest[iClient] = CreateTimer(GetConVarFloat(cvar_select_last_request_time), Timer_SelectLastRequest, GetClientSerial(iClient));
-	PrintToChat(iClient, "[SM] You have %i seconds to select a last request.", GetConVarInt(cvar_select_last_request_time));
+	new Float:fSelectTime = GetLastRequestSelectTime(iClient);
+	g_hTimer_SelectLastRequest[iClient] = CreateTimer(fSelectTime, Timer_SelectLastRequest, GetClientSerial(iClient));
+	PrintToChat(iClient, "[SM] You have %i seconds to select a last request.", RoundFloat(fSelectTime));
 	
 	//TeleportToWarden(iClient);
 	TeleportToLRZone(iClient);
@@ -2175,6 +2192,17 @@ InitializeLastRequest(iClient)
 	Call_StartForward(g_hFwd_OnLastRequestInitialized);
 	Call_PushCell(iClient);
 	Call_Finish(result);
+}
+
+Float:GetLastRequestSelectTime(iClient)
+{
+	new Float:fSelectTime = GetConVarFloat(cvar_select_last_request_time);
+	
+	new iHelpNum = UltJB_Settings_GetClientHelpNumber(iClient);
+	if(iHelpNum)
+		fSelectTime += (GetConVarFloat(cvar_select_last_request_time_help1) / float(iHelpNum));
+	
+	return fSelectTime;
 }
 
 TeleportToWarden(iClient)
@@ -3266,9 +3294,21 @@ SaveClientWeapons(iClient)
 	
 	// Save reserve ammo global.
 	iArraySize = GetEntPropArraySize(iClient, Prop_Send, "m_iAmmo");
-	
 	for(i=0; i<iArraySize; i++)
 		g_iSavedWeaponAmmoReserveGlobal[iClient][i] = GetEntProp(iClient, Prop_Send, "m_iAmmo", _, i);
+	
+	// Save passive items.
+	iArraySize = GetEntPropArraySize(iClient, Prop_Send, "m_passiveItems");
+	for(i=0; i<iArraySize; i++)
+		g_iSavedPassiveItems[iClient][i] = GetEntProp(iClient, Prop_Send, "m_passiveItems", 1, i);
+	
+	// Save parachute.
+	if(g_bLibLoaded_Parachute)
+	{
+		#if defined _parachute_included
+		g_bSavedHasParachute[iClient] = Parachute_HasParachute(iClient);
+		#endif
+	}
 }
 
 RestoreClientWeapons(iClient)
@@ -3316,14 +3356,28 @@ RestoreClientWeapons(iClient)
 	
 	for(i=0; i<iArraySize; i++)
 		SetEntProp(iClient, Prop_Send, "m_iAmmo", g_iSavedWeaponAmmoReserveGlobal[iClient][i], _, i);
+	
+	// Restore passive items.
+	iArraySize = GetEntPropArraySize(iClient, Prop_Send, "m_passiveItems");
+	for(i=0; i<iArraySize; i++)
+		SetEntProp(iClient, Prop_Send, "m_passiveItems", g_iSavedPassiveItems[iClient][i], 1, i);
+	
+	// Restore parachute.
+	if(g_bLibLoaded_Parachute)
+	{
+		#if defined _parachute_included
+		if(g_bSavedHasParachute[iClient])
+			Parachute_GiveParachute(iClient);
+		#endif
+	}
 }
 
 StripClientWeapons(iClient)
 {
 	new iArraySize = GetEntPropArraySize(iClient, Prop_Send, "m_hMyWeapons");
 	
-	decl iWeapon;
-	for(new i=0; i<iArraySize; i++)
+	decl iWeapon, i;
+	for(i=0; i<iArraySize; i++)
 	{
 		iWeapon = GetEntPropEnt(iClient, Prop_Send, "m_hMyWeapons", i);
 		if(iWeapon < 1)
@@ -3331,6 +3385,17 @@ StripClientWeapons(iClient)
 		
 		UltJB_Settings_StripWeaponFromOwner(iWeapon);
 		SetEntPropEnt(iClient, Prop_Send, "m_hMyWeapons", -1, i);
+	}
+	
+	iArraySize = GetEntPropArraySize(iClient, Prop_Send, "m_passiveItems");
+	for(i=0; i<iArraySize; i++)
+		SetEntProp(iClient, Prop_Send, "m_passiveItems", 0, 1, i);
+	
+	if(g_bLibLoaded_Parachute)
+	{
+		#if defined _parachute_included
+		Parachute_RemoveParachute(iClient);
+		#endif
 	}
 }
 
@@ -3745,7 +3810,7 @@ public Action:Timer_GetLastRequestTeleportOrigins(Handle:hTimer)
 		g_iLastRequestTeleportOrigins_OldHealth[iClient] = iHealth;
 		
 		// Continue if the player isn't on the ground.
-		if(GetEntProp(iClient, Prop_Send, "m_hGroundEntity") == -1)
+		if(GetEntPropEnt(iClient, Prop_Send, "m_hGroundEntity") == -1)
 			continue;
 		
 		// Continue if the player is ducking.

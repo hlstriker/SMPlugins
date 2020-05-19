@@ -83,6 +83,14 @@ native UltJB_Settings_BlockTerminateRound(bool:block_terminate_round);
  */
 native UltJB_Settings_SetNextRoundEndReason(bool:use_reason, CSRoundEndReason:reason=CSRoundEnd_Draw);
 
+/**
+ * Gets the players help number.
+ *
+ * @param client		The client's index.
+ * @return				The client's help number, 0 if the client has no help number.
+ */
+native UltJB_Settings_GetClientHelpNumber(client);
+
 
 
 /**

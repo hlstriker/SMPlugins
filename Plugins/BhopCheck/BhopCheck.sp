@@ -7,7 +7,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Bhop Check";
-new const String:PLUGIN_VERSION[] = "2.1";
+new const String:PLUGIN_VERSION[] = "2.2";
 
 public Plugin:myinfo =
 {
@@ -397,6 +397,9 @@ public Action:Event_PlayerJump(Handle:hEvent, const String:szName[], bool:bDontB
 
 public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVel[3], Float:fAngles[3], &iWeapon, &iSubType, &iCmdNum, &iTickCount, &iSeed, iMouse[2])
 {
+	if(IsFakeClient(iClient))
+		return Plugin_Continue;
+	
 	if(iButtons & IN_JUMP)
 		g_iInputTicks[iClient]++;
 	else

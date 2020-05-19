@@ -24,3 +24,22 @@ public SharedPlugin:__pl_ultjb_player_models =
  * @noreturn
  */
 forward UltJB_PlayerModels_OnApplied(client);
+
+
+
+
+/**
+ * Applies the guard player model to this client.
+ *
+ * @param client		The client to apply the model to.
+ * @return				True on success, false otherwise.
+ */
+native bool:UltJB_PlayerModels_ApplyGuardModel(client);
+
+/**
+ * Applies the prisoner player model to this client.
+ *
+ * @param client		The client to apply the model to.
+ * @return				True on success, false otherwise.
+ */
+native bool:UltJB_PlayerModels_ApplyPrisonerModel(client);

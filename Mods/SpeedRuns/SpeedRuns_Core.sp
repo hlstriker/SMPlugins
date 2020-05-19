@@ -24,7 +24,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Speed Runs: Core";
-new const String:PLUGIN_VERSION[] = "1.42";
+new const String:PLUGIN_VERSION[] = "1.43";
 
 public Plugin:myinfo =
 {
@@ -1790,7 +1790,7 @@ bool:Query_CreateRecordsTable()
 		checkpoints_used	MEDIUMINT			NOT NULL,\
 		utime_complete		INT					NOT NULL,\
 		PRIMARY KEY ( record_id ),\
-		INDEX ( map_id, user_id ),\
+		INDEX ( map_id, user_id, style_bits, stage_number ),\
 		INDEX ( stage_number, style_bits, stage_time, map_id, user_id ),\
 		INDEX ( server_group_type, map_id ),\
 		INDEX ( map_id, style_bits ),\

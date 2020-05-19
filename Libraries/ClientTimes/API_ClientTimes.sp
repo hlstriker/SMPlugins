@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Client Times";
-new const String:PLUGIN_VERSION[] = "1.5";
+new const String:PLUGIN_VERSION[] = "1.6";
 
 public Plugin:myinfo =
 {
@@ -57,8 +57,13 @@ public OnPluginStart()
 
 public EventPlayerTeam_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
 {
+	new iClient = GetClientOfUserId(GetEventInt(hEvent, "userid"));
+	
+	if(IsFakeClient(iClient))
+		return;
+	
 	// When players join a team we need to force it as a valid command so they are marked as back if needed.
-	CheckValidAction(GetClientOfUserId(GetEventInt(hEvent, "userid")), true);
+	CheckValidAction(iClient, true);
 }
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
@@ -330,6 +335,9 @@ public OnClientSayCommand_Post(iClient, const String:szCommand[], const String:s
 
 public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVel[3], Float:fAngles[3], &iWeapon, &iSubType, &iCmdNum, &iTickCount, &iSeed, iMouse[2])
 {
+	if(IsFakeClient(iClient))
+		return;
+	
 	if(g_iOldButtons[iClient] == iButtons || GetClientTeam(iClient) <= CS_TEAM_SPECTATOR)
 	{
 		UpdateClientAsAwayIfNeeded(iClient);

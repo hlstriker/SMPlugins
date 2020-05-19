@@ -1,0 +1,38 @@
+// server_windows_04_24_2020.c
+
+player + 5344 = parachute status 0-4
+0 = 1 second delay after landing where not usable?
+1 = does not have a parachute?
+2 = picked up ready to use?
+3 = ripcord pulled?
+4 = parachute deployed
+
+
+player + 5360 = some 0/1 parachute value that = 0 when respawning?
+player + 5364 = parachute ent?
+
+
+
+
+void __thiscall sub_1053A570(void *this, int a2)
+void EquipParachuteGlobal(CBaseEntity* parachuteEntOrAnyEnt?, CBasePlayer* player)
+55 8B EC 83 E4 F8 51 53 56 57 8B 7D 08 8B D9 83
+\x55\x8B\xEC\x83\xE4\xF8\x51\x53\x56\x57\x8B\x7D\x08\x8B\xD9\x83
+
+
+char __stdcall sub_1053A500(int a1, char a2)
+bool CanEquipParachute(CBasePlayer* player, bool displayAlreadyEquippedMessage)
+55 8B EC 83 E4 F8 8B 45 08 83 EC 20 83 B8 E0 14
+\x55\x8B\xEC\x83\xE4\xF8\x8B\x45\x08\x83\xEC\x20\x83\xB8\xE0\x14
+
+
+void __thiscall sub_10431200(int this)
+void EquipParachutePlayer(CBasePlayer* player)
+56 8B F1 83 BE E0 14 00 00 01 75 6E 8B 0D D4 8E
+\x56\x8B\xF1\x83\xBE\xE0\x14\x00\x00\x01\x75\x6E\x8B\x0D\xD4\x8E
+
+
+int __thiscall sub_104322F0(int this)
+int RemoveParachutePlayer(CBasePlayer* player)
+55 8B EC 83 EC 0C 53 8B D9 56 8B 8B F4 14 00 00
+\x55\x8B\xEC\x83\xEC\x0C\x53\x8B\xD9\x56\x8B\x8B\xF4\x14\x00\x00
