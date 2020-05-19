@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Jihad";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -55,6 +55,7 @@ public OnPluginStart()
 	cvar_bomb_timer = CreateConVar("ultjb_jihad_bomb_timer", "3.4", "The number of seconds before the bomb explodes.", _, true, 0.0);
 	
 	HookEvent("round_start", Event_RoundStart_Post, EventHookMode_PostNoCopy);
+	HookEvent("round_end", Event_RoundEnd_Post, EventHookMode_PostNoCopy);
 	
 	AddCommandListener(OnWeaponDrop, "drop");
 }
@@ -80,6 +81,19 @@ public Action:Event_RoundStart_Post(Handle:hEvent, const String:szName[], bool:b
 		return;
 	
 	SetRandomClientAsJihad();
+	ClearJihadCT();
+}
+
+public Action:Event_RoundEnd_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
+{
+	for (new iClient=1; iClient <= MaxClients; iClient++)
+	{
+		if(!IsClientInGame(iClient))
+			continue;
+			
+		ClearJihad(iClient);
+		
+	}
 }
 
 public UltJB_Day_OnStart(iClient, DayType:iDayType, bool:bIsFreeForAll)
@@ -152,6 +166,21 @@ ClearJihad(iClient)
 	RemoveJihadBombWeapon(iClient);
 	TryClientUnhooks(iClient);
 	StopTimer_Bomb(iClient);
+}
+
+ClearJihadCT()
+{
+	for (new iClient=1; iClient <= MaxClients; iClient++)
+	{
+		if(!IsClientInGame(iClient))
+			continue;
+		
+		if(GetClientTeam(iClient) == CS_TEAM_CT)
+		{
+		ClearJihad(iClient);
+		}
+		
+	}
 }
 
 bool:IsJihad(iClient)
