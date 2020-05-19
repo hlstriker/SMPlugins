@@ -13,7 +13,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Entity Hooker";
-new const String:PLUGIN_VERSION[] = "1.11";
+new const String:PLUGIN_VERSION[] = "1.12";
 
 public Plugin:myinfo =
 {
@@ -76,6 +76,7 @@ enum EHLogType
 new Handle:g_hFwd_OnRegisterReady;
 new Handle:g_hFwd_OnEntityHooked;
 new Handle:g_hFwd_OnEntityUnhooked;
+new Handle:g_hFwd_OnInitialHooksPre;
 new Handle:g_hFwd_OnInitialHooksReady;
 
 new g_iStartEnt[MAXPLAYERS+1];
@@ -112,6 +113,7 @@ public OnPluginStart()
 	g_hFwd_OnRegisterReady = CreateGlobalForward("EntityHooker_OnRegisterReady", ET_Ignore);
 	g_hFwd_OnEntityHooked = CreateGlobalForward("EntityHooker_OnEntityHooked", ET_Ignore, Param_Cell, Param_Cell);
 	g_hFwd_OnEntityUnhooked = CreateGlobalForward("EntityHooker_OnEntityUnhooked", ET_Ignore, Param_Cell, Param_Cell);
+	g_hFwd_OnInitialHooksPre = CreateGlobalForward("EntityHooker_OnInitialHooksPre", ET_Ignore);
 	g_hFwd_OnInitialHooksReady = CreateGlobalForward("EntityHooker_OnInitialHooksReady", ET_Ignore);
 	
 	RegAdminCmd("sm_enthook", Command_EntityHook, ADMFLAG_ROOT, "sm_enthook - Opens the entity hook menu.");
@@ -438,6 +440,8 @@ RemoveHookedEntityFromArray(iDataType, iHammerID)
 
 RehookEntities()
 {
+	Forward_OnInitialHooksPre();
+	
 	new iArraySize = GetArraySize(g_aHookedEntities);
 	
 	decl eHookedEntity[HookedEntity], iEnt;
@@ -518,6 +522,13 @@ public OnEntitySpawnPost(iEnt)
 	}
 }
 */
+
+Forward_OnInitialHooksPre()
+{
+	decl result;
+	Call_StartForward(g_hFwd_OnInitialHooksPre);
+	Call_Finish(result);
+}
 
 Forward_OnInitialHooksReady()
 {

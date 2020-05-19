@@ -26,11 +26,13 @@ public SharedPlugin:__pl_entity_hooker =
 #define EH_TYPE_LOCK_STATE					7
 #define EH_TYPE_OPEN_AREAPORTALS			8
 #define EH_TYPE_JAILBREAK_CELL_DOORS		9
+#define EH_TYPE_JAILBREAK_FFA_REMOVE		10
 
 
 forward EntityHooker_OnRegisterReady();
 forward EntityHooker_OnEntityHooked(eh_type, entity);
 forward EntityHooker_OnEntityUnhooked(eh_type, entity);
+forward EntityHooker_OnInitialHooksPre();
 forward EntityHooker_OnInitialHooksReady();
 
 

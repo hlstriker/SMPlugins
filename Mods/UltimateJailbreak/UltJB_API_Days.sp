@@ -13,10 +13,14 @@
 #include "Includes/ultjb_logger"
 #include "../../Libraries/PathPoints/path_points"
 
+#undef REQUIRE_PLUGIN
+#include "../../Libraries/EntityHooker/entity_hooker"
+#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.25";
+new const String:PLUGIN_VERSION[] = "1.26";
 
 public Plugin:myinfo =
 {
@@ -87,6 +91,10 @@ new UserMsg:g_msgFade;
 
 new const String:SZ_SOUND_ALARM[] = "sound/survival/rocketalarmclose.wav";
 
+#if defined _entity_hooker_included
+new Handle:g_aEntRefsToRemoveOnFFA;
+#endif
+
 
 public OnPluginStart()
 {
@@ -105,6 +113,10 @@ public OnPluginStart()
 	g_hFwd_OnWardayFreezeEnd = CreateGlobalForward("UltJB_Day_OnWardayFreezeEnd", ET_Ignore);
 	
 	g_aUsedSteamIDs = CreateArray(48);
+	
+	#if defined _entity_hooker_included
+	g_aEntRefsToRemoveOnFFA = CreateArray();
+	#endif
 	
 	HookEvent("round_end", Event_RoundEnd_Post, EventHookMode_PostNoCopy);
 	HookEvent("cs_match_end_restart", Event_RoundEnd_Post, EventHookMode_PostNoCopy);
@@ -1076,7 +1088,13 @@ InitWarday(iClient, iFreezeTime, Handle:hForwardFreezeEnd, iFreezeTeamBits)
 	}
 	
 	if(g_bIsDayInFreeForAll)
+	{
+		#if defined _entity_hooker_included
+		RemoveHookedEntitiesForFFA();
+		#endif
+		
 		TeleportPlayersToFreeForAllPoints();
+	}
 }
 
 TeleportPlayersToFreeForAllPoints()
@@ -1894,3 +1912,61 @@ FadeScreen(iClient, iDurationMilliseconds, iHoldMilliseconds, iColor[4], iFlags)
 	
 	EndMessage();
 }
+
+
+#if defined _entity_hooker_included
+public EntityHooker_OnRegisterReady()
+{
+	EntityHooker_Register(EH_TYPE_JAILBREAK_FFA_REMOVE, "Free-for-all remove entities");
+	
+	EntityHooker_RegisterAdditional(EH_TYPE_JAILBREAK_FFA_REMOVE,
+		"ambient_generic");
+	
+	EntityHooker_RegisterAdditional(EH_TYPE_JAILBREAK_FFA_REMOVE,
+		"env_explosion", "env_fire", "env_laser", "env_spark", "env_soundscape", "env_soundscape_proxy", "env_soundscape_triggerable");
+	
+	EntityHooker_RegisterAdditional(EH_TYPE_JAILBREAK_FFA_REMOVE,
+		"func_breakable", "func_brush", "func_button", "func_door", "func_door_rotating", "func_movelinear", "func_occluder", "func_physbox",
+		"func_physbox_multiplayer", "func_rot_button", "func_rotating", "func_tanktrain", "func_tracktrain", "func_wall_toggle", "func_water_analog");
+	
+	EntityHooker_RegisterAdditional(EH_TYPE_JAILBREAK_FFA_REMOVE,
+		"logic_auto", "logic_timer");
+	
+	EntityHooker_RegisterAdditional(EH_TYPE_JAILBREAK_FFA_REMOVE,
+		"prop_door_rotating", "prop_dynamic", "prop_dynamic_override", "prop_physics", "prop_physics_multiplayer");
+	
+	EntityHooker_RegisterAdditional(EH_TYPE_JAILBREAK_FFA_REMOVE,
+		"trigger_brush", "trigger_hurt", "trigger_multiple", "trigger_once", "trigger_push", "trigger_soundscape", "trigger_teleport");
+	
+	EntityHooker_RegisterProperty(EH_TYPE_JAILBREAK_FFA_REMOVE, Prop_Send, PropField_String, "m_iName");
+	EntityHooker_RegisterProperty(EH_TYPE_JAILBREAK_FFA_REMOVE, Prop_Data, PropField_String, "m_target");
+	EntityHooker_RegisterProperty(EH_TYPE_JAILBREAK_FFA_REMOVE, Prop_Data, PropField_String, "m_iParent");
+}
+
+public EntityHooker_OnInitialHooksPre()
+{
+	ClearArray(g_aEntRefsToRemoveOnFFA);
+}
+
+public EntityHooker_OnEntityHooked(iHookType, iEnt)
+{
+	if(iHookType != EH_TYPE_JAILBREAK_FFA_REMOVE)
+		return;
+	
+	PushArrayCell(g_aEntRefsToRemoveOnFFA, EntIndexToEntRef(iEnt));
+}
+
+RemoveHookedEntitiesForFFA()
+{
+	new iArraySize = GetArraySize(g_aEntRefsToRemoveOnFFA);
+	
+	decl iEnt;
+	for(new i=0; i<iArraySize; i++)
+	{
+		iEnt = EntRefToEntIndex(GetArrayCell(g_aEntRefsToRemoveOnFFA, i));
+		
+		if(iEnt && iEnt != INVALID_ENT_REFERENCE)
+			AcceptEntityInput(iEnt, "KillHierarchy");
+	}
+}
+#endif
