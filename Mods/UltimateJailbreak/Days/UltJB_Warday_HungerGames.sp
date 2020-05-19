@@ -12,7 +12,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Hunger Games";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
@@ -84,6 +84,21 @@ public OnDayStartNextFrame(any:data)
 public OnFreezeEnd()
 {
 	EmitSoundToAll(SZ_SOUND_UNFREEZE[6], _, _, SNDLEVEL_NONE);
+	
+	decl iWeapon;
+	for(new iClient=1; iClient<=MaxClients; iClient++)
+	{
+		if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
+			continue;
+		
+		switch(GetClientTeam(iClient))
+		{
+			case TEAM_PRISONERS: iWeapon = UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_KNIFE_T);
+			default: iWeapon = UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_KNIFE);
+		}
+		
+		SetEntPropEnt(iClient, Prop_Send, "m_hActiveWeapon", iWeapon);
+	}
 }
 
 SpawnWeaponBoxes()
