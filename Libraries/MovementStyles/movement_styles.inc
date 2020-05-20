@@ -32,12 +32,14 @@ public SharedPlugin:__pl_movement_styles =
 #define STYLE_BIT_NO_LAND_CAP				(1<<9)
 #define STYLE_BIT_THIRDPERSON				(1<<10)
 #define STYLE_BIT_ROCKET_JUMP				(1<<11)
-#define STYLE_BIT_PARKOUR				(1<<12)
+#define STYLE_BIT_PARKOUR					(1<<12)
 #define STYLE_BIT_AUTO_STRAFE				(1<<13)
-#define STYLE_BIT_TAS             (1<<14)
-#define STYLE_BIT_HIGH_FOV				(1<<15)
-#define STYLE_BIT_BACKWARDS				(1<<16)
-#define STYLE_BIT_ONE_STRAFE_ONLY		(1<<17)
+#define STYLE_BIT_TAS						(1<<14)
+#define STYLE_BIT_HIGH_FOV					(1<<15)
+#define STYLE_BIT_BACKWARDS					(1<<16)
+#define STYLE_BIT_ONE_STRAFE_ONLY			(1<<17)
+#define STYLE_BIT_LOW_FOV					(1<<18)
+#define STYLE_BIT_STOCK_CAP					(1<<19)
 
 functag public Callback_OnActivated(client);
 functag public Callback_OnDeactivated(client);
