@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Jihad";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -123,6 +123,9 @@ bool:SetRandomClientAsJihad()
 			continue;
 		
 		if(IsJihad(iClient))
+			continue;
+		
+		if(UltJB_LR_GetLastRequestFlags(iClient) & LR_FLAG_FREEDAY)
 			continue;
 		
 		PushArrayCell(hClients, iClient);
@@ -557,6 +560,9 @@ KillPlayersInRadius(iExplodingClient, Float:fExplodeOrigin[3], iC4)
 			continue;
 		
 		if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
+			continue;
+		
+		if(UltJB_LR_GetLastRequestFlags(iClient) & LR_FLAG_FREEDAY)
 			continue;
 		
 		GetClientAbsOrigin(iClient, fOrigin);
