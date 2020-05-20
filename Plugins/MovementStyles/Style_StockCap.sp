@@ -22,7 +22,6 @@ public Plugin:myinfo =
 #define THIS_STYLE_BIT			STYLE_BIT_STOCK_CAP
 #define THIS_STYLE_NAME			"Stock Cap"
 #define THIS_STYLE_ORDER		10
-#define USE_DEFAULT_AIRACCELERATE	150
 public OnPluginStart()
 {
 	CreateConVar("style_stock_cap_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
