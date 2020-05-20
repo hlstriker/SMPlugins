@@ -20,7 +20,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.26";
+new const String:PLUGIN_VERSION[] = "1.27";
 
 public Plugin:myinfo =
 {
@@ -388,28 +388,50 @@ public Event_RoundStart_Post(Handle:hEvent, const String:szName[], bool:bDontBro
 
 public Event_PlayerDeath_Post(Handle:event, const String:name[], bool:bDontBroadcast)
 {
+	CheckSlayRemainingFreedayPrisoners();
+}
+
+CheckSlayRemainingFreedayPrisoners()
+{
 	decl iClient, iFreeDayClients[MAXPLAYERS];
-	new iNumPrisoners, iNumFreedays;
+	new iNumGuards, iNumPrisoners, iNumFreedays;
 	
 	for(iClient=1; iClient<=MaxClients; iClient++)
 	{
 		if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
 			continue;
 		
-		if(GetClientTeam(iClient) != TEAM_PRISONERS)
-			continue;
-		
-		if(UltJB_LR_GetLastRequestFlags(iClient) & LR_FLAG_FREEDAY)
-			iFreeDayClients[iNumFreedays++] = iClient;
-		
-		iNumPrisoners++;
+		switch(GetClientTeam(iClient))
+		{
+			case TEAM_PRISONERS:
+			{
+				if(UltJB_LR_GetLastRequestFlags(iClient) & LR_FLAG_FREEDAY)
+					iFreeDayClients[iNumFreedays++] = iClient;
+				
+				iNumPrisoners++;
+			}
+			case TEAM_GUARDS:
+			{
+				iNumGuards++;
+			}
+		}
 	}
 	
-	// Return if no prisoner is in a freeday LR or if there are still prisoners remaining outside of a freeday LR.
-	if(!iNumFreedays || iNumFreedays < iNumPrisoners)
+	// Return if no prisoner is in a freeday LR.
+	if(!iNumFreedays)
 		return;
 	
-	PrintToChatAll("All remaining prisoners are in a freeday.. slaying them.");
+	// Return if it's not a FFA and there are still prisoners not in a freeday.
+	new iNotInFreeday = iNumPrisoners - iNumFreedays;
+	if(!g_bIsDayInFreeForAll && iNotInFreeday > 0)
+		return;
+	
+	// Return if it is a FFA and there are 2 or more total players not in a freeday.
+	iNotInFreeday += iNumGuards;
+	if(g_bIsDayInFreeForAll && iNotInFreeday >= 2)
+		return;
+	
+	PrintToChatAll("Slaying the remaining prisoners in a freeday.");
 	
 	for(new i=0; i<iNumFreedays; i++)
 		ForcePlayerSuicide(iFreeDayClients[i]);
