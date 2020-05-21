@@ -11,6 +11,7 @@
 #include "Includes/ultjb_cell_doors"
 #include "Includes/ultjb_settings"
 #include "Includes/ultjb_logger"
+#include "Includes/ultjb_jihad"
 #include "../../Libraries/PathPoints/path_points"
 
 #undef REQUIRE_PLUGIN
@@ -20,7 +21,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.27";
+new const String:PLUGIN_VERSION[] = "1.28";
 
 public Plugin:myinfo =
 {
@@ -94,6 +95,8 @@ new const String:SZ_SOUND_ALARM[] = "sound/survival/rocketalarmclose.wav";
 #if defined _entity_hooker_included
 new Handle:g_aEntRefsToRemoveOnFFA;
 #endif
+
+new bool:g_bStartedAsJihad[MAXPLAYERS+1];
 
 
 public OnPluginStart()
@@ -964,6 +967,9 @@ bool:StartDay(iClient, iDayID, bool:bUseFreeForAll=false)
 		
 		SetEntProp(iPlayer, Prop_Send, "m_ArmorValue", 0);
 		SetEntProp(iPlayer, Prop_Send, "m_bHasHelmet", 0);
+		
+		g_bStartedAsJihad[iPlayer] = UltJB_Jihad_IsJihad(iPlayer);
+		UltJB_Jihad_ClearJihad(iPlayer);
 	}
 	
 	Call_StartForward(eDay[Day_ForwardStart]);
@@ -1401,6 +1407,9 @@ bool:EndDay(iClient=0)
 		
 		if(g_iOffset_CCSPlayer_m_bSpotted > 0)
 			SetEntData(iPlayer, g_iOffset_CCSPlayer_m_bSpotted - 4, 1); // m_bCanBeSpotted address = m_bSpotted - 4
+		
+		if(g_bStartedAsJihad[iPlayer])
+			UltJB_Jihad_SetJihad(iPlayer);
 	}
 	
 	return true;
