@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Jihad";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -566,6 +566,8 @@ DetonateBomb(iClient)
 	
 	decl Float:fOrigin[3];
 	GetClientAbsOrigin(iClient, fOrigin);
+	fOrigin[2] += 32.0;
+	
 	PM_CreateEntityEffectCustomOrigin(0, PEFFECT_EXPLODE, fOrigin, Float:{0.0, 0.0, 0.0}, Float:{0.0, 0.0, 0.0});
 	
 	EmitAmbientSound(SZ_SOUND_EXPLODE[6], fOrigin, _, 140);
@@ -578,17 +580,18 @@ DetonateBomb(iClient)
 		StripWeaponFromOwner(iC4, true);
 }
 
-KillPlayersInRadius(iExplodingClient, Float:fExplodeOrigin[3], iC4)
+KillPlayersInRadius(iExplodingClient, const Float:fExplodeOrigin[3], iC4)
 {
 	new iExplodingClientTeam = GetClientTeam(iExplodingClient);
 	
 	// Kill self first.
+	SetEntProp(iExplodingClient, Prop_Send, "m_ArmorValue", 0);
 	SDKHooks_TakeDamage(iExplodingClient, iC4, iExplodingClient, float(GetClientHealth(iExplodingClient) + 1), _, iC4);
 	
 	// Damage other clients in radius.
 	new bool:bIsInFreeForAllDay = (UltJB_Day_IsInProgress() && UltJB_Day_IsFreeForAll());
 	
-	decl Float:fOrigin[3], Float:fDist, Float:fDamage;
+	decl Float:fOrigin[3], Float:fDist, Float:fDamage, iArmorValue;
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
 		if(iClient == iExplodingClient)
@@ -615,6 +618,11 @@ KillPlayersInRadius(iExplodingClient, Float:fExplodeOrigin[3], iC4)
 				fDamage * 0.5;
 		}
 		
+		iArmorValue = GetEntProp(iClient, Prop_Send, "m_ArmorValue");
+		SetEntProp(iClient, Prop_Send, "m_ArmorValue", 0);
+		
 		SDKHooks_TakeDamage(iClient, iC4, iExplodingClient, fDamage, _, iC4);
+		
+		SetEntProp(iClient, Prop_Send, "m_ArmorValue", iArmorValue);
 	}
 }
