@@ -21,7 +21,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.28";
+new const String:PLUGIN_VERSION[] = "1.29";
 
 public Plugin:myinfo =
 {
@@ -961,6 +961,9 @@ bool:StartDay(iClient, iDayID, bool:bUseFreeForAll=false)
 	{
 		if(!IsClientInGame(iPlayer))
 			continue;
+		
+		if(!IsPlayerAlive(iPlayer) && GetClientTeam(iPlayer) >= TEAM_PRISONERS)
+			CS_RespawnPlayer(iPlayer);
 		
 		if(bHookPostThink)
 			SDKHook(iPlayer, SDKHook_PostThinkPost, OnPostThinkPost);
