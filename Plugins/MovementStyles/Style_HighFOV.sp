@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: High FOV";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -24,6 +24,8 @@ public Plugin:myinfo =
 new Handle:cvar_add_autobhop;
 new Handle:cvar_force_autobhop;
 
+new Handle:cvar_fov;
+
 new bool:g_bActivated[MAXPLAYERS+1];
 
 
@@ -33,6 +35,8 @@ public OnPluginStart()
 	
 	cvar_add_autobhop = CreateConVar("style_highfov_add_autobhop", "0", "Add an additional auto-bhop style for this style too.", _, true, 0.0, true, 1.0);
 	cvar_force_autobhop = CreateConVar("style_highfov_force_autobhop", "0", "Force auto-bhop on this style.", _, true, 0.0, true, 1.0);
+	
+	cvar_fov = CreateConVar("style_highfov_fov", "140", "The high FOV value to use", _, true, 90.0, true, 180.0);
 }
 
 public MovementStyles_OnRegisterReady()
@@ -82,7 +86,7 @@ public OnClientConnected(iClient)
 public OnActivated(iClient)
 {
 	g_bActivated[iClient] = true;
-	SetFOV(iClient, 140);
+	SetFOV(iClient, GetConVarInt(cvar_fov));
 }
 
 public OnDeactivated(iClient)
