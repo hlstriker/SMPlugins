@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Jihad";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -31,6 +31,8 @@ new bool:g_bIsBombActivated[MAXPLAYERS+1];
 new Handle:g_hTimer_Bomb[MAXPLAYERS+1];
 new g_iJihadBombWeaponEntRef[MAXPLAYERS+1];
 new g_iJihadBombEntRef[MAXPLAYERS+1];
+
+new bool:g_bAllowBombDropping;
 
 new const String:MODEL_KNIFE_T_WORLD[] = "models/weapons/w_knife.mdl";
 new g_iModelIndex_Knife;
@@ -60,7 +62,7 @@ public OnPluginStart()
 	cvar_max_damage = CreateConVar("ultjb_jihad_max_damage", "235.0", "The jihad bomb's max damage.", _, true, 0.0);
 	
 	HookEvent("round_start", Event_RoundStart_Post, EventHookMode_PostNoCopy);
-	HookEvent("player_death", Event_PlayerDeath_Post, EventHookMode_Post);
+	HookEvent("player_death", Event_PlayerDeath_Pre, EventHookMode_Pre);
 	
 	AddCommandListener(OnWeaponDrop, "drop");
 }
@@ -77,8 +79,41 @@ public OnMapStart()
 	PM_PrecacheParticleEffect(PARTICLE_FILE_PATH, PEFFECT_EXPLODE);
 }
 
+public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
+{
+	RegPluginLibrary("ultjb_jihad");
+	CreateNative("UltJB_Jihad_IsJihad", _UltJB_Jihad_IsJihad);
+	CreateNative("UltJB_Jihad_SetJihad", _UltJB_Jihad_SetJihad);
+	CreateNative("UltJB_Jihad_ClearJihad", _UltJB_Jihad_ClearJihad);
+	CreateNative("UltJB_Jihad_SetAllowBombDropping", _UltJB_Jihad_SetAllowBombDropping);
+	
+	return APLRes_Success;
+}
+
+public _UltJB_Jihad_IsJihad(Handle:hPlugin, iNumParams)
+{
+	return IsJihad(GetNativeCell(1));
+}
+
+public _UltJB_Jihad_SetJihad(Handle:hPlugin, iNumParams)
+{
+	SetJihad(GetNativeCell(1));
+}
+
+public _UltJB_Jihad_ClearJihad(Handle:hPlugin, iNumParams)
+{
+	ClearJihad(GetNativeCell(1));
+}
+
+public _UltJB_Jihad_SetAllowBombDropping(Handle:hPlugin, iNumParams)
+{
+	g_bAllowBombDropping = bool:GetNativeCell(1);
+}
+
 public Action:Event_RoundStart_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
 {
+	g_bAllowBombDropping = true;
+	
 	if(!UltJB_CellDoors_DoExist())
 		return;
 	
@@ -88,25 +123,15 @@ public Action:Event_RoundStart_Post(Handle:hEvent, const String:szName[], bool:b
 	SetRandomClientAsJihad();
 }
 
-public Action:Event_PlayerDeath_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
+public Action:Event_PlayerDeath_Pre(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
 {
 	new iClient = GetClientOfUserId(GetEventInt(hEvent, "userid"));
 	if(!IsJihad(iClient))
 		return;
 	
+	EmitSoundToAllAny(SZ_SOUND_AKBAR[6], iClient, SNDCHAN_VOICE, _, SND_STOP | SND_STOPLOOPING | SND_CHANGEVOL, 0.0);
 	ClearJihad(iClient);
 	DetonateBomb(iClient);
-}
-
-public UltJB_Day_OnStart(iClient, DayType:iDayType, bool:bIsFreeForAll)
-{
-	for(new iPlayer=1; iPlayer<=MaxClients; iPlayer++)
-	{
-		if(!IsClientInGame(iPlayer))
-			continue;
-		
-		ClearJihad(iPlayer);
-	}
 }
 
 bool:SetRandomClientAsJihad()
@@ -304,6 +329,9 @@ public Action:CS_OnCSWeaponDrop(iClient, iWeapon)
 
 DisplayMenu_DropJihadBombWeapon(iClient)
 {
+	if(!g_bAllowBombDropping)
+		return;
+	
 	if(g_bIsBombActivated[iClient])
 		return;
 	
@@ -329,6 +357,9 @@ public MenuHandle_DropJihadBombWeapon(Handle:hMenu, MenuAction:action, iParam1, 
 	}
 	
 	if(action != MenuAction_Select)
+		return;
+	
+	if(!g_bAllowBombDropping)
 		return;
 	
 	decl String:szInfo[2];
@@ -549,10 +580,14 @@ DetonateBomb(iClient)
 
 KillPlayersInRadius(iExplodingClient, Float:fExplodeOrigin[3], iC4)
 {
+	new iExplodingClientTeam = GetClientTeam(iExplodingClient);
+	
 	// Kill self first.
 	SDKHooks_TakeDamage(iExplodingClient, iC4, iExplodingClient, float(GetClientHealth(iExplodingClient) + 1), _, iC4);
 	
 	// Damage other clients in radius.
+	new bool:bIsInFreeForAllDay = (UltJB_Day_IsInProgress() && UltJB_Day_IsFreeForAll());
+	
 	decl Float:fOrigin[3], Float:fDist, Float:fDamage;
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
@@ -573,9 +608,12 @@ KillPlayersInRadius(iExplodingClient, Float:fExplodeOrigin[3], iC4)
 		
 		fDamage = GetConVarFloat(cvar_max_damage) * (1.0 - (fDist / GetConVarFloat(cvar_explode_radius)));
 		
-		// Cut damage in half if dealt to other prisoners.
-		if(GetClientTeam(iClient) == TEAM_PRISONERS)
-			fDamage * 0.5;
+		// Cut damage in half if dealt to a teammate, but only if not in a FFA day.
+		if(!bIsInFreeForAllDay)
+		{
+			if(GetClientTeam(iClient) == iExplodingClientTeam)
+				fDamage * 0.5;
+		}
 		
 		SDKHooks_TakeDamage(iClient, iC4, iExplodingClient, fDamage, _, iC4);
 	}
