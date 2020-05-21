@@ -20,7 +20,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Settings";
-new const String:PLUGIN_VERSION[] = "1.34";
+new const String:PLUGIN_VERSION[] = "1.35";
 
 public Plugin:myinfo =
 {
@@ -769,24 +769,6 @@ public Action:Timer_AutoRespawn(Handle:hTimer)
 public UltJB_CellDoors_OnOpened()
 {
 	StopTimer_AutoRespawn();
-}
-
-public UltJB_Day_OnWardayStart(iClient)
-{
-	// Respawn all players if a warday starts.
-	for(new iPlayer=1; iPlayer<=MaxClients; iPlayer++)
-	{
-		if(!IsClientInGame(iPlayer))
-			continue;
-		
-		if(IsPlayerAlive(iPlayer))
-			continue;
-		
-		if(GetClientTeam(iPlayer) < TEAM_PRISONERS)
-			continue;
-		
-		CS_RespawnPlayer(iPlayer);
-	}
 }
 
 public OnWeaponDropPost(iClient, iWeapon)
