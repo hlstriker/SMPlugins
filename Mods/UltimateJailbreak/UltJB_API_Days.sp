@@ -21,7 +21,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.29";
+new const String:PLUGIN_VERSION[] = "1.30";
 
 public Plugin:myinfo =
 {
@@ -968,6 +968,7 @@ bool:StartDay(iClient, iDayID, bool:bUseFreeForAll=false)
 		if(bHookPostThink)
 			SDKHook(iPlayer, SDKHook_PostThinkPost, OnPostThinkPost);
 		
+		UltJB_LR_SetClientsHealth(iPlayer, GetEntProp(iPlayer, Prop_Data, "m_iMaxHealth"));
 		SetEntProp(iPlayer, Prop_Send, "m_ArmorValue", 0);
 		SetEntProp(iPlayer, Prop_Send, "m_bHasHelmet", 0);
 		
