@@ -57,3 +57,40 @@
  *					FEATURECAP_PLAYERRUNCMD_11PARAMS.
  */
 forward Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon, &subtype, &cmdnum, &tickcount, &seed, mouse[2]);
+
+/**
+ * Called after a clients movement buttons were processed.
+ *
+ * @param client        Index of the client.
+ * @param buttons       The current commands (as bitflags - see entity_prop_stocks.inc).
+ * @param impulse       The current impulse command.
+ * @param vel           Players desired velocity.
+ * @param angles        Players desired view angles.
+ * @param weapon        Entity index of the new weapon if player switches weapon, 0 otherwise.
+ * @param subtype       Weapon subtype when selected from a menu.
+ * @param cmdnum        Command number. Increments from the first command sent.
+ * @param tickcount     Tick count. A client's prediction based on the server's GetGameTickCount value.
+ * @param seed          Random seed. Used to determine weapon recoil, spread, and other predicted elements.
+ * @param mouse         Mouse direction (x, y).
+ */
+forward OnPlayerRunCmdPost(client, buttons, impulse, const Float:vel[3], const Float:angles[3], weapon, subtype, cmdnum, tickcount, seed, const mouse[2]);
+
+/**
+ * Called when a client requests a file from the server.
+ *
+ * @param client        Client index.
+ * @param sFile         Requested file path.
+ *
+ * @return              Plugin_Handled to block the transfer, Plugin_Continue to let it proceed.
+ */
+forward Action:OnFileSend(client, const String:sFile[]);
+
+/**
+ * Called when a client sends a file to the server.
+ *
+ * @param client        Client index.
+ * @param sFile         Requested file path.
+ *
+ * @return              Plugin_Handled to block the transfer, Plugin_Continue to let it proceed.
+ */
+forward Action:OnFileReceive(client, const String:sFile[]);
