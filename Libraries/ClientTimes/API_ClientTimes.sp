@@ -1,11 +1,12 @@
 #include <sourcemod>
 #include <cstrike>
+#include <sdktools_hooks>
 #include "../ClientSettings/client_settings"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Client Times";
-new const String:PLUGIN_VERSION[] = "1.6";
+new const String:PLUGIN_VERSION[] = "1.7";
 
 public Plugin:myinfo =
 {
@@ -221,12 +222,20 @@ public _ClientTimes_SetTimeBeforeMarkedAsAway(Handle:hPlugin, iNumParams)
 		eHookedPlugin[HookedPluginForwardAway] = CreateForward(ET_Ignore, Param_Cell);
 		AddToForward(eHookedPlugin[HookedPluginForwardAway], hPlugin, away_callback);
 	}
+	else
+	{
+		eHookedPlugin[HookedPluginForwardAway] = INVALID_HANDLE;
+	}
 	
 	new Function:back_callback = GetNativeCell(3);
 	if(back_callback != INVALID_FUNCTION)
 	{
 		eHookedPlugin[HookedPluginForwardBack] = CreateForward(ET_Ignore, Param_Cell);
 		AddToForward(eHookedPlugin[HookedPluginForwardBack], hPlugin, back_callback);
+	}
+	else
+	{
+		eHookedPlugin[HookedPluginForwardBack] = INVALID_HANDLE;
 	}
 	
 	PushArrayArray(g_aHookedPlugins, eHookedPlugin);
@@ -333,7 +342,7 @@ public OnClientSayCommand_Post(iClient, const String:szCommand[], const String:s
 	CheckValidAction(iClient);
 }
 
-public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVel[3], Float:fAngles[3], &iWeapon, &iSubType, &iCmdNum, &iTickCount, &iSeed, iMouse[2])
+public OnPlayerRunCmdPost(iClient, iButtons, iImpulse, const Float:fVel[3], const Float:fAngles[3], iWeapon, iSubType, iCmdNum, iTickCount, iSeed, const iMouse[2])
 {
 	if(IsFakeClient(iClient))
 		return;
@@ -355,10 +364,12 @@ UpdateClientAsAwayIfNeeded(iClient)
 	if(fCurTime < g_fNextAwayCheck[iClient])
 		return;
 	
-	g_fNextAwayCheck[iClient] = fCurTime + 1.0;
+	g_fNextAwayCheck[iClient] = fCurTime + GetRandomFloat(0.9, 1.1);
 	
-	decl eHookedPlugin[HookedPlugins];
-	for(new i=0; i<GetArraySize(g_aHookedPlugins); i++)
+	static eHookedPlugin[HookedPlugins], iArraySize;
+	iArraySize = GetArraySize(g_aHookedPlugins);
+	
+	for(new i=0; i<iArraySize; i++)
 	{
 		GetArrayArray(g_aHookedPlugins, i, eHookedPlugin);
 		
