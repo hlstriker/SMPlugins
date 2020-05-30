@@ -4,7 +4,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Disable Player Damage";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -31,10 +31,13 @@ public Action:OnTraceAttack(iVictim, &iAttacker, &iInflictor, &Float:fDamage, &i
 {
 	if(!(1 <= iVictim <= MaxClients))
 		return Plugin_Continue;
-	
+
+	if(!(1 <= iInflictor <= MaxClients))
+		return Plugin_Continue;
+
 	if(!(1 <= iAttacker <= MaxClients))
 		return Plugin_Continue;
-	
+
 	fDamage = 0.0;
 	return Plugin_Handled;
 }
@@ -43,10 +46,13 @@ public Action:OnTakeDamage(iVictim, &iAttacker, &iInflictor, &Float:fDamage, &iD
 {
 	if(!(1 <= iVictim <= MaxClients))
 		return Plugin_Continue;
-	
+
+	if(!(1 <= iInflictor <= MaxClients))
+		return Plugin_Continue;
+
 	if(!(1 <= iAttacker <= MaxClients))
 		return Plugin_Continue;
-	
+
 	fDamage = 0.0;
 	return Plugin_Changed;
 }
