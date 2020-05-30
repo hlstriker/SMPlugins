@@ -13,7 +13,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Entity Hooker";
-new const String:PLUGIN_VERSION[] = "1.12";
+new const String:PLUGIN_VERSION[] = "1.13";
 
 public Plugin:myinfo =
 {
@@ -456,7 +456,7 @@ RehookEntities()
 				continue;
 			
 			Forward_OnEntityHooked(eHookedEntity[HOOKED_ENT_DATA_TYPE], iEnt);
-			break;
+			//break; // WARNING: Do not break since maps can have multiple entities with the same hammer id.
 		}
 	}
 	
@@ -579,7 +579,16 @@ CreateNewEntityHook(iClient, const eHookData[HookData], iEnt, iCustomData1)
 		DBMaps_GetMapID(), eHookData[HOOK_DATA_TYPE], iHammerID, szClassName, iCustomData1, szClassName, iCustomData1);
 	
 	AddHookedEntityToArray(eHookData[HOOK_DATA_TYPE], iHammerID, szClassName, iCustomData1);
-	Forward_OnEntityHooked(eHookData[HOOK_DATA_TYPE], iEnt);
+	
+	// Even though we only hooked a single entity, we need to go through every entity of this classname and hook all of them with the same hammer id.
+	new iEntTemp = -1;
+	while((iEntTemp = FindEntityByClassname(iEntTemp, szClassName)) != -1)
+	{
+		if(GetEntProp(iEntTemp, Prop_Data, "m_iHammerID") != iHammerID)
+			continue;
+		
+		Forward_OnEntityHooked(eHookData[HOOK_DATA_TYPE], iEntTemp);
+	}
 	
 	LogAction(iClient, -1, "\"%L\" created an entity hook (type \"%s\") (hammer_id \"%d\") (classname \"%s\")", iClient, eHookData[HOOK_DATA_NAME], iHammerID, szClassName);
 	LogChanges(iClient, ENTHOOK_LOGTYPE_ADDED, iHammerID);
