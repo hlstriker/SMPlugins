@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Team Ratio";
-new const String:PLUGIN_VERSION[] = "1.15";
+new const String:PLUGIN_VERSION[] = "1.16";
 
 public Plugin:myinfo =
 {
@@ -651,18 +651,4 @@ PrintToChatAndConsole(iClient, const String:szFormat[], any:...)
 	
 	PrintToChat(iClient, szBuffer);
 	PrintToConsole(iClient, szBuffer);
-}
-
-public OnClientPutInServer(iClient)
-{
-	SDKHook(iClient, SDKHook_OnTakeDamage, OnTakeDamage);
-}
-
-public Action:OnTakeDamage(iVictim, &iAttacker, &iInflictor, &Float:fDamage, &iDamageType)
-{
-	if(GetTeamClientCount(TEAM_GUARDS) > 0)
-		return Plugin_Continue;
-	
-	fDamage = 0.0;
-	return Plugin_Changed;
 }
