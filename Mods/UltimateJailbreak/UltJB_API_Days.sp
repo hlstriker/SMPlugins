@@ -22,7 +22,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.32";
+new const String:PLUGIN_VERSION[] = "1.33";
 
 public Plugin:myinfo =
 {
@@ -103,7 +103,7 @@ new bool:g_bStartedAsJihad[MAXPLAYERS+1];
 #define SetSpawnedByDay(%1,%2)		SetEntProp(%1, Prop_Send, "m_bIsAutoaimTarget", %2)
 
 new bool:g_bIsCheckingPointTemplates;
-new Handle:g_aPointTemplateEntRefs;
+new Handle:g_aPointTemplateEntities;
 
 
 public OnPluginStart()
@@ -124,7 +124,7 @@ public OnPluginStart()
 	
 	g_aUsedSteamIDs = CreateArray(48);
 	
-	g_aPointTemplateEntRefs = CreateArray();
+	g_aPointTemplateEntities = CreateArray();
 	
 	#if defined _entity_hooker_included
 	g_aEntRefsToRemoveOnFFA = CreateArray();
@@ -174,7 +174,9 @@ public OnEntityCreated(iEnt, const String:szClassName[])
 {
 	if(g_bIsCheckingPointTemplates)
 	{
-		PushArrayCell(g_aPointTemplateEntRefs, EntIndexToEntRef(iEnt));
+		// WARNING:	Do not store ent references since we can't get a reference to edictless entities (negative indexes).
+		// 			We are retrieving them in the same frame so it shouldn't be an issue.
+		PushArrayCell(g_aPointTemplateEntities, iEnt);
 		return;
 	}
 	
@@ -400,7 +402,7 @@ CanDropWeapon()
 public Event_RoundStart_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
 {
 	g_bIsCheckingPointTemplates = false;
-	ClearArray(g_aPointTemplateEntRefs);
+	ClearArray(g_aPointTemplateEntities);
 	
 	g_iWardenCountForRound = 0;
 	
@@ -1298,7 +1300,7 @@ bool:DoesPointTemplateContainName(iPointTemplate, const String:szName[])
 KillWorldWeapons()
 {
 	// First we need to force spawn all point_template entities so we know they exist, they might spawn a game_player_equip.
-	ClearArray(g_aPointTemplateEntRefs);
+	ClearArray(g_aPointTemplateEntities);
 	g_bIsCheckingPointTemplates = true;
 	
 	new iPointTemplate = -1;
@@ -1330,15 +1332,15 @@ KillWorldWeapons()
 	}
 	
 	// Clean up the force spawned point_template entities.
-	new iArraySize = GetArraySize(g_aPointTemplateEntRefs);
+	new iArraySize = GetArraySize(g_aPointTemplateEntities);
 	for(new i=0; i<iArraySize; i++)
 	{
-		iEnt = EntRefToEntIndex(GetArrayCell(g_aPointTemplateEntRefs, i));
+		iEnt = GetArrayCell(g_aPointTemplateEntities, i);
 		if(iEnt)
 			AcceptEntityInput(iEnt, "KillHierarchy");
 	}
 	
-	ClearArray(g_aPointTemplateEntRefs);
+	ClearArray(g_aPointTemplateEntities);
 	
 	// Kill weapons on the ground.
 	new iCount = GetEntityCount();
@@ -1515,7 +1517,7 @@ bool:EndDay(iClient=0)
 		return false;
 	
 	g_bIsCheckingPointTemplates = false;
-	ClearArray(g_aPointTemplateEntRefs);
+	ClearArray(g_aPointTemplateEntities);
 	
 	if(cvar_mp_teammates_are_enemies != INVALID_HANDLE)
 		SetConVarBool(cvar_mp_teammates_are_enemies, false, true);
