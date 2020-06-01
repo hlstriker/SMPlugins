@@ -12,6 +12,7 @@
 #include "Includes/ultjb_settings"
 #include "Includes/ultjb_logger"
 #include "Includes/ultjb_jihad"
+#include "Includes/ultjb_weapon_selection"
 #include "../../Libraries/PathPoints/path_points"
 
 #undef REQUIRE_PLUGIN
@@ -21,7 +22,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.31";
+new const String:PLUGIN_VERSION[] = "1.32";
 
 public Plugin:myinfo =
 {
@@ -101,6 +102,9 @@ new bool:g_bStartedAsJihad[MAXPLAYERS+1];
 #define GetSpawnedByDay(%1)			GetEntProp(%1, Prop_Send, "m_bIsAutoaimTarget")
 #define SetSpawnedByDay(%1,%2)		SetEntProp(%1, Prop_Send, "m_bIsAutoaimTarget", %2)
 
+new bool:g_bIsCheckingPointTemplates;
+new Handle:g_aPointTemplateEntRefs;
+
 
 public OnPluginStart()
 {
@@ -119,6 +123,8 @@ public OnPluginStart()
 	g_hFwd_OnWardayFreezeEnd = CreateGlobalForward("UltJB_Day_OnWardayFreezeEnd", ET_Ignore);
 	
 	g_aUsedSteamIDs = CreateArray(48);
+	
+	g_aPointTemplateEntRefs = CreateArray();
 	
 	#if defined _entity_hooker_included
 	g_aEntRefsToRemoveOnFFA = CreateArray();
@@ -166,6 +172,12 @@ public OnClientPutInServer(iClient)
 
 public OnEntityCreated(iEnt, const String:szClassName[])
 {
+	if(g_bIsCheckingPointTemplates)
+	{
+		PushArrayCell(g_aPointTemplateEntRefs, EntIndexToEntRef(iEnt));
+		return;
+	}
+	
 	if(strlen(szClassName) < 8)
 		return;
 	
@@ -278,7 +290,8 @@ public Action:OnWeaponCanUse(iClient, iWeapon)
 	if(ShouldBlockWeaponGain(iClient, iWeapon))
 		return Plugin_Handled;
 	
-	if(ShouldBlockWeaponPickup(iWeapon))
+	// Only call ShouldBlockWeaponPickup if it's a weapon not givin by the plugin.
+	if(!UltJB_Weapons_IsGettingItem(iClient) && ShouldBlockWeaponPickup(iWeapon))
 	{
 		// If this weapon isn't allowed to be picked up, go ahead and kill it so weapons aren't infinitely spawned in some situations.
 		AcceptEntityInput(iWeapon, "KillHierarchy");
@@ -386,6 +399,9 @@ CanDropWeapon()
 
 public Event_RoundStart_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
 {
+	g_bIsCheckingPointTemplates = false;
+	ClearArray(g_aPointTemplateEntRefs);
+	
 	g_iWardenCountForRound = 0;
 	
 	for(new i=0; i<sizeof(g_iRoundsAfterDay); i++)
@@ -1208,27 +1224,134 @@ TeleportPlayersToFreeForAllPoints()
 	CloseHandle(hClients);
 }
 
+bool:DoesPointTemplateContainName(iPointTemplate, const String:szName[])
+{
+	static String:szString[1024];
+	
+	GetEntPropString(iPointTemplate, Prop_Data, "m_iszTemplateEntityNames[0]", szString, sizeof(szString));
+	if(StrEqual(szName, szString, false))
+		return true;
+	
+	GetEntPropString(iPointTemplate, Prop_Data, "m_iszTemplateEntityNames[1]", szString, sizeof(szString));
+	if(StrEqual(szName, szString, false))
+		return true;
+	
+	GetEntPropString(iPointTemplate, Prop_Data, "m_iszTemplateEntityNames[2]", szString, sizeof(szString));
+	if(StrEqual(szName, szString, false))
+		return true;
+	
+	GetEntPropString(iPointTemplate, Prop_Data, "m_iszTemplateEntityNames[3]", szString, sizeof(szString));
+	if(StrEqual(szName, szString, false))
+		return true;
+	
+	GetEntPropString(iPointTemplate, Prop_Data, "m_iszTemplateEntityNames[4]", szString, sizeof(szString));
+	if(StrEqual(szName, szString, false))
+		return true;
+	
+	GetEntPropString(iPointTemplate, Prop_Data, "m_iszTemplateEntityNames[5]", szString, sizeof(szString));
+	if(StrEqual(szName, szString, false))
+		return true;
+	
+	GetEntPropString(iPointTemplate, Prop_Data, "m_iszTemplateEntityNames[6]", szString, sizeof(szString));
+	if(StrEqual(szName, szString, false))
+		return true;
+	
+	GetEntPropString(iPointTemplate, Prop_Data, "m_iszTemplateEntityNames[7]", szString, sizeof(szString));
+	if(StrEqual(szName, szString, false))
+		return true;
+	
+	GetEntPropString(iPointTemplate, Prop_Data, "m_iszTemplateEntityNames[8]", szString, sizeof(szString));
+	if(StrEqual(szName, szString, false))
+		return true;
+	
+	GetEntPropString(iPointTemplate, Prop_Data, "m_iszTemplateEntityNames[9]", szString, sizeof(szString));
+	if(StrEqual(szName, szString, false))
+		return true;
+	
+	GetEntPropString(iPointTemplate, Prop_Data, "m_iszTemplateEntityNames[10]", szString, sizeof(szString));
+	if(StrEqual(szName, szString, false))
+		return true;
+	
+	GetEntPropString(iPointTemplate, Prop_Data, "m_iszTemplateEntityNames[11]", szString, sizeof(szString));
+	if(StrEqual(szName, szString, false))
+		return true;
+	
+	GetEntPropString(iPointTemplate, Prop_Data, "m_iszTemplateEntityNames[12]", szString, sizeof(szString));
+	if(StrEqual(szName, szString, false))
+		return true;
+	
+	GetEntPropString(iPointTemplate, Prop_Data, "m_iszTemplateEntityNames[13]", szString, sizeof(szString));
+	if(StrEqual(szName, szString, false))
+		return true;
+	
+	GetEntPropString(iPointTemplate, Prop_Data, "m_iszTemplateEntityNames[14]", szString, sizeof(szString));
+	if(StrEqual(szName, szString, false))
+		return true;
+	
+	GetEntPropString(iPointTemplate, Prop_Data, "m_iszTemplateEntityNames[15]", szString, sizeof(szString));
+	if(StrEqual(szName, szString, false))
+		return true;
+	
+	return false;
+}
+
 KillWorldWeapons()
 {
+	// First we need to force spawn all point_template entities so we know they exist, they might spawn a game_player_equip.
+	ClearArray(g_aPointTemplateEntRefs);
+	g_bIsCheckingPointTemplates = true;
+	
+	new iPointTemplate = -1;
+	while((iPointTemplate = FindEntityByClassname(iPointTemplate, "point_template")) != -1)
+	{
+		AcceptEntityInput(iPointTemplate, "ForceSpawn");
+	}
+	
+	g_bIsCheckingPointTemplates = false;
+	
+	// Kill game_player_equips.
 	new iEnt = -1;
+	static String:szString[1024];
 	while((iEnt = FindEntityByClassname(iEnt, "game_player_equip")) != -1)
 	{
+		// Before killing the game_player_equip we need to kill any point_templates that might be referencing it as well.
+		GetEntPropString(iEnt, Prop_Data, "m_iName", szString, sizeof(szString));
+		
+		iPointTemplate = -1;
+		while((iPointTemplate = FindEntityByClassname(iPointTemplate, "point_template")) != -1)
+		{
+			if(DoesPointTemplateContainName(iPointTemplate, szString))
+			{
+				AcceptEntityInput(iPointTemplate, "KillHierarchy");
+			}
+		}
+		
 		AcceptEntityInput(iEnt, "KillHierarchy");
 	}
 	
+	// Clean up the force spawned point_template entities.
+	new iArraySize = GetArraySize(g_aPointTemplateEntRefs);
+	for(new i=0; i<iArraySize; i++)
+	{
+		iEnt = EntRefToEntIndex(GetArrayCell(g_aPointTemplateEntRefs, i));
+		if(iEnt)
+			AcceptEntityInput(iEnt, "KillHierarchy");
+	}
+	
+	ClearArray(g_aPointTemplateEntRefs);
+	
 	// Kill weapons on the ground.
-	decl String:szClassName[8];
 	new iCount = GetEntityCount();
 	for(iEnt=1; iEnt<=iCount; iEnt++)
 	{
 		if(!IsValidEntity(iEnt))
 			continue;
 		
-		if(!GetEntityClassname(iEnt, szClassName, sizeof(szClassName)))
+		if(!GetEntityClassname(iEnt, szString, sizeof(szString)))
 			continue;
 		
-		szClassName[7] = '\x0';
-		if(!StrEqual(szClassName, "weapon_"))
+		szString[7] = '\x0';
+		if(!StrEqual(szString, "weapon_"))
 			continue;
 		
 		if(GetEntPropEnt(iEnt, Prop_Data, "m_hOwnerEntity") != -1)
@@ -1390,6 +1513,9 @@ bool:EndDay(iClient=0)
 	
 	if(g_iDayIDToIndex[g_iCurrentDayID] == INVALID_DAY_INDEX)
 		return false;
+	
+	g_bIsCheckingPointTemplates = false;
+	ClearArray(g_aPointTemplateEntRefs);
 	
 	if(cvar_mp_teammates_are_enemies != INVALID_HANDLE)
 		SetConVarBool(cvar_mp_teammates_are_enemies, false, true);
