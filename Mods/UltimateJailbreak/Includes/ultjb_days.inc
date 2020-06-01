@@ -35,6 +35,7 @@ enum DayType
 #define DAY_FLAG_DISABLE_GUARDS_RADAR			(1<<8)
 #define DAY_FLAG_FORCE_FREE_FOR_ALL				(1<<9)
 #define DAY_FLAG_DISABLE_WEAPON_BUYING			(1<<10)
+#define DAY_FLAG_ALLOW_WEAPON_PICKUPS_FROM_DAY	(1<<11)
 
 
 #define DAY_MAX_NAME_LENGTH		48
@@ -176,6 +177,15 @@ native bool:UltJB_Day_AllowFreeForAll(day_id, bool:allow);
  * @return				True if in free-for-all, false otherwise.
  */
 native bool:UltJB_Day_IsFreeForAll();
+
+/**
+ * Sets this entity as spawned by day or not.
+ *
+ * @param day_id				The entity index to set.
+ * @param spawned_by_day		True if spawned by day, false otherwise.
+ * @noreturn
+ */
+native UltJB_Day_SetEntityAsSpawnedByDay(entity, bool:spawned_by_day=true);
 
 
 

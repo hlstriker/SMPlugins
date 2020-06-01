@@ -21,7 +21,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.30";
+new const String:PLUGIN_VERSION[] = "1.31";
 
 public Plugin:myinfo =
 {
@@ -97,6 +97,9 @@ new Handle:g_aEntRefsToRemoveOnFFA;
 #endif
 
 new bool:g_bStartedAsJihad[MAXPLAYERS+1];
+
+#define GetSpawnedByDay(%1)			GetEntProp(%1, Prop_Send, "m_bIsAutoaimTarget")
+#define SetSpawnedByDay(%1,%2)		SetEntProp(%1, Prop_Send, "m_bIsAutoaimTarget", %2)
 
 
 public OnPluginStart()
@@ -275,8 +278,12 @@ public Action:OnWeaponCanUse(iClient, iWeapon)
 	if(ShouldBlockWeaponGain(iClient, iWeapon))
 		return Plugin_Handled;
 	
-	if(ShouldBlockWeaponPickup())
+	if(ShouldBlockWeaponPickup(iWeapon))
+	{
+		// If this weapon isn't allowed to be picked up, go ahead and kill it so weapons aren't infinitely spawned in some situations.
+		AcceptEntityInput(iWeapon, "KillHierarchy");
 		return Plugin_Handled;
+	}
 	
 	return Plugin_Continue;
 }
@@ -289,7 +296,7 @@ public Action:CS_OnBuyCommand(iClient, const String:szWeaponName[])
 	if(ShouldBlockWeaponGain(iClient, 0))
 		return Plugin_Handled;
 	
-	if(ShouldBlockWeaponPickup())
+	if(ShouldBlockWeaponPickup(0))
 		return Plugin_Handled;
 	
 	if(ShouldBlockWeaponBuy())
@@ -313,12 +320,15 @@ bool:ShouldBlockWeaponGain(iClient, iWeapon)
 	return false;
 }
 
-bool:ShouldBlockWeaponPickup()
+bool:ShouldBlockWeaponPickup(iWeapon)
 {
 	static eDay[Day];
 	GetArrayArray(g_aDays, g_iDayIDToIndex[g_iCurrentDayID], eDay);
 	
 	if(eDay[Day_Flags] & DAY_FLAG_ALLOW_WEAPON_PICKUPS)
+		return false;
+	
+	if((eDay[Day_Flags] & DAY_FLAG_ALLOW_WEAPON_PICKUPS_FROM_DAY) && GetSpawnedByDay(iWeapon))
 		return false;
 	
 	return true;
@@ -562,6 +572,7 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	CreateNative("UltJB_Day_GetCurrentDayID", _UltJB_Day_GetCurrentDayID);
 	CreateNative("UltJB_Day_AllowFreeForAll", _UltJB_Day_AllowFreeForAll);
 	CreateNative("UltJB_Day_IsFreeForAll", _UltJB_Day_IsFreeForAll);
+	CreateNative("UltJB_Day_SetEntityAsSpawnedByDay", _UltJB_Day_SetEntityAsSpawnedByDay);
 	
 	return APLRes_Success;
 }
@@ -757,6 +768,11 @@ public _UltJB_Day_AllowFreeForAll(Handle:hPlugin, iNumParams)
 	SetArrayArray(g_aDays, g_iDayIDToIndex[iDayID], eDay);
 	
 	return true;
+}
+
+public _UltJB_Day_SetEntityAsSpawnedByDay(Handle:hPlugin, iNumParams)
+{
+	SetSpawnedByDay(GetNativeCell(1), GetNativeCell(2));
 }
 
 public _UltJB_Day_IsFreeForAll(Handle:hPlugin, iNumParams)

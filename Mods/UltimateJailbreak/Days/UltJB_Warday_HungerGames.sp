@@ -12,7 +12,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Hunger Games";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -57,7 +57,7 @@ public OnMapStart()
 public UltJB_Day_OnRegisterReady()
 {
 	g_iThisDayID = UltJB_Day_RegisterDay(DAY_NAME, DAY_TYPE,
-		DAY_FLAG_ALLOW_WEAPON_PICKUPS | DAY_FLAG_ALLOW_WEAPON_DROPS | DAY_FLAG_STRIP_GUARDS_WEAPONS | DAY_FLAG_STRIP_PRISONERS_WEAPONS | 
+		DAY_FLAG_ALLOW_WEAPON_PICKUPS_FROM_DAY | DAY_FLAG_ALLOW_WEAPON_DROPS | DAY_FLAG_STRIP_GUARDS_WEAPONS | DAY_FLAG_STRIP_PRISONERS_WEAPONS | 
 		DAY_FLAG_KILL_WORLD_WEAPONS | DAY_FLAG_DISABLE_PRISONERS_RADAR | DAY_FLAG_DISABLE_GUARDS_RADAR | DAY_FLAG_FORCE_FREE_FOR_ALL,
 		OnDayStart, _, OnFreezeEnd);
 	
@@ -215,6 +215,8 @@ SpawnWeaponEnt(iWeaponBox)
 	new iEnt = CreateEntityByName(szName);
 	if(iEnt < 1)
 		return -1;
+	
+	UltJB_Day_SetEntityAsSpawnedByDay(iEnt, true);
 	
 	DispatchSpawn(iEnt);
 	ActivateEntity(iEnt);
