@@ -5,12 +5,13 @@
 #include <sdkhooks>
 #include "../../../Libraries/Store/store"
 #include "../../../Plugins/HidePlayers/hide_players"
+#include "item_equipment"
 #include <hls_color_chat>
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Store Item: Equipment";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -36,20 +37,17 @@ new const EQUIPMENT_ITEM_TYPES[] =
 	STOREITEM_TYPE_EQUIPMENT_TORSO
 };
 
-enum EquipmentType
-{
-	EquipmentType_Head,
-	EquipmentType_Face,
-	EquipmentType_Torso
-};
-
 new g_iEquipmentRefs[MAXPLAYERS+1][EquipmentType];
 new Handle:g_aEquipmentIDs[EquipmentType];
+
+new Handle:g_hFwd_OnEquipped;
 
 
 public OnPluginStart()
 {
 	CreateConVar("store_item_equipment_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
+	
+	g_hFwd_OnEquipped = CreateGlobalForward("ItemEquipment_OnEquipped", ET_Ignore, Param_Cell, Param_Cell);
 	
 	for(new i=0; i<sizeof(g_aEquipmentIDs); i++)
 		g_aEquipmentIDs[i] = CreateArray();
@@ -74,6 +72,30 @@ public Store_OnItemsReady()
 			PushArrayCell(g_aEquipmentIDs[i], iFoundItemID);
 		}
 	}
+}
+
+public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
+{
+	RegPluginLibrary("item_equipment");
+	CreateNative("ItemEquipment_GetEntities", _ItemEquipment_GetEntities);
+	
+	return APLRes_Success;
+}
+
+public _ItemEquipment_GetEntities(Handle:hPlugin, iNumParams)
+{
+	if(iNumParams != 2)
+		return false;
+	
+	new iClient = GetNativeCell(1);
+	
+	decl iEquipmentEntities[sizeof(g_iEquipmentRefs[])];
+	for(new i=0; i<sizeof(g_iEquipmentRefs[]); i++)
+		iEquipmentEntities[i] = EntRefToEntIndex(g_iEquipmentRefs[iClient][i]);
+	
+	SetNativeArray(2, iEquipmentEntities, sizeof(g_iEquipmentRefs[]));
+	
+	return true;
 }
 
 RemoveEquipment(iClient, bool:bKill=true)
@@ -198,6 +220,16 @@ InitEquipmentEntity(iClient, iEnt)
 	SetEntProp(iEnt, Prop_Send, "m_fEffects", EF_NOSHADOW | EF_NORECEIVESHADOW | EF_BONEMERGE | EF_BONEMERGE_FASTCULL);
 	SetVariantString("!activator");
 	AcceptEntityInput(iEnt, "SetParent", iClient);
+	
+	Forward_OnEquipped(iClient, iEnt);
+}
+
+Forward_OnEquipped(iClient, iEquipment)
+{
+	Call_StartForward(g_hFwd_OnEquipped);
+	Call_PushCell(iClient);
+	Call_PushCell(iEquipment);
+	Call_Finish();
 }
 
 // TODO: If CS:GO entity limit increases we will need to increase these arrays.
