@@ -9,12 +9,13 @@
 #include "Includes/ultjb_settings"
 #include "Includes/ultjb_cell_doors"
 #include "Includes/ultjb_days"
+#include "Includes/ultjb_weapon_selection"
 #include "../../Libraries/ParticleManager/particle_manager"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Jihad";
-new const String:PLUGIN_VERSION[] = "1.5";
+new const String:PLUGIN_VERSION[] = "1.6";
 
 public Plugin:myinfo =
 {
@@ -226,7 +227,7 @@ CreateJihadBombWeapon(iClient)
 	if(iBombWeapon > 0 && !(GetEntityFlags(iBombWeapon) & FL_KILLME))
 		return iBombWeapon;
 	
-	iBombWeapon = GivePlayerItemCustom(iClient, "weapon_breachcharge");
+	iBombWeapon = UltJB_Weapons_GivePlayerWeapon(iClient, _:CSWeapon_BREACHCHARGE);
 	if(iBombWeapon < 1)
 		return -1;
 	
@@ -235,21 +236,6 @@ CreateJihadBombWeapon(iClient)
 	OnWeaponSwitchPost(iClient, iBombWeapon);
 	
 	return iBombWeapon;
-}
-
-GivePlayerItemCustom(iClient, const String:szClassName[])
-{
-	new iEnt = GivePlayerItem(iClient, szClassName);
-	
-	/*
-	* 	Sometimes GivePlayerItem() will call EquipPlayerWeapon() directly.
-	* 	Other times which seems to be directly after stripping weapons or player spawn EquipPlayerWeapon() won't get called.
-	* 	Call EquipPlayerWeapon() here if it wasn't called during GivePlayerItem(). Determine that by checking the entities owner.
-	*/
-	if(iEnt != -1 && GetEntPropEnt(iEnt, Prop_Send, "m_hOwnerEntity") == -1)
-		EquipPlayerWeapon(iClient, iEnt);
-	
-	return iEnt;
 }
 
 RemoveJihadBombWeapon(iClient)
