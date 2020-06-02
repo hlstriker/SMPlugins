@@ -7,7 +7,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Weapon Selection";
-new const String:PLUGIN_VERSION[] = "1.9";
+new const String:PLUGIN_VERSION[] = "1.10";
 
 public Plugin:myinfo =
 {
@@ -36,9 +36,6 @@ enum _:WeaponTeam
 	WEAPON_TEAM
 };
 
-#define ITEMDEF_CZ75A			63
-#define ITEMDEF_M4A1_SILENCER	60
-#define ITEMDEF_USP_SILENCER	61
 #define ITEMDEF_HKP2000			32
 
 #define SetWeaponAsFromLR(%1)	SetEntProp(%1, Prop_Data, "m_iPendingTeamNum", 1)
@@ -218,9 +215,6 @@ public _UltJB_Weapons_GetItemDefIndexFromWeaponID(Handle:hPlugin, iNumParams)
 	
 	switch(GetNativeCell(1))
 	{
-		case CSWeapon_CZ75A: return ITEMDEF_CZ75A;
-		case CSWeapon_M4A1_SILENCER: return ITEMDEF_M4A1_SILENCER;
-		case CSWeapon_USP_SILENCER: return ITEMDEF_USP_SILENCER;
 		case CSWeapon_HKP2000: return ITEMDEF_HKP2000;
 	}
 	
@@ -266,7 +260,7 @@ public _UltJB_Weapons_GetEntNameFromWeaponID(Handle:hPlugin, iNumParams)
 		{
 			iCellsWritten = strcopy(szEntityName, sizeof(szEntityName), "weapon_healthshot");
 		}
-		case CSWeapon_TAGRENADE:
+		case CSWeapon_TAGGRENADE:
 		{
 			iCellsWritten = strcopy(szEntityName, sizeof(szEntityName), "weapon_tagrenade");
 		}

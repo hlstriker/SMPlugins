@@ -22,13 +22,6 @@ public SharedPlugin:__pl_ultjb_weapon_selection =
 
 
 // Note: Make sure to delete these when sourcemod implements their own values and remove the checks in UltJB_Weapons_GetEntNameFromWeaponID().
-#define CSWeapon_CZ75A			1001
-#define CSWeapon_M4A1_SILENCER	1002
-#define CSWeapon_USP_SILENCER	1003
-#define CSWeapon_KNIFE_T		1004
-#define CSWeapon_HEALTHSHOT		1005
-#define CSWeapon_TAGRENADE		1006
-#define CSWeapon_REVOLVER		1007
 #define CSWeapon_MP5SD			1008
 
 
