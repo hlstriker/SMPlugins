@@ -7,7 +7,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Jihad";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -55,7 +55,7 @@ public OnFreezeEnd()
 		UltJB_Jihad_SetJihad(iClient);
 	}
 	
-	EmitSoundToAllAny(SZ_SOUND_MUSIC[6], _, _, SNDLEVEL_NONE, _, 0.2);
+	EmitSoundToAllAny(SZ_SOUND_MUSIC[6], _, SNDCHAN_ITEM, SNDLEVEL_NONE, _, 0.2);
 }
 
 public OnDayEnd(iClientEndedDay)
