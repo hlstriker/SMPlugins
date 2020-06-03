@@ -6,7 +6,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Hide Players";
-new const String:PLUGIN_VERSION[] = "2.7";
+new const String:PLUGIN_VERSION[] = "2.8";
 
 public Plugin:myinfo =
 {
@@ -220,6 +220,12 @@ public Action:OnSetTransmit_Player(iPlayerEnt, iClient)
 			g_CachedTransmitClient[iClient][iPlayerEnt] = Plugin_Continue;
 			return Plugin_Continue;
 		}
+	}
+	
+	if(g_iHideMode == HIDE_DISABLED && GetConVarInt(cvar_hide_players_override) == OVERRIDE_NONE)
+	{
+		g_CachedTransmitClient[iClient][iPlayerEnt] = Plugin_Continue;
+		return Plugin_Continue;
 	}
 	
 	g_CachedTransmitClient[iClient][iPlayerEnt] = Plugin_Handled;
