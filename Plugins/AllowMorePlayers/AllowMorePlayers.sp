@@ -9,7 +9,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_VERSION[] = "1.9";
+new const String:PLUGIN_VERSION[] = "1.10";
 
 public Plugin:myinfo =
 {
@@ -289,14 +289,14 @@ public Action:OnJoinTeam(iClient, const String:szCommand[], iArgCount)
 		// Let the first player to join a team go on the team they selected.
 		if(!iNumT && !iNumCT)
 		{
-			ChangeClientTeamWithDeath(iClient, iTeam);
+			ChangeClientTeam(iClient, iTeam);
 			return Plugin_Handled;
 		}
 		
 		if(iNumT <= iNumCT)
-			ChangeClientTeamWithDeath(iClient, TEAM_TERRORIST);
+			ChangeClientTeam(iClient, TEAM_TERRORIST);
 		else
-			ChangeClientTeamWithDeath(iClient, TEAM_COUNTER_TERRORIST);
+			ChangeClientTeam(iClient, TEAM_COUNTER_TERRORIST);
 		
 		return Plugin_Handled;
 	}
@@ -304,7 +304,7 @@ public Action:OnJoinTeam(iClient, const String:szCommand[], iArgCount)
 	// Force the client on the team they are trying to join if the spawn count is even.
 	if(g_iSpawnCount[TEAM_TERRORIST] == g_iSpawnCount[TEAM_COUNTER_TERRORIST])
 	{
-		ChangeClientTeamWithDeath(iClient, iTeam);
+		ChangeClientTeam(iClient, iTeam);
 		return Plugin_Handled;
 	}
 	
@@ -349,7 +349,7 @@ public Action:OnJoinTeam(iClient, const String:szCommand[], iArgCount)
 				{
 					if(g_iSpawnCount[TEAM_COUNTER_TERRORIST])
 					{
-						ChangeClientTeamWithDeath(iClient, TEAM_COUNTER_TERRORIST);
+						ChangeClientTeam(iClient, TEAM_COUNTER_TERRORIST);
 						return Plugin_Handled;
 					}
 				}
@@ -357,19 +357,19 @@ public Action:OnJoinTeam(iClient, const String:szCommand[], iArgCount)
 				{
 					if(g_iSpawnCount[TEAM_TERRORIST])
 					{
-						ChangeClientTeamWithDeath(iClient, TEAM_TERRORIST);
+						ChangeClientTeam(iClient, TEAM_TERRORIST);
 						return Plugin_Handled;
 					}
 				}
 			}
 		}
 		
-		ChangeClientTeamWithDeath(iClient, iTryForceToTeamNum);
+		ChangeClientTeam(iClient, iTryForceToTeamNum);
 		return Plugin_Handled;
 	}
 	
 	// The player is trying to join the team with the most spawns. It's safe to force them on that team.
-	ChangeClientTeamWithDeath(iClient, iTeam);
+	ChangeClientTeam(iClient, iTeam);
 	
 	return Plugin_Handled;
 }
