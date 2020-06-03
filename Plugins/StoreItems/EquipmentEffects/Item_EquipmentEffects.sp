@@ -8,7 +8,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Store Item: Equipment Effects";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -134,7 +134,7 @@ public Event_PlayerDeath(Handle:hEvent, const String:szName[], bool:bDontBroadca
 	
 	// Doesn't seem to always work on death maybe because the equipment gets hidden?
 	StopClientsEquipmentEffects(iClient);
-	ClearContinuousEffects(iClient);
+	//ClearContinuousEffects(iClient); // Don't clear yet. We want to stop again on spawn.
 }
 
 StopClientsEquipmentEffects(iClient)
@@ -220,6 +220,9 @@ public OnSpawnPost(iClient)
 	
 	if(IsClientObserver(iClient) || !IsPlayerAlive(iClient))
 		return;
+	
+	StopClientsEquipmentEffects(iClient);
+	ClearContinuousEffects(iClient);
 	
 	TrySpawnEffects(iClient);
 }
