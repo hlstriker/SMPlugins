@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Team Ratio";
-new const String:PLUGIN_VERSION[] = "1.16";
+new const String:PLUGIN_VERSION[] = "1.17";
 
 public Plugin:myinfo =
 {
@@ -174,7 +174,7 @@ public Action:Timer_RandomizeGuardQueue(Handle:hTimer)
 		
 		if(!iClient)
 		{
-			ServerCommand("mp_restartgame 7");
+			CS_TerminateRound(7.0, CSRoundEnd_Draw);
 			return Plugin_Stop;
 		}
 		
@@ -183,7 +183,7 @@ public Action:Timer_RandomizeGuardQueue(Handle:hTimer)
 		
 		FixTeamRatio();
 		
-		ServerCommand("mp_restartgame 7");
+		CS_TerminateRound(7.0, CSRoundEnd_Draw);
 		
 		return Plugin_Stop;
 	}
@@ -215,7 +215,7 @@ public Action:Timer_RandomizeGuardQueue(Handle:hTimer)
 	CPrintToChatAll("{green}[{lightred}SM{green}] {olive}Choosing a guard from queue: {lightred}%N{olive}.", iClient);
 	FixTeamRatio();
 	
-	ServerCommand("mp_restartgame 7");
+	CS_TerminateRound(7.0, CSRoundEnd_Draw);
 	
 	return Plugin_Stop;
 }
