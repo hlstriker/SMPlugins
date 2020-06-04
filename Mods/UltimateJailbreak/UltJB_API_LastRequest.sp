@@ -28,7 +28,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Last Request API";
-new const String:PLUGIN_VERSION[] = "1.46";
+new const String:PLUGIN_VERSION[] = "1.47";
 
 public Plugin:myinfo =
 {
@@ -1617,7 +1617,7 @@ public Action:OnTakeDamage(iVictim, &iAttacker, &iInflictor, &Float:fDamage, &iD
 		static iAttackersLastRequestFlags;
 		iAttackersLastRequestFlags = GetClientsLastRequestFlags(iAttacker);
 		
-		if((iAttackersLastRequestFlags & LR_FLAG_FREEDAY) && iAttackersTeam != iVictimsTeam)
+		if((iAttackersLastRequestFlags & LR_FLAG_FREEDAY) && (iAttackersTeam != iVictimsTeam || (UltJB_Day_IsInProgress() && UltJB_Day_IsFreeForAll())))
 		{
 			g_bCanDealDamage[iAttacker] = false; // Note: We set this for instances where a player would throw a grenade then shoot someone before the grenade explodes on someone.
 			CreateTimer(0.1, Timer_KillPlayer, GetClientSerial(iAttacker), TIMER_FLAG_NO_MAPCHANGE); // Kill the attacker on a timer since killing them the same frame they do an attack animation will crash the server.
