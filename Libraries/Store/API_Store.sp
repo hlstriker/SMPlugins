@@ -19,7 +19,7 @@
 #pragma dynamic 500000
 
 new const String:PLUGIN_NAME[] = "API: Store";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -45,6 +45,8 @@ enum _:InventoryItem
 	ITEM_TYPE,
 	String:ITEM_NAME[MAX_STORE_ITEM_NAME_LEN],
 	String:ITEM_DATA_STRING_1[MAX_STORE_DATA_STRING_LEN],
+	String:ITEM_DATA_STRING_2[MAX_STORE_DATA_STRING_LEN],
+	String:ITEM_DATA_STRING_3[MAX_STORE_DATA_STRING_LEN],
 	Handle:ITEM_FILE_INDEXES,
 	ITEM_MAIN_FILE_INDEX,
 	bool:ITEM_ENABLED
@@ -185,11 +187,11 @@ public _Store_GetItemsDataString(Handle:hPlugin, iNumParams)
 	static String:szItemID[12], iIndex;
 	IntToString(GetNativeCell(1), szItemID, sizeof(szItemID));
 	if(!GetTrieValue(g_hTrie_ItemIDToInventoryIndex, szItemID, iIndex))
-		return 0;
+		return false;
 	
 	new iStringNum = GetNativeCell(2);
-	if(iStringNum < 1 || iStringNum > 1)
-		return 0;
+	if(iStringNum < 1 || iStringNum > 3)
+		return false;
 	
 	decl eItem[InventoryItem];
 	GetArrayArray(g_aInventoryItems, iIndex, eItem);
@@ -197,6 +199,8 @@ public _Store_GetItemsDataString(Handle:hPlugin, iNumParams)
 	switch(iStringNum)
 	{
 		case 1: SetNativeString(3, eItem[ITEM_DATA_STRING_1], GetNativeCell(4));
+		case 2: SetNativeString(3, eItem[ITEM_DATA_STRING_2], GetNativeCell(4));
+		case 3: SetNativeString(3, eItem[ITEM_DATA_STRING_3], GetNativeCell(4));
 	}
 	
 	return true;
@@ -494,7 +498,7 @@ bool:Query_GetItems(const Handle:hItemIDs)
 	
 	new iQuerySize = 128 + (iArraySize * 7);
 	decl String:szQuery[iQuerySize];
-	new iLen = FormatEx(szQuery, iQuerySize, "SELECT item_id, item_type, item_name, data_string1 FROM store_items WHERE item_id IN (");
+	new iLen = FormatEx(szQuery, iQuerySize, "SELECT item_id, item_type, item_name, data_string1, data_string2, data_string3 FROM store_items WHERE item_id IN (");
 	
 	decl iItemID;
 	for(new i=0; i<iArraySize; i++)
@@ -527,6 +531,8 @@ bool:Query_GetItems(const Handle:hItemIDs)
 		
 		SQL_FetchString(hQuery, 2, eItem[ITEM_NAME], MAX_STORE_ITEM_NAME_LEN);
 		SQL_FetchString(hQuery, 3, eItem[ITEM_DATA_STRING_1], MAX_STORE_DATA_STRING_LEN);
+		SQL_FetchString(hQuery, 4, eItem[ITEM_DATA_STRING_2], MAX_STORE_DATA_STRING_LEN);
+		SQL_FetchString(hQuery, 5, eItem[ITEM_DATA_STRING_3], MAX_STORE_DATA_STRING_LEN);
 		SetArrayArray(g_aInventoryItems, iIndex, eItem);
 	}
 	
@@ -888,6 +894,8 @@ bool:Query_CreateTable_StoreItems()
 		item_name		VARCHAR( 32 )		NOT NULL,\
 		item_type		TINYINT UNSIGNED	NOT NULL,\
 		data_string1	VARCHAR( 42 )		NOT NULL,\
+		data_string2	VARCHAR( 42 )		NOT NULL,\
+		data_string3	VARCHAR( 42 )		NOT NULL,\
 		image_path		TEXT				NOT NULL,\
 		PRIMARY KEY ( item_id )\
 	) ENGINE = INNODB");
