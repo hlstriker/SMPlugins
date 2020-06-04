@@ -18,6 +18,7 @@
 #include "Includes/ultjb_logger"
 #include "../../Libraries/ZoneManager/zone_manager"
 #include "../../Plugins/ZoneTypes/Includes/zonetype_teleport"
+#include "../../Libraries/PathPoints/path_points"
 
 #undef REQUIRE_PLUGIN
 #include "../../Libraries/SquelchManager/squelch_manager"
@@ -28,7 +29,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Last Request API";
-new const String:PLUGIN_VERSION[] = "1.47";
+new const String:PLUGIN_VERSION[] = "1.48";
 
 public Plugin:myinfo =
 {
@@ -147,7 +148,6 @@ enum _:Category
 new g_iRoundNumber;
 
 new g_iTeleportLRZoneID;
-new Handle:g_aTeleportLRRebelZone;
 
 new Float:g_fPreLastRequestLocations[MAXPLAYERS+1][3];
 
@@ -179,11 +179,6 @@ new bool:g_bLibLoaded_SquelchManager;
 new bool:g_bLibLoaded_ModelSkinManager;
 new bool:g_bLibLoaded_Parachute;
 
-new Float:g_fLastRequestTeleportOrigins[100][3];
-new g_iLastRequestTeleportOriginsTotal;
-new g_iLastRequestTeleportOrigins_OldHealth[MAXPLAYERS+1];
-new Handle:g_hTimer_LastRequestTeleportOrigins;
-
 
 public OnPluginStart()
 {
@@ -201,7 +196,6 @@ public OnPluginStart()
 	
 	g_aLastRequests = CreateArray(LastRequest);
 	g_aCategories = CreateArray(Category);
-	g_aTeleportLRRebelZone = CreateArray();
 	
 	g_hFwd_OnRegisterReady = CreateGlobalForward("UltJB_LR_OnRegisterReady", ET_Ignore);
 	g_hFwd_OnLastRequestInitialized = CreateGlobalForward("UltJB_LR_OnLastRequestInitialized", ET_Ignore, Param_Cell);
@@ -221,7 +215,6 @@ public OnPluginStart()
 	
 	RegAdminCmd("sm_abortlr", Command_AbortLastRequest, ADMFLAG_KICK, "sm_abortlr <#steamid|#userid|name> - Aborts a players last request.");
 	RegAdminCmd("sm_givefreeday", Command_GiveFreeday, ADMFLAG_KICK, "sm_givefreeday <#steamid|#userid|name> - Gives a player a freeday.");
-	RegAdminCmd("sm_rspawn", Command_LastRequestTeleportOrigin, ADMFLAG_ROOT, "sm_rspawn <#steamid|#userid|name> <index> - Used for testing rebel spawns only.");
 }
 
 public OnAllPluginsLoaded()
@@ -541,7 +534,6 @@ public OnMapStart()
 	
 	ClearArray(g_aLastRequests);
 	ClearArray(g_aCategories);
-	ClearArray(g_aTeleportLRRebelZone);
 	
 	new result;
 	Call_StartForward(g_hFwd_OnRegisterReady);
@@ -553,8 +545,6 @@ public OnMapStart()
 	
 	HookBreakablesOnTakeDamage();
 	GetAvailableLastRequestSlotCount();
-	
-	InitializeLastRequestTeleportOrigins();
 }
 
 FindOtherCategory()
@@ -1961,16 +1951,12 @@ public Event_RoundStart_Post(Handle:hEvent, const String:szName[], bool:bDontBro
 	
 	HookBreakablesOnTakeDamage();
 	GetAvailableLastRequestSlotCount();
-	
-	InitializeLastRequestTeleportOrigins();
 }
 
 public Event_RoundEnd_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
 {
 	g_bHasRoundStarted = false;
 	RoundCleanUp(true);
-	
-	StopTimer_GetLastRequestTeleportOrigins();
 }
 
 RoundCleanUp(bool:bSkipFreedayCheck=false)
@@ -2243,28 +2229,35 @@ TeleportToLRZone(iClient)
 		return;
 }
 
-TeleportToRebelZone(iClient)
+TeleportToRebelPoint(iClient)
 {
 	if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
 		return;
 	
-	if(GetArraySize(g_aTeleportLRRebelZone) == 0)
+	if(!PathPoints_GetPointCount("rebels"))
 	{
-		GotoRandomLastRequestTeleportOrigin(iClient);
-		CPrintToChatAll("{green}[{lightred}SM{green}] {red}This map is still using the old teleport system. Please let leads know so they can setup the zones.");
+		CPrintToChatAll("{green}[{lightred}SM{green}] {red}Please let a lead know to set up rebel path points.");
 		return;
 	}
-		
-	new iIndex = GetRandomInt(0, GetArraySize(g_aTeleportLRRebelZone)-1);
-	new iZone = GetArrayCell(g_aTeleportLRRebelZone, iIndex);
 	
-	if(!ZoneTypeTeleport_TryToTeleport(iZone, iClient))
+	decl iPointIndex;
+	if(!PathPoints_GetNextRandomPoint("rebels", true, iPointIndex))
+	{
+		CPrintToChatAll("{green}[{lightred}SM{green}] {red}Something went wrong getting a random point.");
 		return;
-}
-
-public ZoneManager_CreateZoneEnts_Pre()
-{
-	ClearArray(g_aTeleportLRRebelZone);
+	}
+	
+	decl Float:fOrigin[3], Float:fAngles[3];
+	if(!PathPoints_GetPoint("rebels", iPointIndex, fOrigin, fAngles))
+	{
+		CPrintToChatAll("{green}[{lightred}SM{green}] {red}Something went wrong getting the random point data.");
+		return;
+	}
+	
+	fAngles[0] = 0.0;
+	fAngles[1] += GetRandomFloat(0.0, 360.0);
+	fAngles[2] = 0.0;
+	TeleportEntity(iClient, fOrigin, fAngles, Float:{0.0, 0.0, 0.0});
 }
 
 public ZoneManager_OnTypeAssigned(iEnt, iZoneID, iZoneType)
@@ -2272,19 +2265,13 @@ public ZoneManager_OnTypeAssigned(iEnt, iZoneID, iZoneType)
 	if(iZoneType != ZONE_TYPE_TELEPORT_DESTINATION)
 		return;
 	
-	decl String:szBuffer[16];
+	decl String:szBuffer[8];
 	if(!ZoneManager_GetDataString(iZoneID, 1, szBuffer, sizeof(szBuffer)))
 		return;
 	
 	if(StrEqual(szBuffer, "lr_tele"))
 	{
 		g_iTeleportLRZoneID = iZoneID;
-		return;
-	}
-	
-	if(StrEqual(szBuffer, "rebel_tele"))
-	{
-		PushArrayCell(g_aTeleportLRRebelZone, iZoneID);
 		return;
 	}
 }
@@ -2299,11 +2286,6 @@ public ZoneManager_OnTypeUnassigned(iEnt, iZoneID, iZoneType)
 		g_iTeleportLRZoneID = 0;
 		return;
 	}
-	
-	new iIndex = FindValueInArray(g_aTeleportLRRebelZone, iZoneID);
-	
-	if(iIndex != -1)
-		RemoveFromArray(g_aTeleportLRRebelZone, iIndex);
 }
 
 public ZoneManager_OnZoneRemoved_Pre(iZoneID)
@@ -2313,11 +2295,6 @@ public ZoneManager_OnZoneRemoved_Pre(iZoneID)
 		g_iTeleportLRZoneID = 0;
 		return;
 	}
-		
-	new iIndex = FindValueInArray(g_aTeleportLRRebelZone, iZoneID);
-	
-	if(iIndex != -1)
-		RemoveFromArray(g_aTeleportLRRebelZone, iIndex);
 }
 
 public Action:Timer_SelectLastRequest(Handle:hTimer, any:iClientSerial)
@@ -2719,8 +2696,7 @@ StartLastRequest(iClient, iLastRequestIndex, bool:bFromFreedayAdminCommand=false
 		SetTempInvincibility(iClient, 1.0);
 		
 	if(eLastRequest[LR_Flags] & LR_FLAG_RANDOM_TELEPORT_LOCATION)
-		//GotoRandomLastRequestTeleportOrigin(iClient);
-		TeleportToRebelZone(iClient);
+		TeleportToRebelPoint(iClient);
 	
 	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}You have chosen {purple}%s {olive}- {purple}%s{olive}.", szCategoryName, eLastRequest[LR_Name]);
 	
@@ -3673,218 +3649,6 @@ TryRemoveAdminGivenFreeday(iVictim, iAttacker)
 		
 		CPrintToChat(iAttacker, "{green}[{lightred}SM{green}] {olive}Removing your freeday for damaging {blue}%N{olive}.", iVictim);
 	}
-}
-
-bool:GotoRandomLastRequestTeleportOrigin(iClient)
-{
-	if(!g_iLastRequestTeleportOriginsTotal)
-		return false;
-	
-	TeleportEntity(iClient, g_fLastRequestTeleportOrigins[GetRandomInt(0, g_iLastRequestTeleportOriginsTotal-1)], NULL_VECTOR, Float:{0.0, 0.0, 0.0});
-	
-	return true;
-}
-
-public Action:Command_LastRequestTeleportOrigin(iClient, iArgCount)
-{
-	if(!iClient)
-		return Plugin_Handled;
-	
-	if(iArgCount < 1)
-	{
-		ReplyToCommand(iClient, "[SM] Usage: sm_rspawn <#steamid|#userid|name> <index>");
-		return Plugin_Handled;
-	}
-	
-	decl String:szTarget[MAX_TARGET_LENGTH];
-	GetCmdArg(1, szTarget, sizeof(szTarget));
-	
-	new iTarget = FindTarget(iClient, szTarget, false, false);
-	if(iTarget == -1)
-		return Plugin_Handled;
-	
-	if(iArgCount < 2)
-	{
-		ReplyToCommand(iClient, "[SM] No index provided. Choosing one of %i random locations.", g_iLastRequestTeleportOriginsTotal);
-		GotoRandomLastRequestTeleportOrigin(iTarget);
-		return Plugin_Handled;
-	}
-	
-	new String:szIndex[4];
-	GetCmdArg(2, szIndex, sizeof(szIndex));
-	new iIndex = StringToInt(szIndex);
-	
-	if(iIndex < 0)
-	{
-		ReplyToCommand(iClient, "[SM] Please provide a proper index to use.");
-		return Plugin_Handled;
-	}
-	
-	if(iIndex >= g_iLastRequestTeleportOriginsTotal)
-	{
-		ReplyToCommand(iClient, "[SM] Index %i invalid. Only index 0-%i are valid.", iIndex, g_iLastRequestTeleportOriginsTotal-1);
-		return Plugin_Handled;
-	}
-	
-	TeleportEntity(iTarget, g_fLastRequestTeleportOrigins[iIndex], NULL_VECTOR, Float:{0.0, 0.0, 0.0});
-	PrintToChatAll("[SM] Teleported %N to location %d.", iTarget, iIndex);
-	
-	return Plugin_Handled;
-}
-
-InitializeLastRequestTeleportOrigins()
-{
-	g_iLastRequestTeleportOriginsTotal = 0;
-	
-	new iEnt = -1;
-	while((iEnt = FindEntityByClassname(iEnt, "info_player_terrorist")) != -1)
-	{
-		AddLastRequestTeleportOrigin(iEnt);
-		break;
-	}
-	
-	iEnt = -1;
-	while((iEnt = FindEntityByClassname(iEnt, "info_player_counterterrorist")) != -1)
-	{
-		AddLastRequestTeleportOrigin(iEnt);
-		break;
-	}
-	
-	/*new iTeleportsFound;
-	new String:szName[64];
-	
-	iEnt = -1;
-	while((iEnt = FindEntityByClassname(iEnt, "info_teleport_destination")) != -1)
-	{
-		GetEntPropString(iEnt, Prop_Data, "m_iName", szName, sizeof(szName));
-	
-		if(strcmp(szName, "tw_cru") != -1 || strcmp(szName, "tw_ent1") != -1 || strcmp(szName, "tw_ent2") != -1 || strcmp(szName, "knife_arena_spleef_teleport_destination3") != -1)
-			continue;
-		
-		AddLastRequestTeleportOrigin(iEnt);
-		
-		iTeleportsFound++;
-		if(iTeleportsFound >= 5)
-			break;
-	}*/
-	
-	LastRequestTeleportOrigins_ResetHealth();
-	StartTimer_PreGetLastRequestTeleportOrigins();
-}
-
-AddLastRequestTeleportOrigin(iEnt)
-{
-	decl Float:fOrigin[3];
-	GetEntPropVector(iEnt, Prop_Send, "m_vecOrigin", fOrigin);
-	
-	decl iIndex;
-	if(g_iLastRequestTeleportOriginsTotal < sizeof(g_fLastRequestTeleportOrigins))
-		iIndex = g_iLastRequestTeleportOriginsTotal++;
-	else
-		iIndex = GetRandomInt(2, sizeof(g_fLastRequestTeleportOrigins)-1);
-	
-	g_fLastRequestTeleportOrigins[iIndex] = fOrigin;
-}
-
-public Action:Timer_GetLastRequestTeleportOrigins(Handle:hTimer)
-{
-	decl iHealth;
-	new iNumGuardOriginsAdded, iNumPrisonerOriginsAdded;
-	
-	for(new iClient=1; iClient<=MaxClients; iClient++)
-	{
-		if(!IsClientInGame(iClient))
-			continue;
-		
-		if(!IsPlayerAlive(iClient))
-			continue;
-		
-		// Continue if the players health went down since the last time we checked.
-		iHealth = GetClientHealth(iClient);
-		if(iHealth < g_iLastRequestTeleportOrigins_OldHealth[iClient])
-		{
-			g_iLastRequestTeleportOrigins_OldHealth[iClient] = iHealth;
-			continue;
-		}
-		
-		g_iLastRequestTeleportOrigins_OldHealth[iClient] = iHealth;
-		
-		// Continue if the player isn't on the ground.
-		if(GetEntPropEnt(iClient, Prop_Send, "m_hGroundEntity") == -1)
-			continue;
-		
-		// Continue if the player is ducking.
-		if((GetEntityFlags(iClient) & FL_DUCKING) || (GetClientButtons(iClient) & IN_DUCK))
-			continue;
-		
-		// Continue if the player doesn't have the default movetype.
-		if(GetEntityMoveType(iClient) != MOVETYPE_WALK)
-			continue;
-		
-		switch(GetClientTeam(iClient))
-		{
-			case TEAM_GUARDS:
-			{
-				// Continue if we already got enough guard origins this iteration.
-				if(iNumGuardOriginsAdded > 2)
-					continue;
-				
-				// 1 in 2 chance to add this players origin this iteration.
-				if(GetRandomInt(0, 1) != 1)
-					continue;
-				
-				iNumGuardOriginsAdded++;
-			}
-			case TEAM_PRISONERS:
-			{
-				// Continue if we already got enough prisoner origins this iteration.
-				if(iNumPrisonerOriginsAdded > 1)
-					continue;
-				
-				// 1 in 6 chance to add this players origin this iteration.
-				if(GetRandomInt(0, 5) != 5)
-					continue;
-				
-				iNumPrisonerOriginsAdded++;
-			}
-			default:
-				continue;
-		}
-		
-		AddLastRequestTeleportOrigin(iClient);
-	}
-}
-
-LastRequestTeleportOrigins_ResetHealth()
-{
-	for(new i=1; i<=MaxClients; i++)
-		g_iLastRequestTeleportOrigins_OldHealth[i] = 100;
-}
-
-StopTimer_GetLastRequestTeleportOrigins()
-{
-	if(g_hTimer_LastRequestTeleportOrigins != INVALID_HANDLE)
-	{
-		KillTimer(g_hTimer_LastRequestTeleportOrigins);
-		g_hTimer_LastRequestTeleportOrigins = INVALID_HANDLE;
-	}
-}
-
-StartTimer_GetLastRequestTeleportOrigins()
-{
-	StopTimer_GetLastRequestTeleportOrigins();
-	g_hTimer_LastRequestTeleportOrigins = CreateTimer(20.0, Timer_GetLastRequestTeleportOrigins, _, TIMER_REPEAT);
-}
-
-StartTimer_PreGetLastRequestTeleportOrigins()
-{
-	StopTimer_GetLastRequestTeleportOrigins();
-	g_hTimer_LastRequestTeleportOrigins = CreateTimer(60.0, Timer_PreGetLastRequestTeleportOrigins);
-}
-
-public Action:Timer_PreGetLastRequestTeleportOrigins(Handle:hTimer)
-{
-	StartTimer_GetLastRequestTeleportOrigins();
 }
 
 AbortAllLastRequests()
