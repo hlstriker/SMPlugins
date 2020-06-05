@@ -6,7 +6,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] LR: Rebel - Machine Gunner";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -32,7 +32,7 @@ public OnPluginStart()
 
 public UltJB_LR_OnRegisterReady()
 {
-	new iLastRequestID = UltJB_LR_RegisterLastRequest(LR_NAME, LR_FLAG_LAST_PRISONER_ONLY_CAN_USE | LR_FLAG_REBEL | LR_FLAG_ALLOW_WEAPON_PICKUPS | LR_FLAG_ALLOW_WEAPON_DROPS | LR_FLAG_TEMP_INVINCIBLE | LR_FLAG_NORADAR | LR_FLAG_SHOW_ALL_GUARDS_ON_RADAR | LR_FLAG_RANDOM_TELEPORT_LOCATION, OnLastRequestStart, OnLastRequestEnd);
+	new iLastRequestID = UltJB_LR_RegisterLastRequest(LR_NAME, LR_FLAG_REBEL | LR_FLAG_ALLOW_WEAPON_PICKUPS | LR_FLAG_ALLOW_WEAPON_DROPS | LR_FLAG_TEMP_INVINCIBLE | LR_FLAG_NORADAR | LR_FLAG_SHOW_ALL_GUARDS_ON_RADAR | LR_FLAG_RANDOM_TELEPORT_LOCATION, OnLastRequestStart, OnLastRequestEnd);
 	UltJB_LR_SetLastRequestData(iLastRequestID, LR_CATEGORY, LR_DESCRIPTION);
 }
 

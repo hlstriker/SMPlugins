@@ -175,6 +175,11 @@ enum
 new bool:g_bInitializedAdminGivenFreeday[MAXPLAYERS+1];
 new g_iAvailableLastRequestSlotCount;
 
+new bool:g_bHasShownRebelAsTeamMenu;
+new Handle:g_aPrisonersSentRebelAsTeamMenuTo;
+new g_iNumPrisonersRebelingTogether;
+new bool:g_bHasRebelAsTeamStarted;
+
 new bool:g_bLibLoaded_SquelchManager;
 new bool:g_bLibLoaded_ModelSkinManager;
 new bool:g_bLibLoaded_Parachute;
@@ -196,6 +201,7 @@ public OnPluginStart()
 	
 	g_aLastRequests = CreateArray(LastRequest);
 	g_aCategories = CreateArray(Category);
+	g_aPrisonersSentRebelAsTeamMenuTo = CreateArray();
 	
 	g_hFwd_OnRegisterReady = CreateGlobalForward("UltJB_LR_OnRegisterReady", ET_Ignore);
 	g_hFwd_OnLastRequestInitialized = CreateGlobalForward("UltJB_LR_OnLastRequestInitialized", ET_Ignore, Param_Cell);
@@ -439,6 +445,10 @@ TryInitializeLastRequest(iClient)
 		return;
 	}
 	
+	// If for some reason the init for all candidates hasn't been called yet, call it now instead.
+	if(InitializeLastRequestForCandidates())
+		return;
+	
 	InitializeLastRequest(iClient);
 }
 /*
@@ -542,6 +552,9 @@ public OnMapStart()
 	SortLastRequestsByName();
 	SortCategoriesByName();
 	FindOtherCategory();
+	
+	g_bHasShownRebelAsTeamMenu = false;
+	g_bHasRebelAsTeamStarted = false;
 	
 	HookBreakablesOnTakeDamage();
 	GetAvailableLastRequestSlotCount();
@@ -1365,18 +1378,25 @@ public OnSpawnPost(iClient)
 	
 	g_bCanDealDamage[iClient] = true;
 	g_bHasInvincibility[iClient] = false;
+	
+	// Since a player respawned, check to see if last requests should be aborted.
+	CheckIfNeedToAbortLastRequests();
+}
 
+CheckIfNeedToAbortLastRequests()
+{
+	// Return if there are still few enough players to do a LR.
 	decl iNumPrisonersAlive, iPrisonersAlive[MAXPLAYERS];
 	if(CanLastRequest(iNumPrisonersAlive, iPrisonersAlive))
 		return;
-
-	new iNumLastReqests = UltJB_LR_GetNumInitialized() - UltJB_LR_GetNumStartedContains(LR_FLAG_FREEDAY);
 	
+	// Return if there are no last requests to even abort.
+	new iNumLastReqests = UltJB_LR_GetNumInitialized() - UltJB_LR_GetNumStartedContains(LR_FLAG_FREEDAY);
 	if(iNumLastReqests == 0)
 		return;
 	
 	CPrintToChatAll("{green}[{lightred}SM{green}] {olive}Aborting all last requests.");
-	AbortAllLastRequests();
+	AbortAllNonFreedayLastRequests();
 }
 
 UpdateEffectsIfNeeded(iClient, iOpponent)
@@ -1743,11 +1763,23 @@ bool:ShouldTransmitClientToPrisoner(iClient, iPrisoner, iPrisonersTeam)
 	if(!g_bHasStarted[iPrisoner])
 		return true;
 	
-	if(GetClientsLastRequestFlags(iPrisoner) & LR_FLAG_FREEDAY)
+	static iLastRequestFlagsPrisoner;
+	iLastRequestFlagsPrisoner = GetClientsLastRequestFlags(iPrisoner);
+	
+	if(iLastRequestFlagsPrisoner & LR_FLAG_FREEDAY)
 		return true;
 	
 	if(GetClientTeam(iClient) == iPrisonersTeam)
+	{
+		if(g_bHasRebelAsTeamStarted)
+		{
+			// Show the prisoners to each other if they are in a team rebel together.
+			if((iLastRequestFlagsPrisoner & LR_FLAG_REBEL) && (GetClientsLastRequestFlags(iClient) & LR_FLAG_REBEL))
+				return true;
+		}
+		
 		return false;
+	}
 	
 	static iOpponent;
 	iOpponent = GetPrisonersOpponent(iPrisoner);
@@ -1949,6 +1981,9 @@ public Event_RoundStart_Post(Handle:hEvent, const String:szName[], bool:bDontBro
 	RoundCleanUp(); // Note: Make sure this is called before g_bHasRoundStarted is set to true.
 	g_bHasRoundStarted = true;
 	
+	g_bHasShownRebelAsTeamMenu = false;
+	g_bHasRebelAsTeamStarted = false;
+	
 	HookBreakablesOnTakeDamage();
 	GetAvailableLastRequestSlotCount();
 }
@@ -2015,20 +2050,164 @@ GetClientsLastRequestFlags(iClient)
 	return eLastRequest[LR_Flags];
 }
 
-InitializeLastRequestForCandidates()
+bool:InitializeLastRequestForCandidates()
 {
 	if(UltJB_Day_IsInProgress())
-		return;
+		return false;
 	
 	decl iNumCandidates, iCandidates[MAXPLAYERS];
 	if(!GetLastRequestCandidates(iNumCandidates, iCandidates))
-		return;
+		return false;
+	
+	// Show the rebel as team menu if needed.
+	new bool:bShowRebelAsTeamMenu;
+	if(!g_bHasShownRebelAsTeamMenu)
+	{
+		g_bHasShownRebelAsTeamMenu = true;
+		
+		new iNumPrisonersCanRebel = GetNumAliveOnTeam(TEAM_PRISONERS) - UltJB_LR_GetNumStartedContains(LR_FLAG_FREEDAY);
+		new iNumGuardsNeededForRebel = GetNumberOfGuardsNeededForRebeling(iNumPrisonersCanRebel);
+		new iNumGuardsAlive = GetNumAliveOnTeam(TEAM_GUARDS);
+		
+		if(iNumGuardsAlive >= iNumGuardsNeededForRebel && CanRebelAsATeam(iNumPrisonersCanRebel))
+		{
+			bShowRebelAsTeamMenu = true;
+		}
+	}
+	
+	g_iNumPrisonersRebelingTogether = bShowRebelAsTeamMenu ? 0 : 1;
+	ClearArray(g_aPrisonersSentRebelAsTeamMenuTo);
 	
 	for(new i=0; i<iNumCandidates; i++)
 	{
+		PushArrayCell(g_aPrisonersSentRebelAsTeamMenuTo, GetClientSerial(iCandidates[i]));
 		GetClientAbsOrigin(iCandidates[i], g_fPreLastRequestLocations[iCandidates[i]]);
-		InitializeLastRequest(iCandidates[i]);
+		InitializeLastRequest(iCandidates[i], bShowRebelAsTeamMenu);
 	}
+	
+	return true;
+}
+
+CheckRemoveClientFromRebelAsTeam(iClient)
+{
+	if(!iClient)
+		return;
+	
+	new iClientSerial = GetClientSerial(iClient);
+	
+	new iIndex = FindValueInArray(g_aPrisonersSentRebelAsTeamMenuTo, iClientSerial);
+	if(iIndex == -1)
+		return;
+	
+	RemoveFromArray(g_aPrisonersSentRebelAsTeamMenuTo, iIndex);
+	
+	// If this clients LastRequest menu handle is already invalid that means they already selected yes to rebel together, or something went wrong.
+	// Decrease the number of prisoners rebeling together.
+	if(g_hMenu_LastRequest[iClient] == INVALID_HANDLE)
+		g_iNumPrisonersRebelingTogether--;
+	
+	CheckShouldStartRebelingAsATeam();
+}
+
+Handle:DisplayMenu_RebelAsATeam(iClient)
+{
+	new Handle:hMenu = CreateMenu(MenuHandle_RebelAsATeam);
+	SetMenuTitle(hMenu, "Would you like to rebel as a team?");
+	
+	AddMenuItem(hMenu, "0", "No, do a last request by myself.");
+	AddMenuItem(hMenu, "", "", ITEMDRAW_SPACER);
+	AddMenuItem(hMenu, "", "", ITEMDRAW_SPACER);
+	AddMenuItem(hMenu, "1", "Yes, rebel with my team.");
+	
+	SetMenuExitButton(hMenu, false);
+	
+	if(!DisplayMenu(hMenu, iClient, 0))
+	{
+		PrintToChat(iClient, "[SM] Error displaying rebel as a team menu.");
+		return INVALID_HANDLE;
+	}
+	
+	return hMenu;
+}
+
+public MenuHandle_RebelAsATeam(Handle:hMenu, MenuAction:action, iParam1, iParam2)
+{
+	if(action == MenuAction_End)
+	{
+		CloseHandle(hMenu);
+		InvalidateHandleArrayIndex(hMenu, g_hMenu_LastRequest, sizeof(g_hMenu_LastRequest));
+		return;
+	}
+	
+	if(action == MenuAction_Cancel)
+	{
+		if(IsClientInGame(iParam1) && IsPlayerAlive(iParam1))
+			PrintToChat(iParam1, "[SM] Type !lr to show the menu again.");
+		
+		return;
+	}
+	
+	if(action != MenuAction_Select)
+		return;
+	
+	if(!g_bHasInitialized[iParam1])
+		return;
+	
+	// Another player selected no and the array was cleared, just return since the logic was already handled to start a new menu for everyone else.
+	if(!GetArraySize(g_aPrisonersSentRebelAsTeamMenuTo))
+		return;
+	
+	decl String:szInfo[2];
+	GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
+	
+	if(StringToInt(szInfo))
+	{
+		g_iNumPrisonersRebelingTogether++;
+		
+		if(!CheckShouldStartRebelingAsATeam())
+			CPrintToChat(iParam1, "{olive}Still waiting on your teammates to make their decision.");
+		
+		return;
+	}
+	
+	// This client selected no, show the category select for all the clients in the array.
+	CancelRebelAsATeam();
+}
+
+CancelRebelAsATeam()
+{
+	new iArraySize = GetArraySize(g_aPrisonersSentRebelAsTeamMenuTo);
+	
+	decl iClient;
+	for(new i=0; i<iArraySize; i++)
+	{
+		iClient = GetClientFromSerial(GetArrayCell(g_aPrisonersSentRebelAsTeamMenuTo, i));
+		if(!iClient)
+			continue;
+		
+		g_hMenu_LastRequest[iClient] = DisplayMenu_CategorySelect(iClient);
+		CPrintToChat(iClient, "{lightred}A teammate did not want to rebel together.");
+	}
+	
+	ClearArray(g_aPrisonersSentRebelAsTeamMenuTo);
+}
+
+bool:CheckShouldStartRebelingAsATeam()
+{
+	if(g_iNumPrisonersRebelingTogether < 1)
+		return false;
+	
+	if(g_iNumPrisonersRebelingTogether != GetArraySize(g_aPrisonersSentRebelAsTeamMenuTo))
+		return false;
+	
+	// Make sure start is called before clearing the array.
+	new bool:bStarted = StartRandomRebelAsTeamLastRequest();
+	if(!bStarted)
+		CancelRebelAsATeam();
+	
+	ClearArray(g_aPrisonersSentRebelAsTeamMenuTo);
+	
+	return bStarted;
 }
 
 bool:IsPrisonerLastRequestCandidate(iClient)
@@ -2141,7 +2320,7 @@ public Action:Timer_SlayClient(Handle:hTimer, any:iClientSerial)
 	return Plugin_Continue;
 }
 
-InitializeLastRequest(iClient)
+InitializeLastRequest(iClient, bool:bShowRebelAsTeamMenu=false)
 {
 	for(new iPlayer=1; iPlayer<=MaxClients; iPlayer++)
 	{
@@ -2157,9 +2336,27 @@ InitializeLastRequest(iClient)
 	
 	if(!IsFakeClient(iClient))
 	{
-		g_hMenu_LastRequest[iClient] = DisplayMenu_CategorySelect(iClient);
-		if(g_hMenu_LastRequest[iClient] == INVALID_HANDLE)
-			return;
+		if(bShowRebelAsTeamMenu)
+		{
+			g_hMenu_LastRequest[iClient] = DisplayMenu_RebelAsATeam(iClient);
+			if(g_hMenu_LastRequest[iClient] == INVALID_HANDLE)
+			{
+				CancelRebelAsATeam();
+				return;
+			}
+		}
+		else
+		{
+			g_hMenu_LastRequest[iClient] = DisplayMenu_CategorySelect(iClient);
+			if(g_hMenu_LastRequest[iClient] == INVALID_HANDLE)
+				return;
+		}
+	}
+	else
+	{
+		// Always have fake clients rebel as a team.
+		g_iNumPrisonersRebelingTogether++;
+		CheckShouldStartRebelingAsATeam();
 	}
 	
 	g_bHasInitialized[iClient] = true;
@@ -2229,23 +2426,31 @@ TeleportToLRZone(iClient)
 		return;
 }
 
-TeleportToRebelPoint(iClient)
+GetRandomRebelPointIndex()
 {
-	if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
-		return;
-	
 	if(!PathPoints_GetPointCount("rebels"))
 	{
 		CPrintToChatAll("{green}[{lightred}SM{green}] {red}Please let a lead know to set up rebel path points.");
-		return;
+		return -1;
 	}
 	
 	decl iPointIndex;
 	if(!PathPoints_GetNextRandomPoint("rebels", true, iPointIndex))
 	{
 		CPrintToChatAll("{green}[{lightred}SM{green}] {red}Something went wrong getting a random point.");
-		return;
+		return -1;
 	}
+	
+	return iPointIndex;
+}
+
+TeleportToRebelPoint(iClient, iPointIndex)
+{
+	if(iPointIndex == -1)
+		return;
+	
+	if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
+		return;
 	
 	decl Float:fOrigin[3], Float:fAngles[3];
 	if(!PathPoints_GetPoint("rebels", iPointIndex, fOrigin, fAngles))
@@ -2299,6 +2504,8 @@ public ZoneManager_OnZoneRemoved_Pre(iZoneID)
 
 public Action:Timer_SelectLastRequest(Handle:hTimer, any:iClientSerial)
 {
+	ClearArray(g_aPrisonersSentRebelAsTeamMenuTo);
+	
 	new iClient = GetClientFromSerial(iClientSerial);
 	if(!iClient)
 	{
@@ -2404,6 +2611,10 @@ Handle:DisplayMenu_LastRequest(iClient, iCategoryID)
 	else
 		SetMenuTitle(hMenu, "Last Request - Other");
 	
+	new iNumPrisonersAlive = GetNumAliveOnTeam(TEAM_PRISONERS);
+	new iNumGuardsAlive = GetNumAliveOnTeam(TEAM_GUARDS);
+	new iNumGuardsNeededForRebel = GetNumberOfGuardsNeededForRebeling(g_iNumPrisonersRebelingTogether);
+	
 	decl eLastRequest[LastRequest], String:szInfo[6], String:szDisplay[LAST_REQUEST_MAX_NAME_LENGTH], iTimeLeft;
 	for(new i=0; i<GetArraySize(g_aLastRequests); i++)
 	{
@@ -2428,7 +2639,7 @@ Handle:DisplayMenu_LastRequest(iClient, iCategoryID)
 		// Check to see if this last request should only be shown to the last prisoner alive.
 		if(eLastRequest[LR_Flags] & LR_FLAG_LAST_PRISONER_ONLY_CAN_USE)
 		{
-			if(GetNumAliveOnTeam(TEAM_PRISONERS) > 1)
+			if(iNumPrisonersAlive > 1)
 			{
 				Format(szDisplay, sizeof(szDisplay), "%s [Last T Only]", eLastRequest[LR_Name]);
 				AddMenuItem(hMenu, szInfo, szDisplay, ITEMDRAW_DISABLED);
@@ -2436,14 +2647,27 @@ Handle:DisplayMenu_LastRequest(iClient, iCategoryID)
 			}
 		}
 		
-		// Check to make sure there are (by default) 3 guards alive.
+		// Check to make sure rebel can be chosen.
 		if(eLastRequest[LR_Flags] & LR_FLAG_REBEL)
 		{
-			if(GetNumAliveOnTeam(TEAM_GUARDS) < GetConVarInt(cvar_guards_needed_for_rebel))
+			// Only disable the rebel menu item if we are not rebeling as a team. Rebeling as a team should always allow the menu item.
+			if(g_iNumPrisonersRebelingTogether == 1)
 			{
-				Format(szDisplay, sizeof(szDisplay), "%s [Need More CT]", eLastRequest[LR_Name]);
-				AddMenuItem(hMenu, szInfo, szDisplay, ITEMDRAW_DISABLED);
-				continue;
+				// Show the last T only message.
+				if(iNumPrisonersAlive > 1)
+				{
+					Format(szDisplay, sizeof(szDisplay), "%s [Last T Only]", eLastRequest[LR_Name]);
+					AddMenuItem(hMenu, szInfo, szDisplay, ITEMDRAW_DISABLED);
+					continue;
+				}
+				
+				// Make sure we have enough guards to rebel.
+				if(iNumGuardsAlive < iNumGuardsNeededForRebel)
+				{
+					Format(szDisplay, sizeof(szDisplay), "%s [Need More CT]", eLastRequest[LR_Name]);
+					AddMenuItem(hMenu, szInfo, szDisplay, ITEMDRAW_DISABLED);
+					continue;
+				}
 			}
 		}
 		
@@ -2458,6 +2682,25 @@ Handle:DisplayMenu_LastRequest(iClient, iCategoryID)
 	}
 	
 	return hMenu;
+}
+
+GetNumberOfGuardsNeededForRebeling(iNumPrisonersRebeling)
+{
+	new iNumGuardsNeeded = iNumPrisonersRebeling * 2;
+	
+	if(iNumPrisonersRebeling == 1 || iNumGuardsNeeded < GetConVarInt(cvar_guards_needed_for_rebel))
+		return GetConVarInt(cvar_guards_needed_for_rebel);
+	
+	return iNumGuardsNeeded;
+}
+
+bool:CanRebelAsATeam(iNumPrisonersRebeling)
+{
+	if(iNumPrisonersRebeling == 1)
+		return false;
+	
+	//return (iNumPrisonersRebeling == g_iAvailableLastRequestSlotCount);
+	return true;
 }
 
 StopTimer_SelectLastRequest(iClient)
@@ -2603,6 +2846,73 @@ public MenuHandle_AdminGivenFreeday(Handle:hMenu, MenuAction:action, iParam1, iP
 	StartLastRequest(iParam1, StringToInt(szInfo), true);
 }
 
+GetRandomRebelAsTeamLastRequest()
+{
+	// Find a random rebel last request.
+	new Handle:hLastRequests = CreateArray();
+	
+	decl eLastRequest[LastRequest];
+	new iArraySize = GetArraySize(g_aLastRequests);
+	for(new i=0; i<iArraySize; i++)
+	{
+		GetArrayArray(g_aLastRequests, i, eLastRequest);
+		
+		if(!(eLastRequest[LR_Flags] & LR_FLAG_REBEL))
+			continue;
+		
+		if(eLastRequest[LR_Flags] & LR_FLAG_LAST_PRISONER_ONLY_CAN_USE)
+			continue;
+		
+		PushArrayCell(hLastRequests, i);
+	}
+	
+	iArraySize = GetArraySize(hLastRequests);
+	if(!iArraySize)
+	{
+		CloseHandle(hLastRequests);
+		return -1;
+	}
+	
+	// Get the random rebel last request index.
+	new iIndex = GetArrayCell(hLastRequests, GetRandomInt(0, iArraySize-1));
+	CloseHandle(hLastRequests);
+	
+	return iIndex;
+}
+
+bool:StartRandomRebelAsTeamLastRequest()
+{
+	new iLastRequestIndex = GetRandomRebelAsTeamLastRequest();
+	if(iLastRequestIndex == -1)
+	{
+		PrintToChatAll("[SM] Could not find a random rebel last request.");
+		return false;
+	}
+	
+	return StartRebelAsTeamLastRequest(iLastRequestIndex);
+}
+
+bool:StartRebelAsTeamLastRequest(iLastRequestIndex)
+{
+	new iPointIndex = GetRandomRebelPointIndex();
+	new iArraySize = GetArraySize(g_aPrisonersSentRebelAsTeamMenuTo);
+	
+	decl iClient;
+	for(new i=0; i<iArraySize; i++)
+	{
+		iClient = GetClientFromSerial(GetArrayCell(g_aPrisonersSentRebelAsTeamMenuTo, i));
+		if(!iClient)
+			continue;
+		
+		StartLastRequest(iClient, iLastRequestIndex, _, true);
+		TeleportToRebelPoint(iClient, iPointIndex);
+	}
+	
+	g_bHasRebelAsTeamStarted = true;
+	
+	return true;
+}
+
 StartRandomLastRequest(iClient)
 {
 	new iArraySize = GetArraySize(g_aLastRequests);
@@ -2629,20 +2939,11 @@ StartRandomLastRequest(iClient)
 		if(eLastRequest[LR_Flags] & LR_FLAG_LAST_PRISONER_ONLY_CAN_USE)
 			continue;
 		
-		/*
-		if(eLastRequest[LR_Flags] & LR_FLAG_LAST_PRISONER_ONLY_CAN_USE)
-		{
-			if(iNumPrisonersAlive > 1)
-				continue;
-			
-			if(iNumGuardsAlive < GetConVarInt(cvar_guards_needed_for_rebel))
-				continue;
-		}
-		*/
+		if(eLastRequest[LR_Flags] & LR_FLAG_REBEL)
+			continue;
 		
 		iRequests[iNumCanUse++] = i;
 	}
-
 	
 	if(!iNumCanUse)
 	{
@@ -2654,14 +2955,19 @@ StartRandomLastRequest(iClient)
 	StartLastRequest(iClient, iRequests[GetRandomInt(0, iNumCanUse - 1)]);
 }
 
-StartLastRequest(iClient, iLastRequestIndex, bool:bFromFreedayAdminCommand=false)
+bool:StartLastRequest(iClient, iLastRequestIndex, bool:bFromFreedayAdminCommand=false, bool:bFromRebelAsTeamStart=false)
 {
+	StopTimer_SelectLastRequest(iClient);
+	
+	if(g_hMenu_LastRequest[iClient] != INVALID_HANDLE)
+		CancelMenu(g_hMenu_LastRequest[iClient]);
+	
 	if(iLastRequestIndex == INVALID_LAST_REQUEST_INDEX
 	|| iLastRequestIndex >= GetArraySize(g_aLastRequests))
 	{
 		PrintToChat(iClient, "[SM] There was an error loading this LR.");
 		EndLastRequest(iClient);
-		return;
+		return false;
 	}
 	
 	g_bHasInitialized[iClient] = true;
@@ -2694,9 +3000,12 @@ StartLastRequest(iClient, iLastRequestIndex, bool:bFromFreedayAdminCommand=false
 	
 	if(eLastRequest[LR_Flags] & LR_FLAG_TEMP_INVINCIBLE)
 		SetTempInvincibility(iClient, 1.0);
-		
-	if(eLastRequest[LR_Flags] & LR_FLAG_RANDOM_TELEPORT_LOCATION)
-		TeleportToRebelPoint(iClient);
+	
+	if(!bFromRebelAsTeamStart)
+	{
+		if(eLastRequest[LR_Flags] & LR_FLAG_RANDOM_TELEPORT_LOCATION)
+			TeleportToRebelPoint(iClient, GetRandomRebelPointIndex());
+	}
 	
 	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}You have chosen {purple}%s {olive}- {purple}%s{olive}.", szCategoryName, eLastRequest[LR_Name]);
 	
@@ -2715,7 +3024,7 @@ StartLastRequest(iClient, iLastRequestIndex, bool:bFromFreedayAdminCommand=false
 	{
 		PrintToChat(iClient, "[SM] There was an error loading this LR code 1.");
 		EndLastRequest(iClient);
-		return;
+		return false;
 	}
 	
 	// Call global forward.
@@ -2727,7 +3036,7 @@ StartLastRequest(iClient, iLastRequestIndex, bool:bFromFreedayAdminCommand=false
 	{
 		PrintToChat(iClient, "[SM] There was an error loading this LR code 2.");
 		EndLastRequest(iClient);
-		return;
+		return false;
 	}
 	
 	// Slay if it's a freeday last request.
@@ -2748,6 +3057,8 @@ StartLastRequest(iClient, iLastRequestIndex, bool:bFromFreedayAdminCommand=false
 		g_bHasRoundEndedSinceStarted[iClient] = true;
 		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}You are in your freeday. If you interfere with other players you will be slain!");
 	}
+	
+	return true;
 }
 
 SetTempInvincibility(iClient, Float:fInvincibilityTime)
@@ -2848,6 +3159,7 @@ ResetLastRequestSquelches(iClient, iOpponent)
 EndLastRequest(iClient, bool:bEndingFromFreeday=false)
 {
 	StopTimer_SlayTimer(iClient);
+	CheckRemoveClientFromRebelAsTeam(iClient);
 	
 	g_bHasInitialized[iClient] = false;
 	g_bInitializedAdminGivenFreeday[iClient] = false;
@@ -3651,7 +3963,7 @@ TryRemoveAdminGivenFreeday(iVictim, iAttacker)
 	}
 }
 
-AbortAllLastRequests()
+AbortAllNonFreedayLastRequests()
 {
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
