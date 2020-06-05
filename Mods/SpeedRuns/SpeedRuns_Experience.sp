@@ -6,7 +6,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Speed Runs: Experience";
-new const String:PLUGIN_VERSION[] = "1.5";
+new const String:PLUGIN_VERSION[] = "1.6";
 
 public Plugin:myinfo =
 {
@@ -244,7 +244,7 @@ bool:GiveStageCompletionExperience(iClient)
 	if(!iData)
 		return false;
 	
-	iData = GetMapCompletionExperience() / iData;
+	iData = RoundFloat(GetMapCompletionExperience() / float(iData));
 	if(!iData)
 		return false;
 	
@@ -253,22 +253,19 @@ bool:GiveStageCompletionExperience(iClient)
 
 bool:GiveMapCompletionExperience(iClient, bool:bMapAlreadyCompleted)
 {
-	new iExp = GetMapCompletionExperience();
+	new Float:fExp = GetMapCompletionExperience();
 	
 	// If the map was already completed we only give half exp.
 	if(bMapAlreadyCompleted)
-		iExp = RoundFloat(iExp / 2.0);
+		fExp = fExp / 2.0;
 	
-	if(!iExp)
-		return false;
-	
-	return GiveExperience(iClient, iExp);
+	return GiveExperience(iClient, RoundFloat(fExp));
 }
 
-GetMapCompletionExperience()
+Float:GetMapCompletionExperience()
 {
-	new Float:fPercent = float(SpeedRuns_GetMapTier()) / SpeedRuns_GetMapTierMax();
-	return RoundFloat(HIGHEST_TIER_COMPLETION_EXP * fPercent);
+	new Float:fPercent = float(SpeedRuns_GetMapTier()) / float(SpeedRuns_GetMapTierMax());
+	return (HIGHEST_TIER_COMPLETION_EXP * fPercent);
 }
 
 GetTotalStages()
