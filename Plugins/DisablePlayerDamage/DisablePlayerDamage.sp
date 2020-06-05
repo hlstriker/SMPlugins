@@ -4,7 +4,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Disable Player Damage";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -29,30 +29,35 @@ public OnClientPutInServer(iClient)
 
 public Action:OnTraceAttack(iVictim, &iAttacker, &iInflictor, &Float:fDamage, &iDamageType, &iAmmoType, iHitBox, iHitGroup)
 {
-	if(!(1 <= iVictim <= MaxClients))
+	if(!IsPlayer(iVictim))
 		return Plugin_Continue;
-
-	if(!(1 <= iInflictor <= MaxClients))
+	
+	if(!IsPlayer(iAttacker))
 		return Plugin_Continue;
-
-	if(!(1 <= iAttacker <= MaxClients))
+	
+	if(!IsPlayer(iInflictor) && !IsPlayer(GetEntPropEnt(iInflictor, Prop_Send, "m_hOwnerEntity")))
 		return Plugin_Continue;
-
+	
 	fDamage = 0.0;
 	return Plugin_Handled;
 }
 
 public Action:OnTakeDamage(iVictim, &iAttacker, &iInflictor, &Float:fDamage, &iDamageType)
 {
-	if(!(1 <= iVictim <= MaxClients))
+	if(!IsPlayer(iVictim))
 		return Plugin_Continue;
-
-	if(!(1 <= iInflictor <= MaxClients))
+	
+	if(!IsPlayer(iAttacker))
 		return Plugin_Continue;
-
-	if(!(1 <= iAttacker <= MaxClients))
+	
+	if(!IsPlayer(iInflictor) && !IsPlayer(GetEntPropEnt(iInflictor, Prop_Send, "m_hOwnerEntity")))
 		return Plugin_Continue;
-
+	
 	fDamage = 0.0;
 	return Plugin_Changed;
+}
+
+bool:IsPlayer(iEnt)
+{
+	return (1 <= iEnt <= MaxClients);
 }
