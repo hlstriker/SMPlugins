@@ -50,6 +50,7 @@ enum ClientCookieType
 	CC_TYPE_SWOOBLES_POINTS,
 	CC_TYPE_BHC_PERF_SOUNDS,
 	CC_TYPE_FOOTSTEPS_MENU,
+	CC_TYPE_PLAYER_MODELS_FOR_SKILL_SERVERS,
 	
 	NUM_CC_TYPES = 256 // Set this to a high number since its used to allocate the array size. We dont want to recompile the API each time we add a new cookie type.
 };
