@@ -17,7 +17,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Capture the Flag";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -102,6 +102,8 @@ new g_iInitialDayFlags = DAY_FLAG_STRIP_GUARDS_WEAPONS | DAY_FLAG_STRIP_PRISONER
 new Handle:cvar_mp_roundtime;
 new Handle:cvar_mp_respawn_immunitytime;
 
+new Handle:cvar_can_defenders_return_flag;
+
 new Float:g_fRoundTime;
 new Float:g_fRoundTimeStarted;
 
@@ -120,6 +122,8 @@ public OnPluginStart()
 	
 	cvar_mp_roundtime = FindConVar("mp_roundtime");
 	cvar_mp_respawn_immunitytime = FindConVar("mp_respawn_immunitytime");
+	
+	cvar_can_defenders_return_flag = CreateConVar("ultjb_ctf_can_defenders_return_flag", "0", "Can the defenders return the flag by touching it?", _, true, 0.0, true, 1.0);
 }
 
 public OnMapStart()
@@ -800,7 +804,7 @@ public OnTouchPost_Flag(iEnt, iOther)
 	if(UltJB_LR_HasStartedLastRequest(iOther) && (UltJB_LR_GetLastRequestFlags(iOther) & LR_FLAG_FREEDAY))
 		return;
 	
-	if(CanReturnFlag(iOther))
+	if(GetConVarBool(cvar_can_defenders_return_flag) && CanReturnFlag(iOther))
 	{
 		ReturnFlagToSpawn();
 		ShowReturnHintText(iOther);
