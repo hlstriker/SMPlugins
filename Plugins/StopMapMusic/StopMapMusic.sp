@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Stop Map Music";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -120,6 +120,9 @@ public Action:OnPitchToggle(iClient, iArgNum)
 
 public Action:OnAmbientSound(String:szSample[PLATFORM_MAX_PATH], &iEntity, &Float:fVolume, &iLevel, &iPitch, Float:fPosition[3], &iFlags, &Float:fDelay)
 {
+	if(!IsValidEntity(iEntity))
+		return Plugin_Continue;
+	
 	if(!(GetEntProp(iEntity, Prop_Data, "m_spawnflags") & SPAWNFLAG_PLAY_EVERYWHERE))
 		return Plugin_Continue;
 	
