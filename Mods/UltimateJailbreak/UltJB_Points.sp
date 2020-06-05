@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Points";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -64,6 +64,9 @@ public EventPlayerDeath_Post(Handle:hEvent, const String:szName[], bool:bDontBro
 		return;
 	
 	if(iAttacker == iClient)
+		return;
+	
+	if(!ClientCookies_HaveCookiesLoaded(iClient))
 		return;
 	
 	new iPoints = 50;
