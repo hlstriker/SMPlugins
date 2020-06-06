@@ -7,7 +7,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Store Item: Player Effects";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -29,12 +29,12 @@ enum PlayerEffectType
 	PEFFECT_TYPE_TRAIL
 };
 
-new g_iEffectTypeToItemTypeID[] =
+new ClientCookieType:g_iEffectTypeToCookieType[] =
 {
-	STOREITEM_TYPE_PLAYER_EFFECT_AURA,
-	STOREITEM_TYPE_PLAYER_EFFECT_SPARKLES,
-	STOREITEM_TYPE_PLAYER_EFFECT_RINGS,
-	STOREITEM_TYPE_PLAYER_EFFECT_TRAIL
+	CC_TYPE_STORE_IFLAGS_PLAYER_EFFECT_AURA,
+	CC_TYPE_STORE_IFLAGS_PLAYER_EFFECT_SPARKLES,
+	CC_TYPE_STORE_IFLAGS_PLAYER_EFFECT_RINGS,
+	CC_TYPE_STORE_IFLAGS_PLAYER_EFFECT_TRAIL
 };
 
 new Handle:g_aItems[PlayerEffectType];
@@ -257,6 +257,14 @@ public OnMapStart()
 		ClearArray(g_aItems[i]);
 }
 
+public Store_OnRegisterVisibilitySettingsReady()
+{
+	Store_RegisterVisibilitySettings("Player Aura", CC_TYPE_STORE_IFLAGS_PLAYER_EFFECT_AURA);
+	Store_RegisterVisibilitySettings("Player Sparkles", CC_TYPE_STORE_IFLAGS_PLAYER_EFFECT_SPARKLES);
+	Store_RegisterVisibilitySettings("Player Kill Swirl", CC_TYPE_STORE_IFLAGS_PLAYER_EFFECT_RINGS);
+	Store_RegisterVisibilitySettings("Player Trail", CC_TYPE_STORE_IFLAGS_PLAYER_EFFECT_TRAIL);
+}
+
 public Store_OnItemsReady()
 {
 	decl iFoundItemID, String:szEffect[MAX_STORE_DATA_STRING_LEN+1];
@@ -394,9 +402,9 @@ bool:CreateContinuousEffect(iClient, iItemID, iEffectType)
 
 bool:ShouldSendToClient(iClient, iOwner, iEffectType)
 {
-	new iItemTypeID = g_iEffectTypeToItemTypeID[iEffectType];
+	new ClientCookieType:cookieType = g_iEffectTypeToCookieType[iEffectType];
 	
-	new iOwnerFlags = Store_GetClientSettings(iOwner, iItemTypeID);
+	new iOwnerFlags = Store_GetClientItemTypeFlags(iOwner, cookieType);
 	
 	if(iClient == iOwner)
 	{
@@ -405,7 +413,7 @@ bool:ShouldSendToClient(iClient, iOwner, iEffectType)
 	}
 	else
 	{
-		new iClientFlags = Store_GetClientSettings(iClient, iItemTypeID);
+		new iClientFlags = Store_GetClientItemTypeFlags(iClient, cookieType);
 		
 		if(GetClientTeam(iClient) == GetClientTeam(iOwner))
 		{

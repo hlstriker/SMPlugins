@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Store Item: Bullet Tracers";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -56,6 +56,11 @@ public OnMapStart()
 	g_iDefaultDesignPrecacheID = PrecacheModel(SZ_DEFAULT_DESIGN);
 	
 	g_iWeaponModelIndex_Elite = PrecacheModel(SZ_WEAPON_MODEL_ELITE);
+}
+
+public Store_OnRegisterVisibilitySettingsReady()
+{
+	Store_RegisterVisibilitySettings("Bullet Tracers", CC_TYPE_STORE_IFLAGS_BULLET_TRACERS);
 }
 
 public Store_OnItemsReady()
@@ -122,7 +127,7 @@ public Event_BulletImpact_Post(Handle:hEvent, const String:szName[], bool:bDontB
 CreateTracer(iClient, const Float:fBulletOrigin[3], iPrecacheID, iColor[4])
 {
 	static iOwnerFlags;
-	iOwnerFlags = Store_GetClientSettings(iClient, STOREITEM_TYPE_BULLET_TRACER);
+	iOwnerFlags = Store_GetClientItemTypeFlags(iClient, CC_TYPE_STORE_IFLAGS_BULLET_TRACERS);
 	
 	static iWeapon, iViewModelMask;
 	iViewModelMask = 0;
@@ -184,7 +189,7 @@ CreateTracer(iClient, const Float:fBulletOrigin[3], iPrecacheID, iColor[4])
 		if(iClient == iPlayer || !IsClientInGame(iPlayer) || IsFakeClient(iPlayer))
 			continue;
 		
-		iPlayerFlags = Store_GetClientSettings(iPlayer, STOREITEM_TYPE_BULLET_TRACER);
+		iPlayerFlags = Store_GetClientItemTypeFlags(iPlayer, CC_TYPE_STORE_IFLAGS_BULLET_TRACERS);
 		
 		if(iClientTeam == GetClientTeam(iPlayer))
 		{

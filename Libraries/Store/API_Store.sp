@@ -19,7 +19,7 @@
 #pragma dynamic 500000
 
 new const String:PLUGIN_NAME[] = "API: Store";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
@@ -35,6 +35,14 @@ new String:g_szDatabaseBridgeConfigName[64];
 
 new Handle:cvar_database_servers_configname;
 new String:g_szDatabaseServersConfigName[64];
+
+new g_iVisSettingsMenuStartItem[MAXPLAYERS+1];
+new Handle:g_aVisSettingsMenuEntries;
+enum _:VisSettingsMenuEntry
+{
+	String:VisSettingsMenuEntry_Name[MAX_STORE_SETTINGS_MENU_LEN],
+	ClientCookieType:VisSettingsMenuEntry_ItemTypeFlagsCookie
+};
 
 new Handle:g_hTrie_ItemIDToInventoryIndex;
 new Handle:g_aInventoryItems;
@@ -74,17 +82,11 @@ enum
 
 new Handle:g_aClientItems[MAXPLAYERS+1];
 new Handle:g_aClientItemsActive[MAXPLAYERS+1];
-new Handle:g_aClientSettings[MAXPLAYERS+1];
-new Handle:g_aTrie_ClientSettingsTypeToIndex[MAXPLAYERS+1];
-enum _:ClientSettings
-{
-	CLIENTSETTING_TYPE,
-	CLIENTSETTING_VALUE
-};
 
 new Handle:cvar_plugin_files_url;
 
 new Handle:g_hFwd_OnItemsReady;
+new Handle:g_hFwd_OnRegisterVisibilitySettingsReady;
 
 new bool:g_bLibLoaded_ParticleManager;
 
@@ -97,6 +99,7 @@ public OnPluginStart()
 		cvar_plugin_files_url = CreateConVar("plugin_files_url", "", "A URL that points to the web path that stores plugin files.");
 	
 	g_hTrie_ItemIDToInventoryIndex = CreateTrie();
+	g_aVisSettingsMenuEntries = CreateArray(VisSettingsMenuEntry);
 	g_aInventoryItems = CreateArray(InventoryItem);
 	g_aItemFiles = CreateArray(ItemFile);
 	g_aDownloadQueue = CreateArray(PLATFORM_MAX_PATH);
@@ -105,11 +108,10 @@ public OnPluginStart()
 	{
 		g_aClientItems[iClient] = CreateArray();
 		g_aClientItemsActive[iClient] = CreateArray();
-		g_aClientSettings[iClient] = CreateArray(ClientSettings);
-		g_aTrie_ClientSettingsTypeToIndex[iClient] = CreateTrie();
 	}
 	
 	g_hFwd_OnItemsReady = CreateGlobalForward("Store_OnItemsReady", ET_Ignore);
+	g_hFwd_OnRegisterVisibilitySettingsReady = CreateGlobalForward("Store_OnRegisterVisibilitySettingsReady", ET_Ignore);
 	
 	CreateTimer(5.0, Timer_ServerCheck, _, TIMER_REPEAT);
 	
@@ -124,9 +126,200 @@ public Action:OnOpenStore(iClient, iArgNum)
 	if(!iClient)
 		return Plugin_Handled;
 	
-	WebPageViewer_OpenPage(iClient, "http://swoobles.com/store-database");
+	DisplayMenu_Store(iClient);
 	
 	return Plugin_Handled;
+}
+
+DisplayMenu_Store(iClient)
+{
+	new Handle:hMenu = CreateMenu(MenuHandle_Store);
+	SetMenuTitle(hMenu, "Store");
+	
+	AddMenuItem(hMenu, "0", "Browse store items");
+	AddMenuItem(hMenu, "1", "Toggle specific items on/off");
+	AddMenuItem(hMenu, "2", "Item visibility settings");
+	
+	if(!DisplayMenu(hMenu, iClient, 0))
+	{
+		PrintToChat(iClient, "[SM] Error displaying menu.");
+		return;
+	}
+}
+
+public MenuHandle_Store(Handle:hMenu, MenuAction:action, iParam1, iParam2)
+{
+	if(action == MenuAction_End)
+	{
+		CloseHandle(hMenu);
+		return;
+	}
+	
+	if(action != MenuAction_Select)
+		return;
+	
+	decl String:szInfo[4];
+	GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
+	
+	switch(StringToInt(szInfo))
+	{
+		case 0:
+		{
+			WebPageViewer_OpenPage(iParam1, "http://swoobles.com/store-database");
+		}
+		case 1:
+		{
+			WebPageViewer_OpenPage(iParam1, "http://swoobles.com/page/storeusersettings");
+		}
+		case 2:
+		{
+			DisplayMenu_VisibilitySettings(iParam1);
+		}
+	}
+}
+
+bool:DisplayMenu_VisibilitySettings(iClient, iStartItem=0)
+{
+	new Handle:hMenu = CreateMenu(MenuHandle_VisibilitySettings);
+	SetMenuTitle(hMenu, "Visibility Settings\nNOTICE: Some settings won't apply\nuntil you reconnect to the server.");
+	
+	decl eVisSettingsMenuEntry[VisSettingsMenuEntry], String:szInfo[12];
+	for(new i=0; i<GetArraySize(g_aVisSettingsMenuEntries); i++)
+	{
+		GetArrayArray(g_aVisSettingsMenuEntries, i, eVisSettingsMenuEntry);
+		
+		IntToString(i, szInfo, sizeof(szInfo));
+		AddMenuItem(hMenu, szInfo, eVisSettingsMenuEntry[VisSettingsMenuEntry_Name]);
+	}
+	
+	SetMenuExitBackButton(hMenu, true);
+	if(!DisplayMenuAtItem(hMenu, iClient, iStartItem, 0))
+	{
+		PrintToChat(iClient, "[SM] There are no settings.");
+		return false;
+	}
+	
+	CPrintToChat(iClient, "{lightred}NOTICE: {olive}Some settings won't apply until you reconnect to the server.");
+	
+	return true;
+}
+
+public MenuHandle_VisibilitySettings(Handle:hMenu, MenuAction:action, iParam1, iParam2)
+{
+	if(action == MenuAction_End)
+	{
+		CloseHandle(hMenu);
+		return;
+	}
+	
+	if(action == MenuAction_Cancel)
+	{
+		if(iParam2 == MenuCancel_ExitBack)
+			DisplayMenu_Store(iParam1);
+		
+		return;
+	}
+	
+	if(action != MenuAction_Select)
+		return;
+	
+	g_iVisSettingsMenuStartItem[iParam1] = GetMenuSelectionPosition();
+	
+	decl String:szInfo[12];
+	GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
+	
+	DisplayMenu_VisibilitySettingsEntry(iParam1, StringToInt(szInfo));
+}
+
+DisplayMenu_VisibilitySettingsEntry(iClient, iEntryIndex)
+{
+	decl eVisSettingsMenuEntry[VisSettingsMenuEntry];
+	GetArrayArray(g_aVisSettingsMenuEntries, iEntryIndex, eVisSettingsMenuEntry);
+	
+	new iItemTypeFlags = GetClientItemTypeFlags(iClient, eVisSettingsMenuEntry[VisSettingsMenuEntry_ItemTypeFlagsCookie]);
+	
+	decl String:szTitle[MAX_STORE_SETTINGS_MENU_LEN+96];
+	FormatEx(szTitle, sizeof(szTitle), "Visibility Settings - %s\nNOTICE: Some settings won't apply\nuntil you reconnect to the server.", eVisSettingsMenuEntry[VisSettingsMenuEntry_Name]);
+	
+	new Handle:hMenu = CreateMenu(MenuHandle_VisibilitySettingsEntry);
+	SetMenuTitle(hMenu, szTitle);
+	
+	decl String:szInfo[24], String:szBuffer[64], iBit;
+	
+	// Whos items do I want to see?
+	iBit = ITYPE_FLAG_SELF_DISABLED;
+	FormatEx(szInfo, sizeof(szInfo), "%d/%d", iEntryIndex, iBit);
+	FormatEx(szBuffer, sizeof(szBuffer), "%s%s", (iItemTypeFlags & iBit) ? "[\xE2\x9C\x93] " : "", "Don't show my items to myself.");
+	AddMenuItem(hMenu, szInfo, szBuffer);
+	
+	iBit = ITYPE_FLAG_MY_TEAM_DISABLED;
+	FormatEx(szInfo, sizeof(szInfo), "%d/%d", iEntryIndex, iBit);
+	FormatEx(szBuffer, sizeof(szBuffer), "%s%s", (iItemTypeFlags & iBit) ? "[\xE2\x9C\x93] " : "", "Don't show my teams items to myself.");
+	AddMenuItem(hMenu, szInfo, szBuffer);
+	
+	iBit = ITYPE_FLAG_OTHER_TEAM_DISABLED;
+	FormatEx(szInfo, sizeof(szInfo), "%d/%d", iEntryIndex, iBit);
+	FormatEx(szBuffer, sizeof(szBuffer), "%s%s", (iItemTypeFlags & iBit) ? "[\xE2\x9C\x93] " : "", "Don't show the other teams items to myself.");
+	AddMenuItem(hMenu, szInfo, szBuffer);
+	
+	// Spacer
+	AddMenuItem(hMenu, "", "", ITEMDRAW_SPACER);
+	
+	// Who is allowed to see my items?
+	iBit = ITYPE_FLAG_MY_ITEM_MY_TEAM_DISABLED;
+	FormatEx(szInfo, sizeof(szInfo), "%d/%d", iEntryIndex, iBit);
+	FormatEx(szBuffer, sizeof(szBuffer), "%s%s", (iItemTypeFlags & iBit) ? "[\xE2\x9C\x93] " : "", "Don't show my items to my team.");
+	AddMenuItem(hMenu, szInfo, szBuffer);
+	
+	iBit = ITYPE_FLAG_MY_ITEM_OTHER_TEAM_DISABLED;
+	FormatEx(szInfo, sizeof(szInfo), "%d/%d", iEntryIndex, iBit);
+	FormatEx(szBuffer, sizeof(szBuffer), "%s%s", (iItemTypeFlags & iBit) ? "[\xE2\x9C\x93] " : "", "Don't show my items to the other team.");
+	AddMenuItem(hMenu, szInfo, szBuffer);
+	
+	SetMenuExitBackButton(hMenu, true);
+	if(!DisplayMenu(hMenu, iClient, 0))
+	{
+		PrintToChat(iClient, "[SM] Error displaying visibility settings entry menu.");
+		return;
+	}
+}
+
+public MenuHandle_VisibilitySettingsEntry(Handle:hMenu, MenuAction:action, iParam1, iParam2)
+{
+	if(action == MenuAction_End)
+	{
+		CloseHandle(hMenu);
+		return;
+	}
+	
+	if(action == MenuAction_Cancel)
+	{
+		if(iParam2 == MenuCancel_ExitBack)
+			DisplayMenu_VisibilitySettings(iParam1, g_iVisSettingsMenuStartItem[iParam1]);
+		
+		return;
+	}
+	
+	if(action != MenuAction_Select)
+		return;
+	
+	decl String:szInfo[24];
+	GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
+	
+	decl String:szExplode[2][12];
+	ExplodeString(szInfo, "/", szExplode, sizeof(szExplode), sizeof(szExplode[]));
+	
+	new iEntryIndex = StringToInt(szExplode[0]);
+	new iBit = StringToInt(szExplode[1]);
+	
+	decl eVisSettingsMenuEntry[VisSettingsMenuEntry];
+	GetArrayArray(g_aVisSettingsMenuEntries, iEntryIndex, eVisSettingsMenuEntry);
+	
+	new iItemTypeFlags = GetClientItemTypeFlags(iParam1, eVisSettingsMenuEntry[VisSettingsMenuEntry_ItemTypeFlagsCookie]);
+	iItemTypeFlags ^= iBit;
+	SetClientItemTypeFlags(iParam1, eVisSettingsMenuEntry[VisSettingsMenuEntry_ItemTypeFlagsCookie], iItemTypeFlags);
+	
+	DisplayMenu_VisibilitySettingsEntry(iParam1, iEntryIndex);
 }
 
 public OnAllPluginsLoaded()
@@ -161,25 +354,75 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	CreateNative("Store_GetItemsMainFilePath", _Store_GetItemsMainFilePath);
 	CreateNative("Store_GetItemsMainFilePrecacheID", _Store_GetItemsMainFilePrecacheID);
 	CreateNative("Store_GetItemsDataString", _Store_GetItemsDataString);
-	CreateNative("Store_GetClientSettings", _Store_GetClientSettings);
+	CreateNative("Store_RegisterVisibilitySettings", _Store_RegisterVisibilitySettings);
+	CreateNative("Store_DisplayVisibilitySettingsMenu", _Store_DisplayVisibilitySettingsMenu);
+	CreateNative("Store_GetClientItemTypeFlags", _Store_GetClientItemTypeFlags);
+	CreateNative("Store_SetClientItemTypeFlags", _Store_SetClientItemTypeFlags);
 	
 	return APLRes_Success;
 }
 
-public _Store_GetClientSettings(Handle:hPlugin, iNumParams)
+public _Store_GetClientItemTypeFlags(Handle:hPlugin, iNumParams)
 {
-	static iClient, iSettingType, String:szSettingType[12], iIndex;
-	iClient = GetNativeCell(1);
-	iSettingType = GetNativeCell(2);
+	return GetClientItemTypeFlags(GetNativeCell(1), GetNativeCell(2));
+}
+
+GetClientItemTypeFlags(iClient, ClientCookieType:cookieType)
+{
+	if(!ClientCookies_HaveCookiesLoaded(iClient))
+		return ITYPE_FLAG_ALL_ENABLED;
 	
-	IntToString(iSettingType, szSettingType, sizeof(szSettingType));
-	if(!GetTrieValue(g_aTrie_ClientSettingsTypeToIndex[iClient], szSettingType, iIndex))
-		return 0;
+	if(!ClientCookies_HasCookie(iClient, cookieType))
+		return ITYPE_FLAG_ALL_ENABLED;
 	
-	static eClientSettings[ClientSettings];
-	GetArrayArray(g_aClientSettings[iClient], iIndex, eClientSettings);
+	return ClientCookies_GetCookie(iClient, cookieType);
+}
+
+public _Store_SetClientItemTypeFlags(Handle:hPlugin, iNumParams)
+{
+	SetClientItemTypeFlags(GetNativeCell(1), GetNativeCell(2), GetNativeCell(3));
+}
+
+SetClientItemTypeFlags(iClient, ClientCookieType:cookieType, iValue)
+{
+	if(!ClientCookies_HaveCookiesLoaded(iClient))
+	{
+		CPrintToChat(iClient, "{lightred}Could apply settings since your data is not loaded yet.");
+		return false;
+	}
 	
-	return eClientSettings[CLIENTSETTING_VALUE];
+	ClientCookies_SetCookie(iClient, cookieType, iValue);
+	return true;
+}
+
+public _Store_DisplayVisibilitySettingsMenu(Handle:hPlugin, iNumParams)
+{
+	return DisplayMenu_VisibilitySettings(GetNativeCell(1));
+}
+
+public _Store_RegisterVisibilitySettings(Handle:hPlugin, iNumParams)
+{
+	decl String:szSettingsMenuName[MAX_STORE_SETTINGS_MENU_LEN];
+	GetNativeString(1, szSettingsMenuName, sizeof(szSettingsMenuName));
+	
+	decl eVisSettingsMenuEntry[VisSettingsMenuEntry];
+	for(new i=0; i<GetArraySize(g_aVisSettingsMenuEntries); i++)
+	{
+		GetArrayArray(g_aVisSettingsMenuEntries, i, eVisSettingsMenuEntry);
+		
+		if(!StrEqual(szSettingsMenuName, eVisSettingsMenuEntry[VisSettingsMenuEntry_Name]))
+			continue;
+		
+		RemoveFromArray(g_aVisSettingsMenuEntries, i);
+		break;
+	}
+	
+	strcopy(eVisSettingsMenuEntry[VisSettingsMenuEntry_Name], MAX_STORE_SETTINGS_MENU_LEN, szSettingsMenuName);
+	eVisSettingsMenuEntry[VisSettingsMenuEntry_ItemTypeFlagsCookie] = GetNativeCell(2);
+	
+	PushArrayArray(g_aVisSettingsMenuEntries, eVisSettingsMenuEntry);
+	
+	return true;
 }
 
 public _Store_GetItemsDataString(Handle:hPlugin, iNumParams)
@@ -409,9 +652,6 @@ public DBServers_OnServerIDReady(iServerID, iGameID)
 	if(!Query_CreateTable_StoreUserItemsActive())
 		SetFailState("There was an error creating the store_user_items_active sql table.");
 	
-	if(!Query_CreateTable_StoreUserSettings())
-		SetFailState("There was an error creating the store_user_settings sql table.");
-	
 	if(!Query_CreateTable_StoreServerCheck())
 		SetFailState("There was an error creating the store_server_check sql table.");
 	
@@ -444,13 +684,17 @@ public OnClientPutInServer(iClient)
 {
 	ClearArray(g_aClientItems[iClient]);
 	ClearArray(g_aClientItemsActive[iClient]);
-	ClearArray(g_aClientSettings[iClient]);
-	ClearTrie(g_aTrie_ClientSettingsTypeToIndex[iClient]);
 }
 
 Forward_OnItemsReady()
 {
 	Call_StartForward(g_hFwd_OnItemsReady);
+	Call_Finish();
+}
+
+Forward_OnRegisterVisibilitySettingsReady()
+{
+	Call_StartForward(g_hFwd_OnRegisterVisibilitySettingsReady);
 	Call_Finish();
 }
 
@@ -684,6 +928,9 @@ FindClientByUserID(iUserID)
 
 public OnMapStart()
 {
+	ClearArray(g_aVisSettingsMenuEntries);
+	Forward_OnRegisterVisibilitySettingsReady();
+	
 	AddToDownloadsTableAndPrecache();
 }
 
@@ -993,30 +1240,6 @@ bool:Query_CreateTable_StoreUserItemsActive()
 		user_id		INT UNSIGNED		NOT NULL,\
 		item_id		SMALLINT UNSIGNED	NOT NULL,\
 		PRIMARY KEY ( user_id, item_id )\
-	) ENGINE = INNODB");
-	
-	if(hQuery == INVALID_HANDLE)
-		return false;
-	
-	DB_CloseQueryHandle(hQuery);
-	bTableCreated = true;
-	
-	return true;
-}
-
-bool:Query_CreateTable_StoreUserSettings()
-{
-	static bool:bTableCreated = false;
-	if(bTableCreated)
-		return true;
-	
-	new Handle:hQuery = DB_Query(g_szDatabaseServersConfigName, "\
-	CREATE TABLE IF NOT EXISTS store_user_settings\
-	(\
-		user_id			INT UNSIGNED	NOT NULL,\
-		setting_type	SMALLINT		NOT NULL,\
-		setting_value	INT				NOT NULL,\
-		PRIMARY KEY ( user_id )\
 	) ENGINE = INNODB");
 	
 	if(hQuery == INVALID_HANDLE)

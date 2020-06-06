@@ -4,6 +4,9 @@
 #define _store_included
 
 
+#include "../../Libraries/ClientCookies/client_cookies"
+
+
 public SharedPlugin:__pl_store = 
 {
 	name = "store",
@@ -18,6 +21,7 @@ public SharedPlugin:__pl_store =
 
 #define MAX_STORE_ITEM_NAME_LEN		33
 #define MAX_STORE_DATA_STRING_LEN	43
+#define MAX_STORE_SETTINGS_MENU_LEN	33
 
 #define STOREITEM_TYPE_EQUIPMENT_HEAD			1
 #define STOREITEM_TYPE_EQUIPMENT_FACE			2
@@ -47,7 +51,11 @@ public SharedPlugin:__pl_store =
 
 
 forward Store_OnItemsReady();
+forward Store_OnRegisterVisibilitySettingsReady();
 
+
+native bool:Store_RegisterVisibilitySettings(const String:settings_menu_name[], ClientCookieType:item_type_flags_cookie);
+native bool:Store_DisplayVisibilitySettingsMenu(client);
 
 native Store_FindItemByType(start_index, item_type, &found_item_id);
 native bool:Store_GetItemsMainFilePath(item_id, String:file_path[], maxlength);
@@ -55,17 +63,21 @@ native Store_GetItemsMainFilePrecacheID(item_id);
 native bool:Store_GetItemsDataString(item_id, string_num, String:data_string[], maxlength);
 
 native Store_CanClientUseItem(client, item_id);
-native Store_GetClientSettings(client, setting_type);
+native Store_GetClientItemTypeFlags(client, ClientCookieType:item_type_flags_cookie);
+native Store_SetClientItemTypeFlags(client, ClientCookieType:item_type_flags_cookie, value);
 
 
 #if !defined REQUIRE_PLUGIN
 public __pl_store_SetNTVOptional()
 {
+	MarkNativeAsOptional("Store_RegisterVisibilitySettings");
+	MarkNativeAsOptional("Store_DisplayVisibilitySettingsMenu");
 	MarkNativeAsOptional("Store_FindItemByType");
 	MarkNativeAsOptional("Store_GetItemsMainFilePath");
 	MarkNativeAsOptional("Store_GetItemsMainFilePrecacheID");
 	MarkNativeAsOptional("Store_GetItemsDataString");
 	MarkNativeAsOptional("Store_CanClientUseItem");
-	MarkNativeAsOptional("Store_GetClientSettings");
+	MarkNativeAsOptional("Store_GetClientItemTypeFlags");
+	MarkNativeAsOptional("Store_SetClientItemTypeFlags");
 }
 #endif

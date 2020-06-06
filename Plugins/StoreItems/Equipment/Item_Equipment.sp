@@ -11,7 +11,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Store Item: Equipment";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -232,6 +232,11 @@ Forward_OnEquipped(iClient, iEquipment)
 	Call_Finish();
 }
 
+public Store_OnRegisterVisibilitySettingsReady()
+{
+	Store_RegisterVisibilitySettings("Equipment", CC_TYPE_STORE_IFLAGS_EQUIPMENT);
+}
+
 // TODO: If CS:GO entity limit increases we will need to increase these arrays.
 #define ENTITY_LIMIT 4096
 new Action:g_CachedTransmit[MAXPLAYERS+1][ENTITY_LIMIT+1];
@@ -287,8 +292,8 @@ public Action:OnSetTransmit(iEnt, iClient)
 	if(IsPlayerAlive(iClient))
 	{
 		static iClientFlags, iOwnerFlags;
-		iClientFlags = Store_GetClientSettings(iClient, STOREITEM_TYPE_EQUIPMENT_HEAD);
-		iOwnerFlags = Store_GetClientSettings(iOwner, STOREITEM_TYPE_EQUIPMENT_HEAD);
+		iClientFlags = Store_GetClientItemTypeFlags(iClient, CC_TYPE_STORE_IFLAGS_EQUIPMENT);
+		iOwnerFlags = Store_GetClientItemTypeFlags(iOwner, CC_TYPE_STORE_IFLAGS_EQUIPMENT);
 		
 		if(GetClientTeam(iClient) == GetClientTeam(iOwner))
 		{

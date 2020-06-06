@@ -8,7 +8,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Store Item: Equipment Effects";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -303,9 +303,14 @@ bool:CreateEffect(iClient, iItemID, iEquipmentTypeIndex, iEnt)
 	return true;
 }
 
+public Store_OnRegisterVisibilitySettingsReady()
+{
+	Store_RegisterVisibilitySettings("Equipment Effects", CC_TYPE_STORE_IFLAGS_EQUIPMENT_EFFECTS);
+}
+
 bool:ShouldSendToClient(iClient, iOwner)
 {
-	new iOwnerFlags = Store_GetClientSettings(iOwner, STOREITEM_TYPE_EQUIPMENT_EFFECTS);
+	new iOwnerFlags = Store_GetClientItemTypeFlags(iOwner, CC_TYPE_STORE_IFLAGS_EQUIPMENT_EFFECTS);
 	
 	if(iClient == iOwner)
 	{
@@ -314,7 +319,7 @@ bool:ShouldSendToClient(iClient, iOwner)
 	}
 	else
 	{
-		new iClientFlags = Store_GetClientSettings(iClient, STOREITEM_TYPE_EQUIPMENT_EFFECTS);
+		new iClientFlags = Store_GetClientItemTypeFlags(iClient, CC_TYPE_STORE_IFLAGS_EQUIPMENT_EFFECTS);
 		
 		if(GetClientTeam(iClient) == GetClientTeam(iOwner))
 		{

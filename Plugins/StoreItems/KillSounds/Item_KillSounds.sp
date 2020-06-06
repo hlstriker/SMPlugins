@@ -6,7 +6,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Store Item: Kill Sounds";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -58,6 +58,11 @@ public OnMapStart()
 		PrecacheSoundAny(SZ_DEFAULT_HEADSHOT_SOUNDS[i]);
 	
 	ClearArray(g_aItems);
+}
+
+public Store_OnRegisterVisibilitySettingsReady()
+{
+	Store_RegisterVisibilitySettings("Kill Sounds", CC_TYPE_STORE_IFLAGS_KILL_SOUNDS);
 }
 
 public Store_OnItemsReady()
@@ -154,8 +159,8 @@ LoadDefaultKillSoundArray()
 
 bool:ShouldSendItemToPlayer(iOwner, iPlayer)
 {
-	new iOwnerFlags = Store_GetClientSettings(iOwner, STOREITEM_TYPE_KILL_SOUND);
-	new iPlayerFlags = Store_GetClientSettings(iPlayer, STOREITEM_TYPE_KILL_SOUND);
+	new iOwnerFlags = Store_GetClientItemTypeFlags(iOwner, CC_TYPE_STORE_IFLAGS_KILL_SOUNDS);
+	new iPlayerFlags = Store_GetClientItemTypeFlags(iPlayer, CC_TYPE_STORE_IFLAGS_KILL_SOUNDS);
 	
 	// Don't show my items to myself.
 	if(iOwner == iPlayer && (iOwnerFlags & ITYPE_FLAG_SELF_DISABLED))
