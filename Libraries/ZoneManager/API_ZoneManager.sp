@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Zone Manager";
-new const String:PLUGIN_VERSION[] = "1.18";
+new const String:PLUGIN_VERSION[] = "1.19";
 
 public Plugin:myinfo =
 {
@@ -763,6 +763,24 @@ public _ZoneManager_RegisterZoneType(Handle:hPlugin, iNumParams)
 		GetArrayArray(g_aZoneTypes, i, eZoneType);
 		if(eZoneType[ZoneType_Type] != iZoneType)
 			continue;
+		
+		if(eZoneType[ZoneType_ForwardTouch] != INVALID_HANDLE)
+			CloseHandle(eZoneType[ZoneType_ForwardTouch]);
+		
+		if(eZoneType[ZoneType_ForwardStartTouch] != INVALID_HANDLE)
+			CloseHandle(eZoneType[ZoneType_ForwardStartTouch]);
+		
+		if(eZoneType[ZoneType_ForwardEndTouch] != INVALID_HANDLE)
+			CloseHandle(eZoneType[ZoneType_ForwardEndTouch]);
+		
+		if(eZoneType[ZoneType_ForwardEditData] != INVALID_HANDLE)
+			CloseHandle(eZoneType[ZoneType_ForwardEditData]);
+		
+		if(eZoneType[ZoneType_ForwardTypeAssigned] != INVALID_HANDLE)
+			CloseHandle(eZoneType[ZoneType_ForwardTypeAssigned]);
+		
+		if(eZoneType[ZoneType_ForwardTypeUnassigned] != INVALID_HANDLE)
+			CloseHandle(eZoneType[ZoneType_ForwardTypeUnassigned]);
 		
 		RemoveFromArray(g_aZoneTypes, i);
 		break;
