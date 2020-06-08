@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "AFK Manager";
-new const String:PLUGIN_VERSION[] = "1.6";
+new const String:PLUGIN_VERSION[] = "1.7";
 
 public Plugin:myinfo =
 {
@@ -29,9 +29,14 @@ new bool:g_bWaitingForSpawn[MAXPLAYERS+1];
 new bool:g_bWaitingForTransfer[MAXPLAYERS+1];
 new Float:g_fStartTransferWaitTime[MAXPLAYERS+1];
 
+new bool:g_bIsAway[MAXPLAYERS+1];
+
 new Handle:cvar_seconds_before_afk;
 new Handle:cvar_num_free_slots_before_kicking;
 new Handle:cvar_reserved_slots;
+
+new Handle:g_hFwd_OnAway;
+new Handle:g_hFwd_OnBack;
 
 new bool:g_bLibLoaded_ModelSkinManager;
 
@@ -48,6 +53,9 @@ public OnPluginStart()
 	
 	AutoExecConfig(true, "afk_manager", "swoobles");
 	
+	g_hFwd_OnAway = CreateGlobalForward("AFKManager_OnAway", ET_Ignore, Param_Cell);
+	g_hFwd_OnBack = CreateGlobalForward("AFKManager_OnBack", ET_Ignore, Param_Cell);
+	
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
 		if(IsClientInGame(iClient))
@@ -55,6 +63,19 @@ public OnPluginStart()
 	}
 	
 	CreateTimer(3.0, Timer_CheckForAway, _, TIMER_REPEAT);
+}
+
+public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
+{
+	RegPluginLibrary("afk_manager");
+	CreateNative("AFKManager_IsAway", _AFKManager_IsAway);
+	
+	return APLRes_Success;
+}
+
+public _AFKManager_IsAway(Handle:hPlugin, iNumParams)
+{
+	return g_bIsAway[GetNativeCell(1)];
 }
 
 public OnAllPluginsLoaded()
@@ -125,6 +146,7 @@ public OnBack(iClient)
 		return;
 	
 	StopTransfer(iClient);
+	Forward_OnBack(iClient);
 }
 
 public OnClientDisconnect_Post(iClient)
@@ -136,6 +158,7 @@ StopTransfer(iClient)
 {
 	g_bWaitingForSpawn[iClient] = false;
 	g_bWaitingForTransfer[iClient] = false;
+	g_bIsAway[iClient] = false;
 }
 
 SetupTransferDelay(iClient)
@@ -182,6 +205,9 @@ HandleTransfer(iClient)
 	else
 		iReservedSlots = GetConVarInt(cvar_reserved_slots);
 	
+	g_bIsAway[iClient] = true;
+	Forward_OnAway(iClient);
+	
 	if((MaxClients - iNumConnected) <= (GetConVarInt(cvar_num_free_slots_before_kicking) + iReservedSlots))
 	{
 		KickClient(iClient, "Reason: AFK when the server is near full");
@@ -196,4 +222,18 @@ HandleTransfer(iClient)
 		SetEntProp(iClient, Prop_Send, "m_iObserverMode", OBS_MODE_ROAMING);
 		PrintToChat(iClient, " \x05[SM] \x01You were moved to spectate for being away.");
 	}
+}
+
+Forward_OnAway(iClient)
+{
+	Call_StartForward(g_hFwd_OnAway);
+	Call_PushCell(iClient);
+	Call_Finish();
+}
+
+Forward_OnBack(iClient)
+{
+	Call_StartForward(g_hFwd_OnBack);
+	Call_PushCell(iClient);
+	Call_Finish();
 }

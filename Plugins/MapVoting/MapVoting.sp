@@ -17,6 +17,7 @@
 
 #undef REQUIRE_PLUGIN
 #include "../ForceMapEnd/force_map_end"
+#include "../AFKManager/afk_manager"
 #include "../../RandomIncludes/kztimer"
 #define REQUIRE_PLUGIN
 
@@ -24,7 +25,7 @@
 #pragma dynamic 500000
 
 new const String:PLUGIN_NAME[] = "Map Voting";
-new const String:PLUGIN_VERSION[] = "1.23";
+new const String:PLUGIN_VERSION[] = "1.24";
 
 public Plugin:myinfo =
 {
@@ -177,6 +178,7 @@ new Handle:g_hFwd_OnVoteRocked;
 new g_iMapChangeTime;
 
 new bool:g_bLibLoaded_ForceMapEnd;
+new bool:g_bLibLoaded_AFKManager;
 new bool:g_bLibLoaded_KZTimer;
 
 
@@ -198,6 +200,7 @@ public OnPluginStart()
 	g_aTrie_CategoryPlayedCount = CreateTrie();
 	
 	HookEvent("cs_intermission", Event_Intermission_Post, EventHookMode_PostNoCopy);
+	HookEvent("player_team", Event_PlayerTeam_Post, EventHookMode_Post);
 	
 	RegConsoleCmd("sm_nominate", OnNominate);
 	RegConsoleCmd("sm_nom", OnNominate);
@@ -737,25 +740,8 @@ bool:AddToRockTheVotePlayers(iClient)
 	else
 		bHasRockedAlready = true;
 	
-	new iNumOnTeams;
-	decl iTeam;
-	for(new iPlayer=1; iPlayer<=MaxClients; iPlayer++)
-	{
-		if(!IsClientInGame(iPlayer) || IsFakeClient(iPlayer))
-			continue;
-		
-		iTeam = GetClientTeam(iPlayer);
-		if(iTeam < 1 || iTeam > 3)
-			continue;
-		
-		iNumOnTeams++;
-	}
-	
-	new iPlayersNeededForPercent = RoundToCeil(iNumOnTeams * GetConVarFloat(cvar_sm_rtv_needed));
-	new iPlayersNeededForMin = GetConVarInt(cvar_sm_rtv_minplayers);
-	
-	new iPlayersNeeded = (iPlayersNeededForPercent > iPlayersNeededForMin) ? iPlayersNeededForPercent : iPlayersNeededForMin;
-	new iPlayerCount = GetArraySize(g_aRockTheVotePlayers);
+	decl iPlayerCount, iPlayersNeeded;
+	new bool:bRet = CheckHasEnoughPlayersRockedTheVote(iPlayerCount, iPlayersNeeded);
 	
 	if(bHasRockedAlready)
 	{
@@ -766,8 +752,101 @@ bool:AddToRockTheVotePlayers(iClient)
 		CPrintToChatAll("{green}[{lightred}SM{green}] {yellow}%N {olive}has rocked the vote {yellow}[{green}%i{yellow}/{green}%i{yellow}]{olive}.", iClient, iPlayerCount, iPlayersNeeded);
 	}
 	
+	return bRet;
+}
+
+public AFKManager_OnBack(iClient)
+{
+	new iIndex = FindValueInArray(g_aRockTheVotePlayers, iClient);
+	if(iIndex == -1)
+		return;
+	
+	if(CheckHasEnoughPlayersRockedTheVote())
+		MapVoteStartTimer(STARTED_BY_RTV);
+}
+
+public Event_PlayerTeam_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
+{
+	new iClient = GetClientOfUserId(GetEventInt(hEvent, "userid"));
+	
+	if(GetEventInt(hEvent, "oldteam") != CS_TEAM_SPECTATOR)
+		return;
+	
+	new iIndex = FindValueInArray(g_aRockTheVotePlayers, iClient);
+	if(iIndex == -1)
+		return;
+	
+	if(CheckHasEnoughPlayersRockedTheVote())
+		MapVoteStartTimer(STARTED_BY_RTV);
+}
+
+bool:CheckHasEnoughPlayersRockedTheVote(&iPlayerCount=0, &iPlayersNeeded=0)
+{
+	new iNumOnTeams;
+	for(new iPlayer=1; iPlayer<=MaxClients; iPlayer++)
+	{
+		if(!IsClientInGame(iPlayer) || IsFakeClient(iPlayer))
+			continue;
+		
+		if(!IsValidPlayerForRTV(iPlayer))
+			continue;
+		
+		iNumOnTeams++;
+	}
+	
+	new iPlayersNeededForPercent = RoundToCeil(iNumOnTeams * GetConVarFloat(cvar_sm_rtv_needed));
+	new iPlayersNeededForMin = GetConVarInt(cvar_sm_rtv_minplayers);
+	
+	iPlayersNeeded = (iPlayersNeededForPercent > iPlayersNeededForMin) ? iPlayersNeededForPercent : iPlayersNeededForMin;
+	iPlayerCount = GetNonAfkPlayerCountInRTVArray();
+	
 	if(iPlayerCount < iPlayersNeeded)
 		return false;
+	
+	return true;
+}
+
+GetNonAfkPlayerCountInRTVArray()
+{
+	new iNumPlayers;
+	
+	decl iClient;
+	new iArraySize = GetArraySize(g_aRockTheVotePlayers);
+	for(new i=0; i<iArraySize; i++)
+	{
+		iClient = GetArrayCell(g_aRockTheVotePlayers, i);
+		
+		if(!IsValidPlayerForRTV(iClient))
+			continue;
+		
+		iNumPlayers++;
+	}
+	
+	return iNumPlayers;
+}
+
+bool:IsValidPlayerForRTV(iClient)
+{
+	static iTeam;
+	iTeam = GetClientTeam(iClient);
+	if(iTeam < CS_TEAM_SPECTATOR)
+		return false;
+	
+	if(g_bLibLoaded_AFKManager)
+	{
+		#if defined _afk_manager_included
+		if(AFKManager_IsAway(iClient))
+			return false;
+		#else
+		if(iTeam == CS_TEAM_SPECTATOR)
+			return false;
+		#endif
+	}
+	else
+	{
+		if(iTeam == CS_TEAM_SPECTATOR)
+			return false;
+	}
 	
 	return true;
 }
@@ -1795,6 +1874,7 @@ public OnAllPluginsLoaded()
 {
 	cvar_database_servers_configname = FindConVar("sm_database_servers_configname");
 	g_bLibLoaded_ForceMapEnd = LibraryExists("force_map_end");
+	g_bLibLoaded_AFKManager = LibraryExists("afk_manager");
 	g_bLibLoaded_KZTimer = LibraryExists("KZTimer");
 }
 
@@ -1803,6 +1883,10 @@ public OnLibraryAdded(const String:szName[])
 	if(StrEqual(szName, "force_map_end"))
 	{
 		g_bLibLoaded_ForceMapEnd = true;
+	}
+	else if(StrEqual(szName, "afk_manager"))
+	{
+		g_bLibLoaded_AFKManager = true;
 	}
 	else if(StrEqual(szName, "KZTimer"))
 	{
@@ -1815,6 +1899,10 @@ public OnLibraryRemoved(const String:szName[])
 	if(StrEqual(szName, "force_map_end"))
 	{
 		g_bLibLoaded_ForceMapEnd = false;
+	}
+	else if(StrEqual(szName, "afk_manager"))
+	{
+		g_bLibLoaded_AFKManager = false;
 	}
 	else if(StrEqual(szName, "KZTimer"))
 	{
