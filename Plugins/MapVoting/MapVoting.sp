@@ -1235,7 +1235,7 @@ bool:DisplayMenu_MapVote()
 	
 	// Check for player count requirements of the nominated maps.
 	decl String:szBuffer[255], i, j, iMapIndex, eMap[Map], String:szCurrentMap[MAX_MAP_NAME_LENGTH];
-	for(i=GetArraySize(g_aNominations); i>=0; i--)
+	for(i=GetArraySize(g_aNominations)-1; i>=0; i--)
 	{
 		GetArrayString(g_aNominations, i, szBuffer, sizeof(szBuffer));
 		
@@ -1256,7 +1256,7 @@ bool:DisplayMenu_MapVote()
 	}
 	
 	// Remove duplicates since multiple players can nominate the same map.
-	for(i=GetArraySize(g_aNominations); i>0; i--)
+	for(i=GetArraySize(g_aNominations)-1; i>0; i--)
 	{
 		GetArrayString(g_aNominations, i, szCurrentMap, sizeof(szCurrentMap));
 		
