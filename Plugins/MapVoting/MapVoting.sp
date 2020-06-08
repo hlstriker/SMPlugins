@@ -1234,8 +1234,8 @@ bool:DisplayMenu_MapVote()
 		return false;
 	
 	// Check for player count requirements of the nominated maps.
-	decl String:szBuffer[255], i, iMapIndex, eMap[Map];
-	for(i=0; i<GetArraySize(g_aNominations); i++)
+	decl String:szBuffer[255], i, j, iMapIndex, eMap[Map], String:szCurrentMap[MAX_MAP_NAME_LENGTH];
+	for(i=GetArraySize(g_aNominations); i>=0; i--)
 	{
 		GetArrayString(g_aNominations, i, szBuffer, sizeof(szBuffer));
 		
@@ -1251,19 +1251,31 @@ bool:DisplayMenu_MapVote()
 			continue;
 		
 		RemoveFromArray(g_aNominations, i);
-		i--;
 		
 		CPrintToChatAll("{green}[{lightred}SM{green}] {red}%s no longer meets the player requirements.", szBuffer);
 	}
 	
-	// TODO: Remove duplicates since multiple players can nominate the same map.
-	
+	// Remove duplicates since multiple players can nominate the same map.
+	for(i=GetArraySize(g_aNominations); i>0; i--)
+	{
+		GetArrayString(g_aNominations, i, szCurrentMap, sizeof(szCurrentMap));
+		
+		for(j=i-1; j>=0; j--)
+		{
+			GetArrayString(g_aNominations, j, szBuffer, sizeof(szBuffer));
+			
+			if(!StrEqual(szCurrentMap, szBuffer))
+				continue;
+			
+			RemoveFromArray(g_aNominations, j);
+			i--;
+		}
+	}
 	
 	// If we still need more maps we should just add random maps to the nomination list.
 	new iNumMapsNeeded = GetConVarInt(cvar_sm_mapvote_include) - GetArraySize(g_aNominations);
 	if(iNumMapsNeeded > 0)
 	{
-		decl String:szCurrentMap[MAX_MAP_NAME_LENGTH];
 		DBMaps_GetCurrentMapNameFormatted(szCurrentMap, sizeof(szCurrentMap));
 		
 		new Handle:aAllowedMaps = CreateArray(MAX_MAP_NAME_LENGTH);
