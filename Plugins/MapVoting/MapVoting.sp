@@ -25,7 +25,7 @@
 #pragma dynamic 500000
 
 new const String:PLUGIN_NAME[] = "Map Voting";
-new const String:PLUGIN_VERSION[] = "1.24";
+new const String:PLUGIN_VERSION[] = "1.25";
 
 public Plugin:myinfo =
 {
@@ -97,7 +97,7 @@ new Handle:g_aTrie_MapQuickIndex; // Map name as key, map array index as value.
 new g_iUniqueMapCounter;
 
 #define INVALID_NOMINATION_INDEX	-1
-new g_iNominationMapIndex[MAXPLAYERS+1];
+new g_iClientNominationsIndex[MAXPLAYERS+1];
 new Handle:g_aNominations;
 new Handle:g_aRockTheVotePlayers;
 
@@ -451,18 +451,21 @@ SetupTimeleftTimer()
 
 ClearNominations()
 {
-	for(new i=0; i<sizeof(g_iNominationMapIndex); i++)
-		g_iNominationMapIndex[i] = INVALID_NOMINATION_INDEX;
+	for(new i=0; i<sizeof(g_iClientNominationsIndex); i++)
+		g_iClientNominationsIndex[i] = INVALID_NOMINATION_INDEX;
 	
 	ClearArray(g_aNominations);
 }
 
-bool:IsMapNominated(const String:szMapName[])
+bool:IsMapNominated(iClient, const String:szMapName[])
 {
-	if(FindStringInArray(g_aNominations, szMapName) == -1)
+	if(g_iClientNominationsIndex[iClient] == INVALID_NOMINATION_INDEX)
 		return false;
 	
-	return true;
+	decl String:szMap[MAX_MAP_NAME_LENGTH];
+	GetArrayString(g_aNominations, g_iClientNominationsIndex[iClient], szMap, sizeof(szMap));
+	
+	return StrEqual(szMap, szMapName);
 }
 
 public Action:OnRockTheVote(iClient, iArgNum)
@@ -1253,6 +1256,9 @@ bool:DisplayMenu_MapVote()
 		CPrintToChatAll("{green}[{lightred}SM{green}] {red}%s no longer meets the player requirements.", szBuffer);
 	}
 	
+	// TODO: Remove duplicates since multiple players can nominate the same map.
+	
+	
 	// If we still need more maps we should just add random maps to the nomination list.
 	new iNumMapsNeeded = GetConVarInt(cvar_sm_mapvote_include) - GetArraySize(g_aNominations);
 	if(iNumMapsNeeded > 0)
@@ -1513,6 +1519,7 @@ public OnClientDisconnect_Post(iClient)
 {
 	RemoveClientFromRockTheVoteArray(iClient);
 	RemoveClientsVote(iClient);
+	RemoveClientsNomination(iClient, false);
 }
 
 public OnMapEnd()
@@ -1578,9 +1585,9 @@ NominateMap(iClient, iMapIndex)
 		return;
 	}
 	
-	if(IsMapNominated(eMap[Map_NameFormatted]))
+	if(IsMapNominated(iClient, eMap[Map_NameFormatted]))
 	{
-		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {lightred}%s {olive}is already nominated.", eMap[Map_NameFormatted]);
+		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {lightred}%s {olive}is already nominated by you.", eMap[Map_NameFormatted]);
 		return;
 	}
 	
@@ -1601,22 +1608,24 @@ NominateMap(iClient, iMapIndex)
 		return;
 	}
 	
-	if(g_iNominationMapIndex[iClient] != INVALID_NOMINATION_INDEX)
-	{
-		decl eOldMap[Map];
-		GetArrayArray(g_aMaps, g_iNominationMapIndex[iClient], eOldMap);
-		
-		new iIndex = FindStringInArray(g_aNominations, eOldMap[Map_NameFormatted]);
-		if(iIndex != -1)
-			RemoveFromArray(g_aNominations, iIndex);
-		
-		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}Removed old nomination of {lightred}%s{olive}.", eOldMap[Map_NameFormatted]);
-	}
-	
-	g_iNominationMapIndex[iClient] = iMapIndex;
-	PushArrayString(g_aNominations, eMap[Map_NameFormatted]);
+	RemoveClientsNomination(iClient, true);
+	g_iClientNominationsIndex[iClient] = PushArrayString(g_aNominations, eMap[Map_NameFormatted]);
 	
 	CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}You have nominated {lightred}%s{olive}.", eMap[Map_NameFormatted]);
+}
+
+RemoveClientsNomination(iClient, bool:bShowMessage)
+{
+	if(g_iClientNominationsIndex[iClient] == INVALID_NOMINATION_INDEX)
+		return;
+	
+	decl String:szMap[MAX_MAP_NAME_LENGTH];
+	GetArrayString(g_aNominations, g_iClientNominationsIndex[iClient], szMap, sizeof(szMap));
+	RemoveFromArray(g_aNominations, g_iClientNominationsIndex[iClient]);
+	g_iClientNominationsIndex[iClient] = INVALID_NOMINATION_INDEX;
+	
+	if(bShowMessage)
+		CPrintToChat(iClient, "{green}[{lightred}SM{green}] {olive}Removed old nomination of {lightred}%s{olive}.", szMap);
 }
 
 DisplayMenu_NominateCategorySelect(iClient)
@@ -1718,7 +1727,7 @@ DisplayMenu_NominateMapSelectAll(iClient, iStartIndex=0)
 		
 		iLen += FormatEx(szBuffer[iLen], sizeof(szBuffer)-iLen, eMap[Map_NameFormatted]);
 		
-		bDisabled = TryAppendMapsDisabledStatus(szCurrentMap, eMap[Map_NameFormatted], szBuffer, iLen, sizeof(szBuffer));
+		bDisabled = TryAppendMapsDisabledStatus(iClient, szCurrentMap, eMap[Map_NameFormatted], szBuffer, iLen, sizeof(szBuffer));
 		
 		IntToString(i, szInfo, sizeof(szInfo));
 		AddMenuItem(hMenu, szInfo, szBuffer, bDisabled ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
@@ -1734,7 +1743,7 @@ DisplayMenu_NominateMapSelectAll(iClient, iStartIndex=0)
 	}
 }
 
-bool:TryAppendMapsDisabledStatus(const String:szCurrentMap[], const String:szMapName[], String:szBuffer[], &iLen, const iMaxLen)
+bool:TryAppendMapsDisabledStatus(iClient, const String:szCurrentMap[], const String:szMapName[], String:szBuffer[], &iLen, const iMaxLen)
 {
 	// Current map.
 	if(StrEqual(szCurrentMap, szMapName))
@@ -1751,7 +1760,7 @@ bool:TryAppendMapsDisabledStatus(const String:szCurrentMap[], const String:szMap
 	}
 	
 	// Already nominated.
-	if(IsMapNominated(szMapName))
+	if(IsMapNominated(iClient, szMapName))
 	{
 		iLen += FormatEx(szBuffer[iLen], iMaxLen-iLen, " *nominated*");
 		return true;
@@ -1805,7 +1814,7 @@ DisplayMenu_NominateMapSelect(iClient, iCategoryIndex)
 		
 		iLen += FormatEx(szBuffer[iLen], sizeof(szBuffer)-iLen, eMap[Map_NameFormatted]);
 		
-		bDisabled = TryAppendMapsDisabledStatus(szCurrentMap, eMap[Map_NameFormatted], szBuffer, iLen, sizeof(szBuffer));
+		bDisabled = TryAppendMapsDisabledStatus(iClient, szCurrentMap, eMap[Map_NameFormatted], szBuffer, iLen, sizeof(szBuffer));
 		
 		if(!bDisabled && GetMapsPlayerRequirementNeeds(eMap) != 0)
 		{
