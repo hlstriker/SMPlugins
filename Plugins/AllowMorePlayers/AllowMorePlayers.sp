@@ -9,7 +9,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_VERSION[] = "1.12";
+new const String:PLUGIN_VERSION[] = "1.13";
 
 public Plugin:myinfo =
 {
@@ -61,6 +61,23 @@ public OnPluginStart()
 	cvar_block_join_team_ignore_spawn_count = CreateConVar("sv_block_join_team_ignore_spawn_count", "0", "0: Don't ignore. -- 1: Ignore.", _, true, 0.0, true, 1.0);
 	cvar_force_even_teams = CreateConVar("sv_force_even_teams", "0", "0: Don't force. -- 1: Force.", _, true, 0.0, true, 1.0);
 	cvar_force_even_teams_create_spawns = CreateConVar("sv_force_even_teams_create_spawns", "0", "Will create spawn points for a team that doesn't exist if sv_force_even_teams is on.", _, true, 0.0, true, 1.0);
+	
+	SetUnlimitedForcePickTime();
+}
+
+SetUnlimitedForcePickTime()
+{
+	new Handle:hConVar = FindConVar("mp_force_pick_time");
+	if(hConVar == INVALID_HANDLE)
+		return;
+	
+	HookConVarChange(hConVar, OnForcePickTimeChanged);
+	SetConVarInt(hConVar, 999999);
+}
+
+public OnForcePickTimeChanged(Handle:hConVar, const String:szOldValue[], const String:szNewValue[])
+{
+	SetConVarInt(hConVar, 999999);
 }
 
 public OnAllPluginsLoaded()
