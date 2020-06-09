@@ -9,7 +9,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_VERSION[] = "1.10";
+new const String:PLUGIN_VERSION[] = "1.11";
 
 public Plugin:myinfo =
 {
@@ -127,7 +127,7 @@ public Event_RoundPrestart_Post(Handle:hEvent, const String:szName[], bool:bDont
 
 public CheckCreateSpawn()
 {
-	if(!GetConVarBool(cvar_force_even_teams) || !GetConVarBool(cvar_force_even_teams_create_spawns))
+	if(!GetConVarBool(cvar_force_even_teams) && !GetConVarBool(cvar_force_even_teams_create_spawns))
 		return;
 	
 	if(g_iSpawnCount[TEAM_TERRORIST] > 0 && g_iSpawnCount[TEAM_COUNTER_TERRORIST] > 0)
