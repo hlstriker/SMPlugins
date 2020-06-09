@@ -13,7 +13,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Course Auto Respawn";
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
 {
@@ -159,12 +159,12 @@ public Action:Timer_CreateBot(Handle:hTimer)
 GetBotsTeamToSpawnOn()
 {
 	new iEnt = -1;
-	while((iEnt = FindEntityByClassname(iEnt, "info_player_terrorist")) != -1)
-		return CS_TEAM_T;
-	
-	iEnt = -1;
 	while((iEnt = FindEntityByClassname(iEnt, "info_player_counterterrorist")) != -1)
 		return CS_TEAM_CT;
+	
+	iEnt = -1;
+	while((iEnt = FindEntityByClassname(iEnt, "info_player_terrorist")) != -1)
+		return CS_TEAM_T;
 	
 	return 0;
 }
