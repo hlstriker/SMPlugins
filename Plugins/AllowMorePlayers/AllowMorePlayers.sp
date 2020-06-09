@@ -9,7 +9,7 @@
 
 #pragma semicolon 1
 
-new const String:PLUGIN_VERSION[] = "1.11";
+new const String:PLUGIN_VERSION[] = "1.12";
 
 public Plugin:myinfo =
 {
@@ -32,6 +32,7 @@ new Float:g_fNextJointeamTime[MAXPLAYERS+1];
 
 new Handle:cvar_block_join_team;
 new Handle:cvar_block_join_team_max_players;
+new Handle:cvar_block_join_team_ignore_spawn_count;
 new Handle:cvar_force_even_teams;
 new Handle:cvar_force_even_teams_create_spawns;
 
@@ -57,6 +58,7 @@ public OnPluginStart()
 	
 	cvar_block_join_team = CreateConVar("sv_block_join_team", "0", "0: Don't block joining any team -- 1-X: Team to block joining.", _, true, 0.0);
 	cvar_block_join_team_max_players = CreateConVar("sv_block_join_team_max_players", "0", "The maximum players that can be on the team before sv_block_join_team kicks in.", _, true, 0.0);
+	cvar_block_join_team_ignore_spawn_count = CreateConVar("sv_block_join_team_ignore_spawn_count", "0", "0: Don't ignore. -- 1: Ignore.", _, true, 0.0, true, 1.0);
 	cvar_force_even_teams = CreateConVar("sv_force_even_teams", "0", "0: Don't force. -- 1: Force.", _, true, 0.0, true, 1.0);
 	cvar_force_even_teams_create_spawns = CreateConVar("sv_force_even_teams_create_spawns", "0", "Will create spawn points for a team that doesn't exist if sv_force_even_teams is on.", _, true, 0.0, true, 1.0);
 }
@@ -270,6 +272,13 @@ public Action:OnJoinTeam(iClient, const String:szCommand[], iArgCount)
 				iTeam = TEAM_COUNTER_TERRORIST;
 			else
 				iTeam = TEAM_TERRORIST;
+			
+			// Force on the non-blocked team no matter what, even if spawns don't exist.
+			if(GetConVarBool(cvar_block_join_team_ignore_spawn_count))
+			{
+				ChangeClientTeam(iClient, iTeam);
+				return Plugin_Handled;
+			}
 		}
 	}
 	
