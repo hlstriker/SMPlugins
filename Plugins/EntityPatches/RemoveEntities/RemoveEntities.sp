@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Remove entities";
-new const String:PLUGIN_VERSION[] = "1.19";
+new const String:PLUGIN_VERSION[] = "1.20";
 
 public Plugin:myinfo =
 {
@@ -40,7 +40,7 @@ public EntityHooker_OnRegisterReady()
 		"logic_auto", "logic_timer");
 	
 	EntityHooker_RegisterAdditional(EH_TYPE_REMOVE_ENTITIES,
-		"prop_door_rotating", "prop_dynamic", "prop_dynamic_override", "prop_physics", "prop_physics_multiplayer");
+		"prop_door_rotating", "prop_dynamic", "prop_dynamic_override", "prop_physics", "prop_physics_multiplayer", "prop_ragdoll");
 	
 	EntityHooker_RegisterAdditional(EH_TYPE_REMOVE_ENTITIES,
 		"trigger_brush", "trigger_hurt", "trigger_multiple", "trigger_once", "trigger_push", "trigger_soundscape", "trigger_teleport");
