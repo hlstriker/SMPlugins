@@ -17,7 +17,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: Capture the Flag";
-new const String:PLUGIN_VERSION[] = "1.5";
+new const String:PLUGIN_VERSION[] = "1.6";
 
 public Plugin:myinfo =
 {
@@ -90,11 +90,6 @@ enum
 #define SOLID_VPHYSICS	6
 #define COLLISION_GROUP_DEBRIS_TRIGGER	2
 
-#define RESPAWN_DELAY_ATTACKERS	2.5
-#define RESPAWN_DELAY_DEFENDERS	3.0
-
-#define HEALTH_PER_CLIENT_TEAM_DIFFERENCE	50
-
 new bool:g_bEventHooked_PlayerDeath;
 
 new g_iInitialDayFlags = DAY_FLAG_STRIP_GUARDS_WEAPONS | DAY_FLAG_STRIP_PRISONERS_WEAPONS;
@@ -103,6 +98,10 @@ new Handle:cvar_mp_roundtime;
 new Handle:cvar_mp_respawn_immunitytime;
 
 new Handle:cvar_can_defenders_return_flag;
+new Handle:cvar_hp_per_client_team_diff;
+new Handle:cvar_respawn_delay_attackers;
+new Handle:cvar_respawn_delay_defenders;
+new Handle:cvar_speed_for_attackers;
 
 new Float:g_fRoundTime;
 new Float:g_fRoundTimeStarted;
@@ -124,6 +123,10 @@ public OnPluginStart()
 	cvar_mp_respawn_immunitytime = FindConVar("mp_respawn_immunitytime");
 	
 	cvar_can_defenders_return_flag = CreateConVar("ultjb_ctf_can_defenders_return_flag", "0", "Can the defenders return the flag by touching it?", _, true, 0.0, true, 1.0);
+	cvar_hp_per_client_team_diff = CreateConVar("ultjb_ctf_hp_per_client_team_diff", "25", "The health per client team difference.", _, true, 0.0);
+	cvar_respawn_delay_attackers = CreateConVar("ultjb_ctf_respawn_delay_attackers", "2.5", "The respawn delay for attackers.", _, true, 0.0);
+	cvar_respawn_delay_defenders = CreateConVar("ultjb_ctf_respawn_delay_defenders", "10.0", "The respawn delay for defenders.", _, true, 0.0);
+	cvar_speed_for_attackers = CreateConVar("ultjb_ctf_speed_for_attackers", "1.2", "The speed multiplier for attackers.", _, true, 0.0);
 }
 
 public OnMapStart()
@@ -404,8 +407,8 @@ StartGame()
 	UltJB_Settings_SetNextRoundEndReason(true, (g_iDefendingTeam == TEAM_GUARDS) ? CSRoundEnd_CTWin : CSRoundEnd_TerroristWin);
 	UltJB_Settings_BlockTerminateRound(true);
 	UltJB_Settings_StartAutoRespawning(true);
-	UltJB_Settings_SetAutoRespawnDelay(RESPAWN_DELAY_DEFENDERS, (g_iDefendingTeam == TEAM_GUARDS) ? ART_GUARDS : ART_PRISONERS);
-	UltJB_Settings_SetAutoRespawnDelay(RESPAWN_DELAY_ATTACKERS, (g_iDefendingTeam == TEAM_GUARDS) ? ART_PRISONERS : ART_GUARDS);
+	UltJB_Settings_SetAutoRespawnDelay(GetConVarFloat(cvar_respawn_delay_defenders), (g_iDefendingTeam == TEAM_GUARDS) ? ART_GUARDS : ART_PRISONERS);
+	UltJB_Settings_SetAutoRespawnDelay(GetConVarFloat(cvar_respawn_delay_attackers), (g_iDefendingTeam == TEAM_GUARDS) ? ART_PRISONERS : ART_GUARDS);
 	
 	StartTimer_Logic();
 }
@@ -495,6 +498,8 @@ PrepareClient(iClient)
 			
 			ZoneTypeTeleport_TryToTeleport(g_iTeleportZoneID_Attack, iClient);
 			
+			SetClientSpeed(iClient, GetConVarFloat(cvar_speed_for_attackers));
+			
 			CPrintToChat(iClient, "{olive}You are {lightred}attacking{olive}. Go get the {lightred}flag{olive}!");
 		}
 		case SIDE_DEFEND:
@@ -526,6 +531,11 @@ PrepareClient(iClient)
 	SetClientSpawnHealth(iClient);
 }
 
+SetClientSpeed(iClient, Float:fValue)
+{
+	SetEntPropFloat(iClient, Prop_Send, "m_flLaggedMovementValue", fValue);
+}
+
 SetClientSpawnHealth(iClient)
 {
 	new iNumGuards, iNumPrisoners;
@@ -553,12 +563,12 @@ SetClientSpawnHealth(iClient)
 	if(iNumPrisoners > iNumGuards)
 	{
 		if(iTeam == TEAM_GUARDS)
-			iHealth += (iNumPrisoners - iNumGuards) * HEALTH_PER_CLIENT_TEAM_DIFFERENCE;
+			iHealth += (iNumPrisoners - iNumGuards) * GetConVarInt(cvar_hp_per_client_team_diff);
 	}
 	else
 	{
 		if(iTeam == TEAM_PRISONERS)
-			iHealth += (iNumGuards - iNumPrisoners) * HEALTH_PER_CLIENT_TEAM_DIFFERENCE;
+			iHealth += (iNumGuards - iNumPrisoners) * GetConVarInt(cvar_hp_per_client_team_diff);
 	}
 	
 	SetEntityHealth(iClient, iHealth);
