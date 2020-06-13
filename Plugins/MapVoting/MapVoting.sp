@@ -25,7 +25,7 @@
 #pragma dynamic 500000
 
 new const String:PLUGIN_NAME[] = "Map Voting";
-new const String:PLUGIN_VERSION[] = "1.25";
+new const String:PLUGIN_VERSION[] = "1.26";
 
 public Plugin:myinfo =
 {
@@ -758,14 +758,34 @@ bool:AddToRockTheVotePlayers(iClient)
 	return bRet;
 }
 
-public AFKManager_OnBack(iClient)
+CheckIneligibleClientsVoteNowEligible(iClient)
 {
 	new iIndex = FindValueInArray(g_aRockTheVotePlayers, iClient);
 	if(iIndex == -1)
 		return;
 	
-	if(CheckHasEnoughPlayersRockedTheVote())
-		MapVoteStartTimer(STARTED_BY_RTV);
+	if(!CheckHasEnoughPlayersRockedTheVote())
+		return;
+	
+	if(g_bWasNextMapSelected)
+	{
+		if(!GetConVarBool(cvar_sm_rtv_postvoteaction))
+		{
+			switch(g_iMapChangeTime)
+			{
+				case CHANGETIME_NOT_SET: HandleRockTheVoteChanging();
+			}
+		}
+		
+		return;
+	}
+	
+	MapVoteStartTimer(STARTED_BY_RTV);
+}
+
+public AFKManager_OnBack(iClient)
+{
+	CheckIneligibleClientsVoteNowEligible(iClient);
 }
 
 public Event_PlayerTeam_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
@@ -775,12 +795,7 @@ public Event_PlayerTeam_Post(Handle:hEvent, const String:szName[], bool:bDontBro
 	if(GetEventInt(hEvent, "oldteam") != CS_TEAM_SPECTATOR)
 		return;
 	
-	new iIndex = FindValueInArray(g_aRockTheVotePlayers, iClient);
-	if(iIndex == -1)
-		return;
-	
-	if(CheckHasEnoughPlayersRockedTheVote())
-		MapVoteStartTimer(STARTED_BY_RTV);
+	CheckIneligibleClientsVoteNowEligible(iClient);
 }
 
 bool:CheckHasEnoughPlayersRockedTheVote(&iPlayerCount=0, &iPlayersNeeded=0)
