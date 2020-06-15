@@ -22,7 +22,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Days API";
-new const String:PLUGIN_VERSION[] = "1.34";
+new const String:PLUGIN_VERSION[] = "1.35";
 
 public Plugin:myinfo =
 {
@@ -210,26 +210,47 @@ public OnWeaponReload(iWeapon, bool:bSuccess)
 	if(!IsDayInProgress())
 		return;
 	
-	decl eDay[Day];
-	GetArrayArray(g_aDays, g_iDayIDToIndex[g_iCurrentDayID], eDay);
-	
+	TryGiveInfiniteAmmo(iWeapon);
+}
+
+TryGiveInfiniteAmmo(iWeapon)
+{
 	new iClient = GetEntPropEnt(iWeapon, Prop_Data, "m_hOwnerEntity");
 	if(!(1 <= iClient <= MaxClients))
 		return;
+	
+	static eDay[Day];
+	GetArrayArray(g_aDays, g_iDayIDToIndex[g_iCurrentDayID], eDay);
+	
+	// Return if neither team gets infinite ammo.
+	if(!(eDay[Day_Flags] & DAY_FLAG_GIVE_GUARDS_INFINITE_AMMO) || !(eDay[Day_Flags] & DAY_FLAG_GIVE_PRISONERS_INFINITE_AMMO))
+		return;
+	
+	// One of the team gets infinite ammo, so if its FFA give it to both teams.
+	if(g_bIsDayInFreeForAll)
+	{
+		GiveInfiniteAmmo(iClient, iWeapon);
+		return;
+	}
 	
 	switch(GetClientTeam(iClient))
 	{
 		case TEAM_GUARDS:
 		{
 			if(eDay[Day_Flags] & DAY_FLAG_GIVE_GUARDS_INFINITE_AMMO)
-				GivePlayerAmmo(iClient, 500, GetEntProp(iWeapon, Prop_Data, "m_iPrimaryAmmoType"), true);
+				GiveInfiniteAmmo(iClient, iWeapon);
 		}
 		case TEAM_PRISONERS:
 		{
 			if(eDay[Day_Flags] & DAY_FLAG_GIVE_PRISONERS_INFINITE_AMMO)
-				GivePlayerAmmo(iClient, 500, GetEntProp(iWeapon, Prop_Data, "m_iPrimaryAmmoType"), true);
+				GiveInfiniteAmmo(iClient, iWeapon);
 		}
 	}
+}
+
+GiveInfiniteAmmo(iClient, iWeapon)
+{
+	GivePlayerAmmo(iClient, 500, GetEntProp(iWeapon, Prop_Data, "m_iPrimaryAmmoType"), true);
 }
 
 public OnSpawn(iClient)
