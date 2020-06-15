@@ -14,7 +14,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Squelch Manager";
-new const String:PLUGIN_VERSION[] = "1.12";
+new const String:PLUGIN_VERSION[] = "1.13";
 
 public Plugin:myinfo =
 {
@@ -1698,7 +1698,7 @@ public Action:Timer_VotedTimeout(Handle:hTimer, any:iClientSerial)
 
 FadeScreen(iClients[], iNumClients, iDurationSeconds, iHoldSeconds, iColor[4], iFlags)
 {
-	new Handle:hMessage = StartMessageEx(g_msgFade, iClients, iNumClients);
+	new Handle:hMessage = StartMessageEx(g_msgFade, iClients, iNumClients, USERMSG_RELIABLE);
 	
 	if(GetUserMessageType() == UM_Protobuf)
 	{

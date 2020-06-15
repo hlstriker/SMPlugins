@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warday: CT Retake";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -220,7 +220,7 @@ PerformBlind(target, amount)
 	new color[4] = { 0, 0, 0, 0 };
 	color[3] = amount;
 	
-	new Handle:message = StartMessageEx(GetUserMessageId("Fade"), targets, 1);
+	new Handle:message = StartMessageEx(GetUserMessageId("Fade"), targets, 1, USERMSG_RELIABLE);
 	if (GetUserMessageType() == UM_Protobuf)
 	{
 		PbSetInt(message, "duration", duration);

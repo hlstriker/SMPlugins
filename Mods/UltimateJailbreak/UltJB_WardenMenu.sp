@@ -19,7 +19,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Warden Menu";
-new const String:PLUGIN_VERSION[] = "1.10";
+new const String:PLUGIN_VERSION[] = "1.11";
 
 public Plugin:myinfo =
 {
@@ -977,7 +977,7 @@ FadeScreen(iClient, iDurationMilliseconds, iHoldMilliseconds, iColor[4], iFlags)
 	decl iClients[1];
 	iClients[0] = iClient;
 	
-	new Handle:hMessage = StartMessageEx(g_msgFade, iClients, 1);
+	new Handle:hMessage = StartMessageEx(g_msgFade, iClients, 1, USERMSG_RELIABLE);
 	
 	if(GetUserMessageType() == UM_Protobuf)
 	{
