@@ -27,6 +27,7 @@ public SharedPlugin:__pl_entity_hooker =
 #define EH_TYPE_OPEN_AREAPORTALS			8
 #define EH_TYPE_JAILBREAK_CELL_DOORS		9
 #define EH_TYPE_JAILBREAK_FFA_REMOVE		10
+#define EH_TYPE_DONT_FIX_TELEPORT_ANGLES	11
 
 
 forward EntityHooker_OnRegisterReady();
