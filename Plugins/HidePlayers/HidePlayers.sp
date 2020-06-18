@@ -6,7 +6,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Hide Players";
-new const String:PLUGIN_VERSION[] = "2.8";
+new const String:PLUGIN_VERSION[] = "2.9";
 
 public Plugin:myinfo =
 {
@@ -36,6 +36,7 @@ new bool:g_bShouldHideOthers[MAXPLAYERS+1];
 new Float:g_fNextHideCommand[MAXPLAYERS+1];
 #define HIDE_COMMAND_DELAY 0.7
 
+new Handle:cvar_mp_teammates_are_enemies;
 new Handle:cvar_hide_players_override;
 
 new bool:g_bHasIntermissionStarted;
@@ -50,6 +51,11 @@ public OnPluginStart()
 	RegConsoleCmd("sm_hide", OnHidePlayers, "Toggles hiding other players on and off.");
 	
 	HookEvent("cs_intermission", Event_Intermission_Post, EventHookMode_PostNoCopy);
+}
+
+public OnConfigsExecuted()
+{
+	cvar_mp_teammates_are_enemies = FindConVar("mp_teammates_are_enemies");
 }
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
@@ -215,7 +221,7 @@ public Action:OnSetTransmit_Player(iPlayerEnt, iClient)
 	
 	if(GetConVarInt(cvar_hide_players_override) != OVERRIDE_HIDE_ALL && (g_iHideMode == HIDE_TEAM_ONLY || GetConVarInt(cvar_hide_players_override) == OVERRIDE_HIDE_TEAM_ONLY))
 	{
-		if(GetClientTeam(iClient) != GetClientTeam(iPlayerEnt))
+		if(GetConVarBool(cvar_mp_teammates_are_enemies) || GetClientTeam(iClient) != GetClientTeam(iPlayerEnt))
 		{
 			g_CachedTransmitClient[iClient][iPlayerEnt] = Plugin_Continue;
 			return Plugin_Continue;
