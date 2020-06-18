@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Cell Doors API";
-new const String:PLUGIN_VERSION[] = "1.5";
+new const String:PLUGIN_VERSION[] = "1.6";
 
 public Plugin:myinfo =
 {
@@ -36,6 +36,7 @@ new g_iLookingAtEntRef[MAXPLAYERS+1];
 new bool:g_bHaveCellDoorsOpened;
 
 new Handle:g_hFwd_OnOpened;
+new Handle:g_hFwd_OnRoundStartReady;
 
 
 public OnPluginStart()
@@ -50,6 +51,7 @@ public OnPluginStart()
 	RegAdminCmd("sm_celldoors_edit", OnCellDoorsEdit, ADMFLAG_ROOT, "Allows you to edit which doors are cell doors.");
 	
 	g_hFwd_OnOpened = CreateGlobalForward("UltJB_CellDoors_OnOpened", ET_Ignore);
+	g_hFwd_OnRoundStartReady = CreateGlobalForward("UltJB_CellDoors_OnRoundStartReady", ET_Ignore);
 }
 
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
@@ -614,12 +616,20 @@ public OnMapStart()
 	
 	LoadCellDoorNamesForMap();
 	GetCellDoorEnts();
+	Forward_OnRoundStartReady();
 }
 
 public EventRoundStart_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
 {
 	g_bHaveCellDoorsOpened = false;
 	GetCellDoorEnts();
+	Forward_OnRoundStartReady();
+}
+
+Forward_OnRoundStartReady()
+{
+	Call_StartForward(g_hFwd_OnRoundStartReady);
+	Call_Finish();
 }
 
 GetCellDoorEnts()

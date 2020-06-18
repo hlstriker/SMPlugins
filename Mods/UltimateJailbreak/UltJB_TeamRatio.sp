@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Team Ratio";
-new const String:PLUGIN_VERSION[] = "1.17";
+new const String:PLUGIN_VERSION[] = "1.18";
 
 public Plugin:myinfo =
 {
@@ -57,7 +57,6 @@ public OnPluginStart()
 	HookEvent("player_team", Event_PlayerTeam_Pre, EventHookMode_Pre);
 	HookEvent("player_team", Event_PlayerTeam_Post, EventHookMode_Post);
 	HookEvent("round_end", Event_RoundEnd_Post, EventHookMode_PostNoCopy);
-	HookEvent("round_start", Event_RoundStart_Post, EventHookMode_PostNoCopy);
 	
 	RegConsoleCmd("sm_guard", OnGuardQueue, "Adds you to the guard queue.");
 }
@@ -111,7 +110,7 @@ public OnMapEnd()
 	StopGuardTimer();
 }
 
-public Action:Event_RoundStart_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
+public UltJB_CellDoors_OnRoundStartReady()
 {
 	StopGuardTimer();
 	
@@ -249,7 +248,7 @@ public Event_PlayerTeam_Post(Handle:hEvent, const String:szName[], bool:bDontBro
 	RemovePlayerFromGuardQueue(iClient);
 }
 
-public Action:Event_RoundEnd_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
+public Event_RoundEnd_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
 {
 	FixTeamRatio();
 }

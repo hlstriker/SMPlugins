@@ -57,6 +57,13 @@ native bool:UltJB_CellDoors_RemoveEntityFromBeingDoor(entity);
 
 
 /**
+ * Called after the cell doors have been initialized on round start.
+ *
+ * @noreturn
+ */
+forward UltJB_CellDoors_OnRoundStartReady();
+
+/**
  * Called when the cell doors have been opened.
  *
  * @noreturn
