@@ -65,7 +65,7 @@ new const String:ColorChat_Codes_CSGO[][] =
 	"\x02",
 	"\x07",
 	"\x0B",	// Blue
-	"\x03",	// Gold - Team T.
+	"\x10",	// Gold
 	"\x0E"
 };
 
