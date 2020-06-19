@@ -6,7 +6,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Donator Item: Colored Chat";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -24,12 +24,12 @@ new const String:g_ColorChat_Names[][] =
 	"Olive",
 	"Green",
 	"Light green",
-
 	"Red",
 	"Light red",
 	"Blue",
 	"Yellow",
-	"Purple"
+	"Purple",
+	"Gold"
 };
 
 new const g_ColorChat_Bytes[] =
@@ -41,7 +41,8 @@ new const g_ColorChat_Bytes[] =
 	0x07,	// Light red
 	0x0B,	// Blue
 	0x09,	// Yellow
-	0x0E	// Purple
+	0x0E,	// Purple
+	0x10	// Gold
 };
 
 
