@@ -3,15 +3,18 @@
 #include "../DatabaseUsers/database_users"
 #include "../DatabaseUserSessions/database_user_sessions"
 #include "../DatabaseMapSessions/database_map_sessions"
-#include "../DemoSessions/demo_sessions"
 #include "../WebPageViewer/web_page_viewer"
 #include "timed_punishments"
 #include <hls_color_chat>
 
+#undef REQUIRE_PLUGIN
+#include "../DemoSessions/demo_sessions"
+#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Timed Punishments";
-new const String:PLUGIN_VERSION[] = "2.10";
+new const String:PLUGIN_VERSION[] = "2.11";
 
 public Plugin:myinfo =
 {
@@ -21,6 +24,8 @@ public Plugin:myinfo =
 	version = PLUGIN_VERSION,
 	url = "www.swoobles.com"
 }
+
+new bool:g_bLibLoaded_DemoSessions;
 
 new Handle:cvar_database_servers_configname;
 new String:g_szDatabaseConfigName[64];
@@ -54,6 +59,29 @@ public OnPluginStart()
 	
 	LoadTranslations("common.phrases");
 	RegAdminCmd("sm_check_tp", Command_CheckTimedPunishment, ADMFLAG_BAN, "sm_check_tp <#steamid|#userid|name> - Loads the players timed punishment page.");
+}
+
+public OnAllPluginsLoaded()
+{
+	cvar_database_servers_configname = FindConVar("sm_database_servers_configname");
+	
+	g_bLibLoaded_DemoSessions = LibraryExists("demo_sessions");
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "demo_sessions"))
+	{
+		g_bLibLoaded_DemoSessions = true;
+	}
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "demo_sessions"))
+	{
+		g_bLibLoaded_DemoSessions = false;
+	}
 }
 
 public Action:Command_CheckTimedPunishment(iClient, iArgs)
@@ -329,12 +357,22 @@ AddPunishmentToDatabase(iClientUserID, iPunishmentType, iAdminClient, iPunishmen
 	
 	if(!DB_EscapeString(g_szDatabaseConfigName, szUserName, szSafeUserName, sizeof(szSafeUserName)))
 		return;
+		
+	new iDemoTick = 0;
+	new iDemoSessionID = 0;
+	if (g_bLibLoaded_DemoSessions)
+	{
+		#if defined _demo_sessions_included
+		iDemoTick = DemoSessions_GetCurrentTick();
+		iDemoSessionID = DemoSessions_GetID();
+		#endif
+	}
 	
 	DB_TQuery(g_szDatabaseConfigName, _, DBPrio_Low, _, "\
 		INSERT INTO gs_user_timed_punishment\
 		(tp_type, map_sess_id, admin_id, user_id, steam_id, user_ip, user_name, utime_start, utime_expires, demo_sess_id, demo_tick, reason, tp_is_perm)\
 		VALUES (%i, %i, %i, %i, '%s', '%s', '%s', UNIX_TIMESTAMP(), UNIX_TIMESTAMP() + %i, %i, %i, '%s', %i)",
-		iPunishmentType, DBMapSessions_GetSessionID(), DBUsers_GetUserID(iAdminClient), iClientUserID, szSafeAuthID, szSafeIP, szSafeUserName, iPunishmentTime, DemoSessions_GetID(), DemoSessions_GetCurrentTick(), szSafeReason, (iPunishmentTime ? 0 : 1));
+		iPunishmentType, DBMapSessions_GetSessionID(), DBUsers_GetUserID(iAdminClient), iClientUserID, szSafeAuthID, szSafeIP, szSafeUserName, iPunishmentTime, iDemoSessionID, iDemoTick, szSafeReason, (iPunishmentTime ? 0 : 1));
 	
 	// Make sure we turn off any whitelists for this SteamID.
 	DB_TQuery(g_szDatabaseConfigName, _, DBPrio_Low, _, "\
@@ -366,11 +404,6 @@ AutoAddPunishmentToDatabase(iClient, iPunishmentType, iPunishmentExpires, bool:b
 		(tp_type, tp_original_id, user_id, steam_id, user_ip, utime_start, utime_expires, reason, tp_is_perm, user_name) \
 		VALUES (%i, %i, %i, '%s', '%s', UNIX_TIMESTAMP(), %i, '%s', %i, '%s')",
 		iPunishmentType, iOriginalPunishmentID, DBUsers_GetUserID(iClient), szSafeAuthID, szSafeIP, iPunishmentExpires, szSafeReason, bIsPunishmentPerm, szSafeUserName);
-}
-
-public OnAllPluginsLoaded()
-{
-	cvar_database_servers_configname = FindConVar("sm_database_servers_configname");
 }
 
 public DB_OnStartConnectionSetup()

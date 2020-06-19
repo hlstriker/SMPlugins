@@ -5,12 +5,15 @@
 #include "../DatabaseMaps/database_maps"
 #include "../DatabaseMapSessions/database_map_sessions"
 #include "../ClientTimes/client_times"
+
+#undef REQUIRE_PLUGIN
 #include "../DemoSessions/demo_sessions"
+#define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Database User Sessions";
-new const String:PLUGIN_VERSION[] = "1.8";
+new const String:PLUGIN_VERSION[] = "1.9";
 
 public Plugin:myinfo =
 {
@@ -20,6 +23,8 @@ public Plugin:myinfo =
 	version = PLUGIN_VERSION,
 	url = "www.swoobles.com"
 }
+
+new bool:g_bLibLoaded_DemoSessions;
 
 new Handle:cvar_database_servers_configname;
 new String:g_szDatabaseConfigName[64];
@@ -39,7 +44,25 @@ public OnAllPluginsLoaded()
 {
 	cvar_database_servers_configname = FindConVar("sm_database_servers_configname");
 	
+	g_bLibLoaded_DemoSessions = LibraryExists("demo_sessions");
+	
 	ClientTimes_SetTimeBeforeMarkedAsAway(30);
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "demo_sessions"))
+	{
+		g_bLibLoaded_DemoSessions = true;
+	}
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "demo_sessions"))
+	{
+		g_bLibLoaded_DemoSessions = false;
+	}
 }
 
 public DB_OnStartConnectionSetup()
@@ -111,13 +134,21 @@ bool:Query_CreateUserSessionsTable()
 
 public DBUsers_OnUserIDReady(iClient, iUserID)
 {
+	new iDemoSessionID = 0;
+	if (g_bLibLoaded_DemoSessions)
+	{
+		#if defined _demo_sessions_included
+		iDemoSessionID = DemoSessions_GetID();
+		#endif
+	}
+	
 	decl String:szIP[31];
 	GetClientIP(iClient, szIP, sizeof(szIP));
 	DB_EscapeString(g_szDatabaseConfigName, szIP, szIP, sizeof(szIP));
 	
 	DB_TQuery(g_szDatabaseConfigName, Query_InsertUserSession, DBPrio_High, GetClientSerial(iClient), "\
 		INSERT INTO gs_user_sessions (user_id, game_id, map_sess_id, server_id, map_id, utime_start, user_ip, demo_sess_id) VALUES (%i, %i, %i, %i, %i, UNIX_TIMESTAMP(), '%s', %i)",
-		iUserID, DBServers_GetGameID(), DBMapSessions_GetSessionID(), DBServers_GetServerID(), DBMaps_GetMapID(), szIP, DemoSessions_GetID());
+		iUserID, DBServers_GetGameID(), DBMapSessions_GetSessionID(), DBServers_GetServerID(), DBMaps_GetMapID(), szIP, iDemoSessionID);
 }
 
 public Query_InsertUserSession(Handle:hDatabase, Handle:hQuery, any:iClientSerial)
