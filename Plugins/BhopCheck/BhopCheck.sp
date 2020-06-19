@@ -1,13 +1,16 @@
 #include <sourcemod>
 #include <hls_color_chat>
-#include <sourcetvmanager>
 
 #include "../../Libraries/ClientCookies/client_cookies"
+
+#undef REQUIRE_PLUGIN
+#include "../../Libraries/DemoSessions/demo_sessions"
+#define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Bhop Check";
-new const String:PLUGIN_VERSION[] = "2.2";
+new const String:PLUGIN_VERSION[] = "2.3";
 
 public Plugin:myinfo =
 {
@@ -17,6 +20,8 @@ public Plugin:myinfo =
 	version = PLUGIN_VERSION,
 	url = "www.swoobles.com"
 }
+
+new bool:g_bLibLoaded_DemoSessions;
 
 new Handle:cvar_warn_inputs;
 new Handle:cvar_warn_perfs;
@@ -104,12 +109,20 @@ AbortJump(iClient)
 
 PushBhopToLog(iClient)
 {
+	new iDemoTick = -1;
+	if (g_bLibLoaded_DemoSessions)
+	{
+		#if defined _demo_sessions_included
+		iDemoTick = DemoSessions_GetCurrentTick();
+		#endif
+	}
+	
 	new eBhop[BhopLog];
 	eBhop[Bhop_Inputs] = g_eJump[iClient][Jump_Inputs];
 	eBhop[Bhop_AirTicks] = g_eJump[iClient][Jump_AirTicks];
 	eBhop[Bhop_GroundTicks] = g_eJump[iClient][Jump_GroundTicks];
 	eBhop[Bhop_InputTicks] = g_iInputTicks[iClient];
-	eBhop[Bhop_DemoTick] = SourceTV_GetRecordingTick();
+	eBhop[Bhop_DemoTick] = iDemoTick;
 
 	if (GetConVarBool(cvar_allow_perf_sounds) && g_bPerfSound[iClient] && eBhop[Bhop_GroundTicks] == 1 && eBhop[Bhop_InputTicks] == 1)
 	{
@@ -221,6 +234,27 @@ public OnPluginStart()
 	for (new i = 1; i <= MaxClients; i++)
 		if (IsClientInGame(i))
 			PrepareClient(i);
+}
+
+public OnAllPluginsLoaded()
+{
+	g_bLibLoaded_DemoSessions = LibraryExists("demo_sessions");
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "demo_sessions"))
+	{
+		g_bLibLoaded_DemoSessions = true;
+	}
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "demo_sessions"))
+	{
+		g_bLibLoaded_DemoSessions = false;
+	}
 }
 
 public OnMapStart()
