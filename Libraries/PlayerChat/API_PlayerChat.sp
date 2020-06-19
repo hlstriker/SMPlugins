@@ -13,7 +13,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Player Chat";
-new const String:PLUGIN_VERSION[] = "1.8";
+new const String:PLUGIN_VERSION[] = "1.9";
 
 public Plugin:myinfo =
 {
@@ -625,6 +625,7 @@ StripIllegalBytes(String:szMessage[])
 		|| szMessage[i] == '\x0D'
 		|| szMessage[i] == '\x0E'
 		|| szMessage[i] == '\x0F'
+		|| szMessage[i] == '\x10'
 		|| szMessage[i] == '\n')
 		{
 			szMessage[i] = ' ';
