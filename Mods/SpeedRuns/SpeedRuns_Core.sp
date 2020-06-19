@@ -8,7 +8,6 @@
 #include "../../Libraries/DatabaseUsers/database_users"
 #include "../../Libraries/DatabaseServers/database_servers"
 #include "../../Libraries/DatabaseMaps/database_maps"
-#include "../../Libraries/DemoSessions/demo_sessions"
 #include "../../Libraries/ClientCookies/client_cookies"
 #include "Includes/speed_runs_experience"
 #include "Includes/speed_runs"
@@ -19,12 +18,13 @@
 #include "Includes/speed_runs_checkpoints"
 #include "../../Plugins/EntityPatches/FixTriggerPush/fix_trigger_push"
 #include "../../Libraries/ModelSkinManager/model_skin_manager"
+#include "../../Libraries/DemoSessions/demo_sessions"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Speed Runs: Core";
-new const String:PLUGIN_VERSION[] = "1.43";
+new const String:PLUGIN_VERSION[] = "1.44";
 
 public Plugin:myinfo =
 {
@@ -161,6 +161,7 @@ new g_iLastNonSolidTick[MAXPLAYERS+1];
 new bool:g_bLibLoaded_CheckPoints;
 new bool:g_bLibLoaded_FixTriggerPush;
 new bool:g_bLibLoaded_ModelSkinManager;
+new bool:g_bLibLoaded_DemoSessions;
 
 
 public OnPluginStart()
@@ -682,14 +683,25 @@ InsertRecord(iClient, RecordType:iRecordType, bool:bDisplayText, const eOldRecor
 		iCheckPointsSaved = -1;
 		iCheckPointsUsed = -1;
 	}
+	
+	new iDemoTick = 0;
+	new iDemoID = 0;
+
+	if (g_bLibLoaded_DemoSessions)
+	{
+		#if defined _demo_sessions_included
+		iDemoTick = DemoSessions_GetCurrentTick();
+		iDemoID = DemoSessions_GetID();
+		#endif
+	}
 
 	DB_TQuery(g_szDatabaseConfigName, _, DBPrio_Low, _, "\
 		INSERT INTO plugin_sr_records \
 		(user_id, server_group_type, server_id, map_id, stage_number, stage_time, demo_sess_id, demo_tick_start, demo_tick_end, data_int_1, data_int_2, style_bits, checkpoints_saved, checkpoints_used, utime_complete) \
 		VALUES \
 		(%i, %i, %i, %i, %i, %f, %i, %i, %i, %i, %i, %i, %i, %i, UNIX_TIMESTAMP())",
-		DBUsers_GetUserID(iClient), g_iServerGroupType, DBServers_GetServerID(), DBMaps_GetMapID(), eNewRecord[Record_StageNumber], eNewRecord[Record_StageTime], DemoSessions_GetID(),
-		g_iDemoTickStarted[iClient][eNewRecord[Record_StageNumber]], DemoSessions_GetCurrentTick(),
+		DBUsers_GetUserID(iClient), g_iServerGroupType, DBServers_GetServerID(), DBMaps_GetMapID(), eNewRecord[Record_StageNumber], eNewRecord[Record_StageTime], iDemoID,
+		g_iDemoTickStarted[iClient][eNewRecord[Record_StageNumber]], iDemoTick,
 		eNewRecord[Record_StageNumber] ? RoundFloat(GetAverageSpeed(iClient, true)) : RoundFloat(GetAverageSpeed(iClient, false)),
 		eNewRecord[Record_StageNumber] ? g_iJumpsStage[iClient] : g_iJumpsMap[iClient], MovementStyles_GetStyleBits(iClient), iCheckPointsSaved, iCheckPointsUsed);
 
@@ -978,19 +990,28 @@ StageStart(iClient, iStageNumber, iZoneID)
 	new iStyleBits = MovementStyles_GetStyleBits(iClient);
 	if(!Forward_OnStageStarted(iClient, iStageNumber, iStyleBits, true))
 		return;
+	
+	new iDemoTick = 0;
+
+	if (g_bLibLoaded_DemoSessions)
+	{
+		#if defined _demo_sessions_included
+		iDemoTick = DemoSessions_GetCurrentTick();
+		#endif
+	}
 
 	g_bStageStarted[iClient] = true;
 	g_iTickStartedCurrent[iClient] = Replays_GetTick(iClient);
-	g_iDemoTickStarted[iClient][iStageNumber] = DemoSessions_GetCurrentTick();
+	g_iDemoTickStarted[iClient][iStageNumber] = iDemoTick;
 	g_iJumpsStage[iClient] = 0;
 	g_fTotalSpeedStage[iClient] = 0.0;
 	g_iTotalSpeedStageCount[iClient] = 0;
-
+	
 	if(iStageNumber == 1)
 	{
 		g_bFirstStarted[iClient] = true;
 		g_iTickStartedFirst[iClient] = g_iTickStartedCurrent[iClient];
-		g_iDemoTickStarted[iClient][0] = DemoSessions_GetCurrentTick();
+		g_iDemoTickStarted[iClient][0] = iDemoTick;
 		g_iStageLastCompleted[iClient] = 0;
 		g_iJumpsMap[iClient] = 0;
 		g_fTotalSpeedMap[iClient] = 0.0;
@@ -1715,6 +1736,7 @@ public OnAllPluginsLoaded()
 	g_bLibLoaded_CheckPoints = LibraryExists("speed_runs_checkpoints");
 	g_bLibLoaded_FixTriggerPush = LibraryExists("fix_trigger_push");
 	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
+	g_bLibLoaded_DemoSessions = LibraryExists("demo_sessions");
 }
 
 public OnLibraryAdded(const String:szName[])
@@ -1731,6 +1753,10 @@ public OnLibraryAdded(const String:szName[])
 	{
 		g_bLibLoaded_ModelSkinManager = true;
 	}
+	else if(StrEqual(szName, "demo_sessions"))
+	{
+		g_bLibLoaded_DemoSessions = true;
+	}
 }
 
 public OnLibraryRemoved(const String:szName[])
@@ -1746,6 +1772,10 @@ public OnLibraryRemoved(const String:szName[])
 	else if(StrEqual(szName, "model_skin_manager"))
 	{
 		g_bLibLoaded_ModelSkinManager = false;
+	}
+	else if(StrEqual(szName, "demo_sessions"))
+	{
+		g_bLibLoaded_DemoSessions = false;
 	}
 }
 
