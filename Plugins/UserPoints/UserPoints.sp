@@ -8,13 +8,14 @@
 #include <hls_color_chat>
 
 #undef REQUIRE_PLUGIN
+#include <cstrike>
 #include "../../Libraries/Store/store"
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "User Points";
-new const String:PLUGIN_VERSION[] = "1.5";
+new const String:PLUGIN_VERSION[] = "1.6";
 
 public Plugin:myinfo =
 {
@@ -32,11 +33,41 @@ new Handle:cvar_points_clantag_bonus_percent;
 new Handle:cvar_points_event_bonus_percent;
 new Handle:cvar_points_donator_bonus_percent;
 new Handle:cvar_points_hours_played_bonus_percent;
+new Handle:cvar_points_round_end_give_winning_team;
+new Handle:cvar_points_round_end_give_survivor_only;
+new Handle:cvar_points_round_end_points_per_player;
 
 const Float:POINT_DISPLAY_DELAY = 120.0;
 new Float:g_fNextPointDisplay[MAXPLAYERS+1];
 
 new g_iPointsOffset[MAXPLAYERS+1];
+
+new Float:g_fRoundStartTime;
+#define REQUIRED_ELAPSED_SECONDS_ROUND_END_POINTS	30
+
+#if defined _cstrike_included
+new const g_iRoundEndReasonToWinningTeam[] =
+{
+	CS_TEAM_T,		// Target Successfully Bombed!
+	CS_TEAM_CT,		// The VIP has escaped!
+	CS_TEAM_T,		// VIP has been assassinated!
+	CS_TEAM_T,		// The terrorists have escaped!
+	CS_TEAM_CT,		// The CTs have prevented most of the terrorists from escaping!
+	CS_TEAM_CT,		// Escaping terrorists have all been neutralized!
+	CS_TEAM_CT,		// The bomb has been defused!
+	CS_TEAM_CT,		// Counter-Terrorists Win!
+	CS_TEAM_T,		// Terrorists Win!
+	CS_TEAM_NONE,	// Round Draw!
+	CS_TEAM_CT,		// All Hostages have been rescued!
+	CS_TEAM_CT,		// Target has been saved!
+	CS_TEAM_T,		// Hostages have not been rescued!
+	CS_TEAM_CT,		// Terrorists have not escaped!
+	CS_TEAM_T,		// VIP has not escaped!
+	CS_TEAM_NONE,	// Game Commencing!
+	CS_TEAM_CT,		// Terrorists Surrender
+	CS_TEAM_T,		// CTs Surrender
+};
+#endif
 
 new bool:g_bLibLoaded_Store;
 
@@ -46,27 +77,37 @@ public OnPluginStart()
 	CreateConVar("user_points_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	
 	if((cvar_points_per_minute = FindConVar("points_per_minute")) == INVALID_HANDLE)
-		cvar_points_per_minute = CreateConVar("points_per_minute", "1", "The number of points to give per minute.");
+		cvar_points_per_minute = CreateConVar("points_per_minute", "1", "The number of points to give per minute.", _, true, 0.0);
 	
 	if((cvar_points_count_afk_time = FindConVar("points_count_afk_time")) == INVALID_HANDLE)
-		cvar_points_count_afk_time = CreateConVar("points_count_afk_time", "0", "Should points be given for AFK time?");
+		cvar_points_count_afk_time = CreateConVar("points_count_afk_time", "0", "Should points be given for AFK time?", _, true, 0.0, true, 1.0);
 	
 	if((cvar_points_clantag_bonus_percent = FindConVar("points_clantag_bonus_percent")) == INVALID_HANDLE)
-		cvar_points_clantag_bonus_percent = CreateConVar("points_clantag_bonus_percent", "50", "The percent of clan tag bonus points to give.");
+		cvar_points_clantag_bonus_percent = CreateConVar("points_clantag_bonus_percent", "50", "The percent of clan tag bonus points to give.", _, true, 0.0);
 	
 	if((cvar_points_event_bonus_percent = FindConVar("points_event_bonus_percent")) == INVALID_HANDLE)
-		cvar_points_event_bonus_percent = CreateConVar("points_event_bonus_percent", "0", "The percent of event bonus points to give.");
+		cvar_points_event_bonus_percent = CreateConVar("points_event_bonus_percent", "0", "The percent of event bonus points to give.", _, true, 0.0);
 	
 	if((cvar_points_donator_bonus_percent = FindConVar("points_donator_bonus_percent")) == INVALID_HANDLE)
-		cvar_points_donator_bonus_percent = CreateConVar("points_donator_bonus_percent", "150", "The percent of donator bonus points to give.");
+		cvar_points_donator_bonus_percent = CreateConVar("points_donator_bonus_percent", "150", "The percent of donator bonus points to give.", _, true, 0.0);
 	
 	if((cvar_points_hours_played_bonus_percent = FindConVar("points_hours_played_bonus_percent")) == INVALID_HANDLE)
-		cvar_points_hours_played_bonus_percent = CreateConVar("points_hours_played_bonus_percent", "0.05", "The percent of bonus points to give per hours played.");
+		cvar_points_hours_played_bonus_percent = CreateConVar("points_hours_played_bonus_percent", "0.05", "The percent of bonus points to give per hours played.", _, true, 0.0);
+	
+	if((cvar_points_round_end_give_winning_team = FindConVar("points_round_end_give_winning_team")) == INVALID_HANDLE)
+		cvar_points_round_end_give_winning_team = CreateConVar("points_round_end_give_winning_team", "0", "Give the winning teams players points on round end?", _, true, 0.0, true, 1.0);
+	
+	if((cvar_points_round_end_give_survivor_only = FindConVar("points_round_end_give_survivor_only")) == INVALID_HANDLE)
+		cvar_points_round_end_give_survivor_only = CreateConVar("points_round_end_give_survivor_only", "0", "Give only the winning teams surviving players points?", _, true, 0.0, true, 1.0);
+	
+	if((cvar_points_round_end_points_per_player = FindConVar("points_round_end_points_per_player")) == INVALID_HANDLE)
+		cvar_points_round_end_points_per_player = CreateConVar("points_round_end_points_per_player", "5", "The number of points to add to the shared pool per player on the winning team.", _, true, 0.0);
 	
 	if((cvar_tag_url = FindConVar("clan_tag_url")) == INVALID_HANDLE)
 		cvar_tag_url = CreateConVar("clan_tag_url", "http://swoobles.com/forums/thread-7728.html#posts", "The URL to the clan tag help page.");
 	
 	HookEvent("cs_intermission", Event_Intermission_Post, EventHookMode_PostNoCopy);
+	HookEvent("round_start", Event_RoundStart_Post, EventHookMode_PostNoCopy);
 	
 	RegConsoleCmd("sm_points", OnCheckPoints, "Displays the number of store points a user has.");
 	RegConsoleCmd("sm_credits", OnCheckPoints, "Displays the number of store points a user has.");
@@ -168,8 +209,18 @@ public OnClientDisconnect(iClient)
 	
 	decl iPoints, iTagPoints, iSpecialPoints, iDonatorPoints, iSubscriptions, iHoursPlayedPoints;
 	new iTotalPoints = GetDisconnectPoints(iClient, iPoints, iTagPoints, iSpecialPoints, iDonatorPoints, iSubscriptions, iHoursPlayedPoints);
-	if(iTotalPoints)
-		ClientCookies_SetCookie(iClient, CC_TYPE_SWOOBLES_POINTS, ClientCookies_GetCookie(iClient, CC_TYPE_SWOOBLES_POINTS) + iTotalPoints);
+	GivePoints(iClient, iTotalPoints);
+}
+
+GivePoints(iClient, iPoints)
+{
+	if(IsFakeClient(iClient) || !ClientCookies_HaveCookiesLoaded(iClient))
+		return;
+	
+	if(iPoints <= 0)
+		return;
+	
+	ClientCookies_SetCookie(iClient, CC_TYPE_SWOOBLES_POINTS, ClientCookies_GetCookie(iClient, CC_TYPE_SWOOBLES_POINTS) + iPoints);
 }
 
 GetDisconnectPoints(iClient, &iPoints, &iTagPoints, &iSpecialPoints, &iDonatorPoints, &iSubscriptions, &iHoursPlayedPoints)
@@ -271,6 +322,95 @@ public Event_Intermission_Post(Handle:hEvent, const String:szName[], bool:bDontB
 		{
 			if(g_bLibLoaded_Store)
 				CPrintToChat(iClient, "{olive}Remember to type {yellow}!shop {olive}to see {yellow}items you can get{olive}!");
+		}
+	}
+}
+
+public OnMapStart()
+{
+	OnRoundStart();
+}
+
+public Action:Event_RoundStart_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
+{
+	OnRoundStart();
+}
+
+OnRoundStart()
+{
+	g_fRoundStartTime = GetGameTime();
+}
+
+public Action:CS_OnTerminateRound(&Float:fDelay, &CSRoundEndReason:reason)
+{
+	TryGiveRoundEndPoints(reason);
+}
+
+TryGiveRoundEndPoints(CSRoundEndReason:reason)
+{
+	if(!GetConVarBool(cvar_points_round_end_give_winning_team))
+		return;
+	
+	// Make sure enough time has elapsed in the round to give points.
+	if(GetGameTime() - g_fRoundStartTime < REQUIRED_ELAPSED_SECONDS_ROUND_END_POINTS)
+		return;
+	
+	// Set round start time to the current time incase the round somehow ends again quickly.
+	g_fRoundStartTime = GetGameTime();
+	
+	// Give the winning team points.
+	GiveRoundEndWinningTeamPoints(GetWinningTeam(reason));
+}
+
+GetWinningTeam(CSRoundEndReason:reason)
+{
+	if(_:reason >= sizeof(g_iRoundEndReasonToWinningTeam))
+		return CS_TEAM_NONE;
+	
+	return g_iRoundEndReasonToWinningTeam[reason];
+}
+
+GiveRoundEndWinningTeamPoints(iWinningTeam)
+{
+	if(iWinningTeam == CS_TEAM_NONE)
+		return;
+	
+	decl iClient, iClientsAlive[MAXPLAYERS+1];
+	new iNumAlive, iTotalPoints;
+	for(iClient=1; iClient<=MaxClients; iClient++)
+	{
+		if(!IsClientInGame(iClient))
+			continue;
+		
+		if(GetClientTeam(iClient) != iWinningTeam)
+			continue;
+		
+		// Give points to every player on the team if needed.
+		if(!GetConVarBool(cvar_points_round_end_give_survivor_only))
+		{
+			GivePoints(iClient, GetConVarInt(cvar_points_round_end_points_per_player));
+			CPrintToChat(iClient, "{lightgreen}-- {olive}Awarded {lightred}%d {olive}store points for winning the round.", GetConVarInt(cvar_points_round_end_points_per_player));
+			continue;
+		}
+		
+		// We are only giving points to the survivors. See how many total points we can give based on the number of players on the team.
+		iTotalPoints += GetConVarInt(cvar_points_round_end_points_per_player);
+		
+		if(IsPlayerAlive(iClient))
+			iClientsAlive[iNumAlive++] = iClient;
+	}
+	
+	if(GetConVarBool(cvar_points_round_end_give_survivor_only))
+	{
+		// Give points to the survivors on the team only.
+		new iPointsPerPlayer = RoundFloat(float(iTotalPoints) / float(iNumAlive));
+		
+		for(new i=0; i<iNumAlive; i++)
+		{
+			iClient = iClientsAlive[i];
+			
+			GivePoints(iClient, iPointsPerPlayer);
+			CPrintToChat(iClient, "{lightgreen}-- {olive}Awarded {lightred}%d {olive}store points for surviving the round.", iPointsPerPlayer);
 		}
 	}
 }
