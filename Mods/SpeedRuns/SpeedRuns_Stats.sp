@@ -28,6 +28,11 @@ new Handle:cvar_records_page_limit;
 new String:g_szAverageMapTimeString[20];
 new bool:g_bMapAverageCached = false;
 
+new Float:g_fNextGetStagesCommand[MAXPLAYERS+1];
+#define GET_STAGES_COMMAND_DELAY 0.7
+new Float:g_fNextGetRecordsCommand[MAXPLAYERS+1];
+#define GET_RECORDS_COMMAND_DELAY 0.7
+
 
 public OnAllPluginsLoaded()
 {
@@ -54,6 +59,12 @@ public OnPluginStart()
 
 	RegConsoleCmd("sm_avg", OnAverage); // Average map time
 	RegConsoleCmd("sm_average", OnAverage);
+}
+
+public OnClientPutInServer(iClient)
+{
+	g_fNextGetStagesCommand[iClient] = 0.0;
+	g_fNextGetRecordsCommand[iClient] = 0.0;
 }
 
 public DB_OnStartConnectionSetup()
@@ -148,6 +159,15 @@ public Action:OnStats(iClient, iArgCount)
 		CPrintToChat(iClient, "{lightgreen}-- {olive}Required data for stats not loaded yet.");
 		return Plugin_Handled;
 	}
+	
+	new Float:fCurTime = GetGameTime();
+	if(fCurTime < g_fNextGetStagesCommand[iClient])
+	{
+		PrintToChat(iClient, "[SM] Please wait a second before using this command again.");
+		return Plugin_Handled;
+	}
+
+	g_fNextGetStagesCommand[iClient] = fCurTime + GET_STAGES_COMMAND_DELAY;
 
 	DB_TQuery(g_szDatabaseConfigName, Query_GetStages, DBPrio_Low, iClient, "\
 		SELECT IF(type = 4, data_int_1, data_int_1+1) as stage, data_string_1 as name FROM plugin_zonemanager_data \
@@ -171,10 +191,11 @@ public Query_GetStages(Handle:hDatabase, Handle:hQuery, any:iClient)
 		decl String:szInfo[12];
 		AddMenuItem(hMenu, "0", "Map");
 		
+		decl String:szName[32];
+		new iStage;
 		while(SQL_FetchRow(hQuery))
 		{
-			new iStage = SQL_FetchInt(hQuery, 0);
-			decl String:szName[32];
+			iStage = SQL_FetchInt(hQuery, 0);
 			SQL_FetchString(hQuery, 1, szName, sizeof(szName));
 			if (StrEqual(szName, ""))
 				FormatEx(szName, sizeof(szName), "Stage %i", iStage);
@@ -209,6 +230,15 @@ public MenuHandle_StageSelect(Handle:hMenu, MenuAction:action, iClient, iParam2)
 		CPrintToChat(iClient, "{lightgreen}-- {olive}Required data for stats not loaded yet.");
 		return;
 	}
+	
+	new Float:fCurTime = GetGameTime();
+	if(fCurTime < g_fNextGetRecordsCommand[iClient])
+	{
+		PrintToChat(iClient, "[SM] Please wait a second before using this command again.");
+		return;
+	}
+
+	g_fNextGetRecordsCommand[iClient] = fCurTime + GET_RECORDS_COMMAND_DELAY;
 	
 	decl String:szInfo[12];
 	GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
@@ -245,6 +275,7 @@ public MenuHandle_StageSelect(Handle:hMenu, MenuAction:action, iClient, iParam2)
 		{
 			szBuffer = "Styles: None";
 		}
+		CloseHandle(hStyleNames);
 	}
 	
 	decl String:szMenuTitle[255];
@@ -297,9 +328,10 @@ public Query_GetRecords(Handle:hDatabase, Handle:hQuery, any:hPack)
 	new Handle:hMenu = CreateMenu(MenuHandle_RecordSelect);
 	SetMenuTitle(hMenu, szMenuTitle);
 
+	decl String:szTime[32], String:szRecordID[32], String:szUsername[MAX_NAME_LENGTH+1], String:szBuffer[255];
+	new iRecordID;
 	while(SQL_FetchRow(hQuery))
 	{
-		decl String:szTime[32];
 		SQL_FetchString(hQuery, 2, szTime, sizeof(szTime));
 		
 		while (StrContains(szTime, "00:") == 0)
@@ -307,14 +339,11 @@ public Query_GetRecords(Handle:hDatabase, Handle:hQuery, any:hPack)
 			ReplaceStringEx(szTime, sizeof(szTime), "00:", "");
 		}
 
-		new iRecordID = SQL_FetchInt(hQuery, 3);
-		decl String:szRecordID[32];
+		iRecordID = SQL_FetchInt(hQuery, 3);
 		IntToString(iRecordID, szRecordID, sizeof(szRecordID));
 		
-		decl String:szUsername[MAX_NAME_LENGTH+1];
 		SQL_FetchString(hQuery, 4, szUsername, sizeof(szUsername));
 		
-		decl String:szBuffer[255];
 		FormatEx(szBuffer, sizeof(szBuffer), "%s - %s", szTime, szUsername);
 
 		AddMenuItem(hMenu, szRecordID, szBuffer);
@@ -385,9 +414,6 @@ public Query_GetRecordStats(Handle:hDatabase, Handle:hQuery, any:iClient)
 		
 		SetMenuTitle(hMenu, szLabel);
 		
-		new String:szInfo[32];
-
-
 		
 		SQL_FetchString(hQuery, 5, szLabel, sizeof(szLabel));
 		Format(szLabel, sizeof(szLabel), "STEAM_0:%s", szLabel);
@@ -402,9 +428,10 @@ public Query_GetRecordStats(Handle:hDatabase, Handle:hQuery, any:iClient)
 		SQL_FetchString(hQuery, 6, szLabel, sizeof(szLabel));
 		AddMenuItem(hMenu, "", szLabel, ITEMDRAW_DISABLED);
 
-		new iReplayID = SQL_FetchInt(hQuery, 3);
-		IntToString(iReplayID, szInfo, sizeof(szInfo));
-		AddMenuItem(hMenu, szInfo, "Play Replay", ITEMDRAW_DISABLED);
+		//new String:szInfo[32];
+		//new iReplayID = SQL_FetchInt(hQuery, 3);
+		//IntToString(iReplayID, szInfo, sizeof(szInfo));
+		AddMenuItem(hMenu, /* szInfo */ "", "Play Replay", ITEMDRAW_DISABLED);
 
 		DisplayMenu(hMenu, iClient, 0);
 	}
