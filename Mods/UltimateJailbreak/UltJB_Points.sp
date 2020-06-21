@@ -5,12 +5,12 @@
 #include "Includes/ultjb_last_request"
 #include "Includes/ultjb_warden"
 #include "Includes/ultjb_days"
-#include "../../Libraries/ClientCookies/client_cookies"
+#include "../../Plugins/UserPoints/user_points"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Points";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
@@ -66,22 +66,19 @@ public EventPlayerDeath_Post(Handle:hEvent, const String:szName[], bool:bDontBro
 	if(iAttacker == iClient)
 		return;
 	
-	if(!ClientCookies_HaveCookiesLoaded(iClient))
-		return;
-	
 	new iPoints = 50;
 	
 	if(GetClientTeam(iClient) == TEAM_GUARDS)
 	{
 		if(iClient == g_iDeadWarden)
 		{
-			ClientCookies_SetCookie(iAttacker, CC_TYPE_SWOOBLES_POINTS, ClientCookies_GetCookie(iAttacker, CC_TYPE_SWOOBLES_POINTS) + (iPoints*2));
+			UserPoints_GivePoints(iAttacker, iPoints * 2);
 			CPrintToChat(iAttacker, "You have been given %i points for killing the warden.", (iPoints*2));
 			g_iDeadWarden = 0;
 		}
 		else
 		{
-			ClientCookies_SetCookie(iAttacker, CC_TYPE_SWOOBLES_POINTS, ClientCookies_GetCookie(iAttacker, CC_TYPE_SWOOBLES_POINTS) + iPoints);
+			UserPoints_GivePoints(iAttacker, iPoints);
 			CPrintToChat(iAttacker, "You have been given %i points for killing a guard.", iPoints);
 		}
 	}

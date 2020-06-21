@@ -1,13 +1,13 @@
 #include <sourcemod>
 #include "../../Libraries/ZoneManager/zone_manager"
-#include "../../Libraries/ClientCookies/client_cookies"
+#include "../../Plugins/UserPoints/user_points"
 #include "Includes/speed_runs"
 #include <hls_color_chat>
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Speed Runs: Points";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -19,7 +19,6 @@ public Plugin:myinfo =
 }
 
 #define HIGHEST_TIER_COMPLETION_POINTS	600.0
-new g_iClientTotalPoints[MAXPLAYERS+1];
 
 #define MAX_AUTHID_LEN	32
 new Handle:g_aCompletedStages;
@@ -54,23 +53,6 @@ public OnMapStart()
 	}
 	
 	ClearArray(g_aCompletedStages);
-}
-
-public OnClientConnected(iClient)
-{
-	g_iClientTotalPoints[iClient] = 0;
-}
-
-public ClientCookies_OnCookiesLoaded(iClient)
-{
-	if(ClientCookies_HasCookie(iClient, CC_TYPE_SWOOBLES_POINTS))
-	{
-		g_iClientTotalPoints[iClient] += ClientCookies_GetCookie(iClient, CC_TYPE_SWOOBLES_POINTS);
-	}
-	
-	// Instantly set points here incase they already had some before cookies were loaded.
-	// We set here because we didn't set it before cookies were loaded since that could result in data loss.
-	ClientCookies_SetCookie(iClient, CC_TYPE_SWOOBLES_POINTS, g_iClientTotalPoints[iClient]);
 }
 
 public SpeedRuns_OnStageCompleted_Pre(iClient, iStageNumber, iStyleBits, Float:fTimeTaken)
@@ -182,12 +164,7 @@ bool:GivePoints(iClient, iAmount)
 	if(iAmount < 1)
 		return false;
 	
-	g_iClientTotalPoints[iClient] += iAmount;
-	
-	// Make sure we only set the cookie here if they are loaded so there isn't data loss.
-	if(ClientCookies_HaveCookiesLoaded(iClient))
-		ClientCookies_SetCookie(iClient, CC_TYPE_SWOOBLES_POINTS, g_iClientTotalPoints[iClient]);
-	
+	UserPoints_GivePoints(iClient, iAmount);
 	CPrintToChat(iClient, "{lightgreen}-- {olive}Awarded {lightred}%d {olive}store points for beating a stage.", iAmount);
 	
 	return true;

@@ -5,13 +5,13 @@
 #include <sdktools_stringtables>
 #include <emitsoundany>
 //#include "../../../Swoobles 4.0/Libraries/FileDownloader/file_downloader"
-#include "../../Libraries/ClientCookies/client_cookies"
+#include "../../Plugins/UserPoints/user_points"
 #include <hls_color_chat>
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Coin Points";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -462,11 +462,7 @@ ClientPickupCoin(iClient, iCoin)
 	
 	CPrintToChat(iClient, "{yellow}Coin {olive}gave you {yellow}%i {olive}points.", iNumPoints);
 	
-	if(iNumPoints > 0)
-	{
-		if(ClientCookies_HaveCookiesLoaded(iClient))
-			ClientCookies_SetCookie(iClient, CC_TYPE_SWOOBLES_POINTS, ClientCookies_GetCookie(iClient, CC_TYPE_SWOOBLES_POINTS) + iNumPoints);
-	}
+	UserPoints_GivePoints(iClient, iNumPoints);
 }
 
 RemoveCoin(iCoin)
