@@ -8,7 +8,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "User Points For Minigames Winner";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -72,6 +72,7 @@ OnClientTouchedWinZone(iClient)
 	
 	g_bRoundHasWinner = true;
 	UserPoints_DisableRoundEndPointsForThisRound();
+	UserPoints_DisableClientKillPointsForThisRound(iClient);
 	
 	new iPoints = GetWinnerPoints();
 	UserPoints_GivePoints(iClient, iPoints);

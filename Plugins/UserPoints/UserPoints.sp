@@ -15,7 +15,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "User Points";
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.9";
 
 public Plugin:myinfo =
 {
@@ -36,6 +36,7 @@ new Handle:cvar_points_hours_played_bonus_percent;
 new Handle:cvar_points_round_end_give_winning_team;
 new Handle:cvar_points_round_end_give_survivor_only;
 new Handle:cvar_points_round_end_points_per_player;
+new Handle:cvar_points_per_kill;
 
 const Float:POINT_DISPLAY_DELAY = 120.0;
 new Float:g_fNextPointDisplay[MAXPLAYERS+1];
@@ -44,7 +45,7 @@ new g_iClientTotalPoints[MAXPLAYERS+1];
 new g_iPointsOffset[MAXPLAYERS+1];
 
 new Float:g_fRoundStartTime;
-#define REQUIRED_ELAPSED_SECONDS_ROUND_END_POINTS	30
+#define REQUIRED_ELAPSED_SECONDS_ROUND_END_POINTS	10
 
 #if defined _cstrike_included
 new const g_iRoundEndReasonToWinningTeam[] =
@@ -71,6 +72,7 @@ new const g_iRoundEndReasonToWinningTeam[] =
 #endif
 
 new bool:g_bRoundEndPointsDisabled;
+new bool:g_bClientKillPointsDisabled[MAXPLAYERS+1];
 
 new bool:g_bLibLoaded_Store;
 
@@ -106,11 +108,15 @@ public OnPluginStart()
 	if((cvar_points_round_end_points_per_player = FindConVar("points_round_end_points_per_player")) == INVALID_HANDLE)
 		cvar_points_round_end_points_per_player = CreateConVar("points_round_end_points_per_player", "5", "The number of points to add to the shared pool per player on the winning team.", _, true, 0.0);
 	
+	if((cvar_points_per_kill = FindConVar("points_per_kill")) == INVALID_HANDLE)
+		cvar_points_per_kill = CreateConVar("points_per_kill", "0", "The number of points to give per kill.", _, true, 0.0);
+	
 	if((cvar_tag_url = FindConVar("clan_tag_url")) == INVALID_HANDLE)
 		cvar_tag_url = CreateConVar("clan_tag_url", "http://swoobles.com/forums/thread-7728.html#posts", "The URL to the clan tag help page.");
 	
 	HookEvent("cs_intermission", Event_Intermission_Post, EventHookMode_PostNoCopy);
 	HookEvent("round_start", Event_RoundStart_Post, EventHookMode_PostNoCopy);
+	HookEvent("player_death", Event_PlayerDeath_Post, EventHookMode_Post);
 	
 	RegConsoleCmd("sm_points", OnCheckPoints, "Displays the number of store points a user has.");
 	RegConsoleCmd("sm_credits", OnCheckPoints, "Displays the number of store points a user has.");
@@ -125,6 +131,7 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	CreateNative("UserPoints_AddToVisualOffset", _UserPoints_AddToVisualOffset);
 	CreateNative("UserPoints_GetPoints", _UserPoints_GetPoints);
 	CreateNative("UserPoints_DisableRoundEndPointsForThisRound", _UserPoints_DisableRoundEndPointsForThisRound);
+	CreateNative("UserPoints_DisableClientKillPointsForThisRound", _UserPoints_DisableClientKillPointsForThisRound);
 	
 	return APLRes_Success;
 }
@@ -157,6 +164,11 @@ GetPoints(iClient, bool:bGetWithVisualOffset=false)
 public _UserPoints_DisableRoundEndPointsForThisRound(Handle:hPlugin, iNumParams)
 {
 	g_bRoundEndPointsDisabled = true;
+}
+
+public _UserPoints_DisableClientKillPointsForThisRound(Handle:hPlugin, iNumParams)
+{
+	g_bClientKillPointsDisabled[GetNativeCell(1)] = true;
 }
 
 public Action:OnTag(iClient, iArgNum)
@@ -394,6 +406,9 @@ OnRoundStart()
 {
 	g_fRoundStartTime = GetGameTime();
 	g_bRoundEndPointsDisabled = false;
+	
+	for(new i=0; i<sizeof(g_bClientKillPointsDisabled); i++)
+		g_bClientKillPointsDisabled[i] = false;
 }
 
 public Action:CS_OnTerminateRound(&Float:fDelay, &CSRoundEndReason:reason)
@@ -440,20 +455,25 @@ GiveRoundEndWinningTeamPoints(iWinningTeam)
 		if(!IsClientInGame(iClient))
 			continue;
 		
-		if(GetClientTeam(iClient) != iWinningTeam)
+		if(GetClientTeam(iClient) < CS_TEAM_T)
 			continue;
+		
+		if(GetClientTeam(iClient) != iWinningTeam)
+		{
+			// Total points is based on the number of total players on the opposite team.
+			iTotalPoints += GetConVarInt(cvar_points_round_end_points_per_player);
+			continue;
+		}
 		
 		// Give points to every player on the team if needed.
 		if(!GetConVarBool(cvar_points_round_end_give_survivor_only))
 		{
 			GivePoints(iClient, GetConVarInt(cvar_points_round_end_points_per_player));
-			CPrintToChat(iClient, "{lightgreen}-- {olive}Awarded {lightred}%d {olive}store points for winning the round.", GetConVarInt(cvar_points_round_end_points_per_player));
+			CPrintToChat(iClient, "{lightgreen}-- {olive}Awarded {lightred}%d {olive}points for winning the round.", GetConVarInt(cvar_points_round_end_points_per_player));
 			continue;
 		}
 		
-		// We are only giving points to the survivors. See how many total points we can give based on the number of players on the team.
-		iTotalPoints += GetConVarInt(cvar_points_round_end_points_per_player);
-		
+		// We are only giving points to the survivors on the winning team.
 		if(IsPlayerAlive(iClient))
 			iClientsAlive[iNumAlive++] = iClient;
 	}
@@ -468,7 +488,30 @@ GiveRoundEndWinningTeamPoints(iWinningTeam)
 			iClient = iClientsAlive[i];
 			
 			GivePoints(iClient, iPointsPerPlayer);
-			CPrintToChat(iClient, "{lightgreen}-- {olive}Awarded {lightred}%d {olive}store points for surviving the round.", iPointsPerPlayer);
+			CPrintToChat(iClient, "{lightgreen}-- {olive}Awarded {lightred}%d {olive}points for surviving the round.", iPointsPerPlayer);
 		}
 	}
+}
+
+public Event_PlayerDeath_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
+{
+	if(!GetConVarInt(cvar_points_per_kill))
+		return;
+	
+	new iVictim = GetClientOfUserId(GetEventInt(hEvent, "userid"));
+	if(!iVictim)
+		return;
+	
+	new iAttacker = GetClientOfUserId(GetEventInt(hEvent, "attacker"));
+	if(!iAttacker || !(1 <= iAttacker <= MaxClients))
+		return;
+	
+	if(iVictim == iAttacker)
+		return;
+	
+	if(g_bClientKillPointsDisabled[iAttacker])
+		return;
+	
+	GivePoints(iAttacker, GetConVarInt(cvar_points_per_kill));
+	CPrintToChat(iAttacker, "{lightgreen}-- {olive}Awarded {lightred}%d {olive}points.", GetConVarInt(cvar_points_per_kill));
 }
