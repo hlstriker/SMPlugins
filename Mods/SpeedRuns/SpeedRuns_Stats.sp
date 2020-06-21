@@ -275,8 +275,12 @@ public MenuHandle_StageSelect(Handle:hMenu, MenuAction:action, iClient, iParam2)
 		{
 			szBuffer = "Styles: None";
 		}
-		CloseHandle(hStyleNames);
 	}
+	else
+	{
+		szBuffer = "Styles: None";
+	}
+	CloseHandle(hStyleNames);
 	
 	decl String:szMenuTitle[255];
 	if (iStage == 0)
