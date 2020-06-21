@@ -15,7 +15,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "User Points";
-new const String:PLUGIN_VERSION[] = "1.6";
+new const String:PLUGIN_VERSION[] = "1.7";
 
 public Plugin:myinfo =
 {
@@ -40,6 +40,7 @@ new Handle:cvar_points_round_end_points_per_player;
 const Float:POINT_DISPLAY_DELAY = 120.0;
 new Float:g_fNextPointDisplay[MAXPLAYERS+1];
 
+new g_iClientTotalPoints[MAXPLAYERS+1];
 new g_iPointsOffset[MAXPLAYERS+1];
 
 new Float:g_fRoundStartTime;
@@ -68,6 +69,8 @@ new const g_iRoundEndReasonToWinningTeam[] =
 	CS_TEAM_T,		// CTs Surrender
 };
 #endif
+
+new bool:g_bRoundEndPointsDisabled;
 
 new bool:g_bLibLoaded_Store;
 
@@ -118,13 +121,42 @@ public OnPluginStart()
 public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrLen)
 {
 	RegPluginLibrary("user_points");
+	CreateNative("UserPoints_GivePoints", _UserPoints_GivePoints);
 	CreateNative("UserPoints_AddToVisualOffset", _UserPoints_AddToVisualOffset);
+	CreateNative("UserPoints_GetPoints", _UserPoints_GetPoints);
+	CreateNative("UserPoints_DisableRoundEndPointsForThisRound", _UserPoints_DisableRoundEndPointsForThisRound);
+	
 	return APLRes_Success;
+}
+
+public _UserPoints_GivePoints(Handle:hPlugin, iNumParams)
+{
+	return GivePoints(GetNativeCell(1), GetNativeCell(2));
 }
 
 public _UserPoints_AddToVisualOffset(Handle:hPlugin, iNumParams)
 {
 	g_iPointsOffset[GetNativeCell(1)] += GetNativeCell(2);
+}
+
+public _UserPoints_GetPoints(Handle:hPlugin, iNumParams)
+{
+	return GetPoints(GetNativeCell(1), GetNativeCell(2));
+}
+
+GetPoints(iClient, bool:bGetWithVisualOffset=false)
+{
+	new iPoints = g_iClientTotalPoints[iClient];
+	
+	if(bGetWithVisualOffset)
+		iPoints += g_iPointsOffset[iClient];
+	
+	return iPoints;
+}
+
+public _UserPoints_DisableRoundEndPointsForThisRound(Handle:hPlugin, iNumParams)
+{
+	g_bRoundEndPointsDisabled = true;
 }
 
 public Action:OnTag(iClient, iArgNum)
@@ -175,6 +207,11 @@ public OnLibraryRemoved(const String:szName[])
 		g_bLibLoaded_Store = false;
 }
 
+public OnClientConnected(iClient)
+{
+	g_iClientTotalPoints[iClient] = 0;
+}
+
 public OnClientPutInServer(iClient)
 {
 	g_iPointsOffset[iClient] = 0;
@@ -182,6 +219,18 @@ public OnClientPutInServer(iClient)
 	
 	if(!IsFakeClient(iClient))
 		SDKHook(iClient, SDKHook_SpawnPost, OnSpawnPost);
+}
+
+public ClientCookies_OnCookiesLoaded(iClient)
+{
+	if(ClientCookies_HasCookie(iClient, CC_TYPE_SWOOBLES_POINTS))
+	{
+		g_iClientTotalPoints[iClient] += ClientCookies_GetCookie(iClient, CC_TYPE_SWOOBLES_POINTS);
+	}
+	
+	// Instantly set points here incase they already had some before cookies were loaded.
+	// We set here because we didn't set it before cookies were loaded since that could result in data loss.
+	ClientCookies_SetCookie(iClient, CC_TYPE_SWOOBLES_POINTS, g_iClientTotalPoints[iClient]);
 }
 
 public OnSpawnPost(iClient)
@@ -199,7 +248,7 @@ public OnSpawnPost(iClient)
 
 DisplayPointsMessage(iClient)
 {
-	CPrintToChat(iClient, "{olive}You have {lightred}%i {olive}points.", ClientCookies_GetCookie(iClient, CC_TYPE_SWOOBLES_POINTS) + g_iPointsOffset[iClient]);
+	CPrintToChat(iClient, "{olive}You have {lightred}%i {olive}points.", GetPoints(iClient, true));
 }
 
 public OnClientDisconnect(iClient)
@@ -212,15 +261,20 @@ public OnClientDisconnect(iClient)
 	GivePoints(iClient, iTotalPoints);
 }
 
-GivePoints(iClient, iPoints)
+bool:GivePoints(iClient, iAmount)
 {
-	if(IsFakeClient(iClient) || !ClientCookies_HaveCookiesLoaded(iClient))
-		return;
+	if(IsFakeClient(iClient))
+		return false;
 	
-	if(iPoints <= 0)
-		return;
+	if(iAmount <= 0)
+		return false;
 	
-	ClientCookies_SetCookie(iClient, CC_TYPE_SWOOBLES_POINTS, ClientCookies_GetCookie(iClient, CC_TYPE_SWOOBLES_POINTS) + iPoints);
+	g_iClientTotalPoints[iClient] += iAmount;
+	
+	if(ClientCookies_HaveCookiesLoaded(iClient))
+		ClientCookies_SetCookie(iClient, CC_TYPE_SWOOBLES_POINTS, g_iClientTotalPoints[iClient]);
+	
+	return true;
 }
 
 GetDisconnectPoints(iClient, &iPoints, &iTagPoints, &iSpecialPoints, &iDonatorPoints, &iSubscriptions, &iHoursPlayedPoints)
@@ -339,6 +393,7 @@ public Action:Event_RoundStart_Post(Handle:hEvent, const String:szName[], bool:b
 OnRoundStart()
 {
 	g_fRoundStartTime = GetGameTime();
+	g_bRoundEndPointsDisabled = false;
 }
 
 public Action:CS_OnTerminateRound(&Float:fDelay, &CSRoundEndReason:reason)
@@ -348,6 +403,9 @@ public Action:CS_OnTerminateRound(&Float:fDelay, &CSRoundEndReason:reason)
 
 TryGiveRoundEndPoints(CSRoundEndReason:reason)
 {
+	if(g_bRoundEndPointsDisabled)
+		return;
+	
 	if(!GetConVarBool(cvar_points_round_end_give_winning_team))
 		return;
 	
