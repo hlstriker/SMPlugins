@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "API: Zone Manager";
-new const String:PLUGIN_VERSION[] = "1.19";
+new const String:PLUGIN_VERSION[] = "1.20";
 
 public Plugin:myinfo =
 {
@@ -153,6 +153,9 @@ new g_iUniqueMapCounter;
 new bool:g_bAreZonesLoadedFromDB;
 new bool:g_bNeedsForceSaved;
 
+new bool:g_bIsShowingTriggerNames[MAXPLAYERS+1];
+new Handle:g_hTrie_TriggerNameTimes;
+
 new Handle:cvar_database_servers_configname;
 new String:g_szDatabaseConfigName[64];
 
@@ -176,11 +179,13 @@ public OnPluginStart()
 	g_aZoneTypes = CreateArray(ZoneType);
 	
 	g_hTrie_TypeIDToIndex = CreateTrie();
+	g_hTrie_TriggerNameTimes = CreateTrie();
 	
 	cvar_can_import_from_another_map = CreateConVar("zm_can_import_from_another_map", "0", "Set to allow importing zones from another map.", _, true, 0.0, true, 1.0);
 	
 	RegAdminCmd("sm_zonemanager", OnZoneManager, ADMFLAG_BAN, "Opens the zone manager.");
 	RegAdminCmd("sm_zm", OnZoneManager, ADMFLAG_BAN, "Opens the zone manager.");
+	RegAdminCmd("sm_showtriggernames", OnShowTriggerNames, ADMFLAG_BAN, "Show trigger names in console as you touch them.");
 	
 	HookEvent("round_start", Event_RoundStart_Pre, EventHookMode_Pre);
 }
@@ -221,6 +226,7 @@ public OnMapStart()
 	ClearArray(g_aZones);
 	ClearArray(g_aZoneTypes);
 	ClearTrie(g_hTrie_TypeIDToIndex);
+	ClearTrie(g_hTrie_TriggerNameTimes);
 	
 	CreateNotSetZoneType();
 	
@@ -345,6 +351,69 @@ CreateZoneEnts()
 		else
 			CreateZoneEntity(i);
 	}
+}
+
+public Action:OnShowTriggerNames(iClient, iArgNum)
+{
+	if(!iClient)
+		return Plugin_Handled;
+	
+	g_bIsShowingTriggerNames[iClient] = !g_bIsShowingTriggerNames[iClient];
+	
+	if(g_bIsShowingTriggerNames[iClient])
+	{
+		SDKHook(iClient, SDKHook_TouchPost, OnClientTouchPost);
+		ReplyToCommand(iClient, "You will now see trigger names in the console as you touch them.");
+	}
+	else
+	{
+		SDKUnhook(iClient, SDKHook_TouchPost, OnClientTouchPost);
+		ReplyToCommand(iClient, "Showing trigger names DEACTIVATED.");
+	}
+	
+	return Plugin_Handled;
+}
+
+public OnClientTouchPost(iClient, iOther)
+{
+	if(!iOther)
+		return;
+	
+	if(!IsValidEntity(iOther))
+		return;
+	
+	// Make sure the classname is a trigger_
+	static String:szName[MAX_VALUE_NAME_LENGTH];
+	if(!GetEntityClassname(iOther, szName, sizeof(szName)))
+		return;
+	
+	szName[8] = 0x00;
+	if(!StrEqual(szName, "trigger_"))
+		return;
+	
+	// Get the triggers name.
+	GetEntPropString(iOther, Prop_Data, "m_iName", szName, sizeof(szName));
+	
+	if(!szName[0])
+		return;
+	
+	TryShowTriggerName(iClient, szName);
+}
+
+TryShowTriggerName(iClient, const String:szName[])
+{
+	decl String:szTrieKey[24], Float:fLastShown;
+	
+	FormatEx(szTrieKey, sizeof(szTrieKey), "%d-%s", iClient, szName);
+	if(GetTrieValue(g_hTrie_TriggerNameTimes, szTrieKey, fLastShown))
+	{
+		if(GetGameTime() < fLastShown + 2.0)
+			return;
+	}
+	
+	SetTrieValue(g_hTrie_TriggerNameTimes, szTrieKey, GetGameTime(), true);
+	
+	PrintToConsole(iClient, "Trigger name: %s", szName);
 }
 
 public Action:OnZoneManager(iClient, iArgNum)
@@ -2260,6 +2329,9 @@ public OnTouchPost(iZone, iOther)
 {
 	static iZoneID;
 	iZoneID = GetZoneID(iZone);
+	
+	if(g_iZoneIDToIndex[iZoneID] == INVALID_ZONE_ID || g_iZoneIDToIndex[iZoneID] >= GetArraySize(g_aZones))
+		return;
 	
 	static eZone[Zone];
 	GetArrayArray(g_aZones, g_iZoneIDToIndex[iZoneID], eZone);
