@@ -1,5 +1,6 @@
 #include <sourcemod>
 #include "../../Libraries/ZoneManager/zone_manager"
+#include "../../Libraries/MovementStyles/movement_styles"
 #include "../../Plugins/UserPoints/user_points"
 #include "Includes/speed_runs"
 #include <hls_color_chat>
@@ -7,7 +8,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Speed Runs: Points";
-new const String:PLUGIN_VERSION[] = "1.1";
+new const String:PLUGIN_VERSION[] = "1.2";
 
 public Plugin:myinfo =
 {
@@ -57,15 +58,19 @@ public OnMapStart()
 
 public SpeedRuns_OnStageCompleted_Pre(iClient, iStageNumber, iStyleBits, Float:fTimeTaken)
 {
-	HandleStageCompletion(iClient, iStageNumber);
+	HandleStageCompletion(iClient, iStageNumber, iStyleBits);
 }
 
-HandleStageCompletion(iClient, iStageNumber)
+HandleStageCompletion(iClient, iStageNumber, iStyleBits)
 {
 	// Don't give points for beating the map, only give for individual stages.
 	if(iStageNumber == 0)
 		return;
 	
+	// Don't give points for styles with too much assistance
+	if(iStyleBits & (STYLE_BIT_PARKOUR | STYLE_BIT_ROCKET_JUMP))
+		return;
+
 	new iIndex = GetCompletedStagesIndex(iClient);
 	if(iIndex == -1)
 		return;
