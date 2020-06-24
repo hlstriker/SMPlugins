@@ -125,7 +125,7 @@ public Action:OnStatsPage(iClient, iArgCount)
 		return Plugin_Handled;
 
 	CPrintToChat(iClient, "{lightgreen}-- {olive}To view the map records:");
-	CPrintToChat(iClient, "{lightgreen}-- {olive}Open the scoreboard (TAB key), right click, then click the SERVER WEBSITE button");
+	CPrintToChat(iClient, "{lightgreen}-- {olive}Open the scoreboard ({lightred}TAB key{olive}), right click, then click the {lightred}SERVER WEBSITE{olive} button in the bottom left.");
 
 	return Plugin_Handled;
 }
@@ -152,6 +152,8 @@ public Action:OnStats(iClient, iArgCount)
 {
 	if(!iClient)
 		return Plugin_Handled;
+		
+	CPrintToChat(iClient, "{lightgreen}-- {olive}Visit the website to see the full records leaderboards for all styles. Type {lightred}!wrpage{olive} for instructions.");
 	
 	new iMapID = DBMaps_GetMapID();
 	if(!iMapID)
