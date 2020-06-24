@@ -4,13 +4,16 @@
 #include "../../Libraries/DatabaseServers/database_servers"
 #include "../../Libraries/DatabaseUsers/database_users"
 #include "../../Libraries/DatabaseMapSessions/database_map_sessions"
-#include "../../Libraries/DemoSessions/demo_sessions"
 #include "../../Libraries/Admins/admins"
+
+#undef REQUIRE_PLUGIN
+#include "../../Libraries/DemoSessions/demo_sessions"
+#define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Log admin activity";
-new const String:PLUGIN_VERSION[] = "1.10";
+new const String:PLUGIN_VERSION[] = "1.11";
 
 public Plugin:myinfo =
 {
@@ -31,6 +34,8 @@ new g_iNumCommandsFiltered;
 new Handle:cvar_database_servers_configname;
 new String:g_szDatabaseConfigName[64];
 
+new bool:g_bLibLoaded_DemoSessions;
+
 new bool:g_bCanLog;
 
 
@@ -42,6 +47,24 @@ public OnPluginStart()
 public OnAllPluginsLoaded()
 {
 	cvar_database_servers_configname = FindConVar("sm_database_servers_configname");
+	
+	g_bLibLoaded_DemoSessions = LibraryExists("demo_sessions");
+}
+
+public OnLibraryAdded(const String:szName[])
+{
+	if(StrEqual(szName, "demo_sessions"))
+	{
+		g_bLibLoaded_DemoSessions = true;
+	}
+}
+
+public OnLibraryRemoved(const String:szName[])
+{
+	if(StrEqual(szName, "demo_sessions"))
+	{
+		g_bLibLoaded_DemoSessions = false;
+	}
 }
 
 public DB_OnStartConnectionSetup()
@@ -204,13 +227,24 @@ LogCommandToDatabase(iClientUserID, iClientAdminLevel, bool:bClientIsServer, iTa
 	
 	if(!DB_EscapeString(g_szDatabaseConfigName, szCommandInfo, szCommandInfoSafe, sizeof(szCommandInfoSafe)))
 		return;
+		
+	new iDemoTick = 0;
+	new iDemoID = 0;
+
+	if (g_bLibLoaded_DemoSessions)
+	{
+		#if defined _demo_sessions_included
+		iDemoTick = DemoSessions_GetCurrentTick();
+		iDemoID = DemoSessions_GetID();
+		#endif
+	}
 	
 	DB_TQuery(g_szDatabaseConfigName, _, DBPrio_Low, _, "\
 		INSERT INTO gs_admin_activity \
 		(server_id, map_sess_id, demo_sess_id, demo_tick_sent, client_user_id, target_user_id, client_admin_level, target_admin_level, is_client_server, is_target_bot, command_text, command_info, activity_utime) \
 		VALUES \
 		(%i, %i, %i, %i, %i, %i, %i, %i, %i, %i, '%s', '%s', UNIX_TIMESTAMP())",
-		DBServers_GetServerID(), DBMapSessions_GetSessionID(), DemoSessions_GetID(), DemoSessions_GetCurrentTick(), iClientUserID, iTargetUserID, iClientAdminLevel, iTargetAdminLevel, bClientIsServer, bTargetIsBot, szCommandTextSafe, szCommandInfoSafe);
+		DBServers_GetServerID(), DBMapSessions_GetSessionID(), iDemoID, iDemoTick, iClientUserID, iTargetUserID, iClientAdminLevel, iTargetAdminLevel, bClientIsServer, bTargetIsBot, szCommandTextSafe, szCommandInfoSafe);
 }
 
 AdminLevel:GetAdminsLevel(iClient)
