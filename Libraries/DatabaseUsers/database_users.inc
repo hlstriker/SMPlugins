@@ -31,3 +31,12 @@ native bool:DBUsers_PrepareSecurityToken(client, SecurityTokenReadyCallback:read
 
 forward DBUsers_OnUserIDReady(client, user_id);
 forward DBUsers_OnNewUserID(user_id, client_serial);
+
+#if !defined REQUIRE_PLUGIN
+public __pl_database_users_SetNTVOptional()
+{
+	MarkNativeAsOptional("DBUsers_GetUserID");
+	MarkNativeAsOptional("DBUsers_GetFormattedAuthID");
+	MarkNativeAsOptional("DBUsers_PrepareSecurityToken");
+}
+#endif

@@ -61,3 +61,16 @@ native Handle:DB_GetDatabaseHandleFromConnectionName(const String:connection_nam
  * @noreturn
  */
 forward DB_OnStartConnectionSetup();
+
+#if !defined REQUIRE_PLUGIN
+public __pl_database_core_SetNTVOptional()
+{
+	MarkNativeAsOptional("DB_GetInsertId");
+	MarkNativeAsOptional("DB_EscapeString");
+	MarkNativeAsOptional("DB_Query");
+	MarkNativeAsOptional("DB_CloseQueryHandle");
+	MarkNativeAsOptional("DB_TQuery");
+	MarkNativeAsOptional("DB_SetupConnection");
+	MarkNativeAsOptional("DB_GetDatabaseHandleFromConnectionName");
+}
+#endif

@@ -18,3 +18,10 @@ public SharedPlugin:__pl_database_map_sessions =
 
 
 native DBMapSessions_GetSessionID();
+
+#if !defined REQUIRE_PLUGIN
+public __pl_database_map_sessions_SetNTVOptional()
+{
+	MarkNativeAsOptional("DBMapSessions_GetSessionID");
+}
+#endif
