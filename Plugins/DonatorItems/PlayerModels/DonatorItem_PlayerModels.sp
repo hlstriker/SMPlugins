@@ -17,7 +17,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Donator Item: Player Models";
-new const String:PLUGIN_VERSION[] = "1.8";
+new const String:PLUGIN_VERSION[] = "1.9";
 
 public Plugin:myinfo =
 {
@@ -54,7 +54,9 @@ new const String:g_szPlayerModelNames[][] =
 	"Reina Kousaka",
 	"Rocket Raccoon",
 	"Samus Aran - Zero Suit",
-	"Goku"
+	"Goku",
+	"Chocola",
+	"Fox Miku"
 };
 
 new const String:g_szPlayerModelPaths[][] =
@@ -71,24 +73,28 @@ new const String:g_szPlayerModelPaths[][] =
 	"models/player/custom_player/swoobles/reina_kousaka_2/reina_kousaka.mdl",		// Reina Kousaka
 	"models/player/custom_player/swoobles/rocket_raccoon_2/rocket_raccoon.mdl",		// Rocket Raccoon
 	"models/player/custom_player/swoobles/samus_2/samus.mdl",						// Samus Aran - Zero Suit
-	"models/player/custom_player/swoobles/goku/goku.mdl"							// Goku
+	"models/player/custom_player/swoobles/goku/goku.mdl",							// Goku
+	"models/player/custom_player/swoobles/chocola/chocola.mdl",						// Chocola
+	"models/player/custom_player/swoobles/fox_miku/fox_miku.mdl"					// Fox Miku
 };
 
 new const String:g_szArmsModelPaths[][] =
 {
-	"",		// Ada Wong
-	"",		// Deadpool
-	"",		// Duke Nukem
-	"",		// Ezio Auditore da Firenze
-	"",		// Hitler
-	"",		// Hitman Agent 47
-	"",		// Lilith
-	"",		// Nanosuit
-	"",		// Punished "Venom" Snake
-	"",		// Reina Kousaka
-	"",		// Rocket Raccoon
-	"",		// Samus Aran - Zero Suit
-	"models/player/custom_player/swoobles/goku/arms.mdl"	// Goku
+	"models/player/custom_player/swoobles/ada_wong_2/arms/ada_arms.mdl",				// Ada Wong
+	"models/player/custom_player/swoobles/deadpool_2/arms/deadpool_arms.mdl",			// Deadpool
+	"models/player/custom_player/swoobles/duke_2/arms/duke_arms.mdl",					// Duke Nukem
+	"",																					// Ezio Auditore da Firenze
+	"models/player/custom_player/swoobles/hitler_3/arms/hitler_arms.mdl",				// Hitler
+	"",																					// Hitman Agent 47
+	"",																					// Lilith
+	"models/player/custom_player/swoobles/nanosuit_2/arms/nanosuit_arms.mdl",			// Nanosuit
+	"models/player/custom_player/swoobles/sneaking_suit_2/arms/sneaking_suit_arms.mdl",	// Punished "Venom" Snake
+	"models/player/custom_player/swoobles/reina_kousaka_2/arms/reina_red_both.mdl",		// Reina Kousaka
+	"",																					// Rocket Raccoon
+	"",																					// Samus Aran - Zero Suit
+	"models/player/custom_player/swoobles/goku/arms.mdl",								// Goku
+	"models/player/custom_player/swoobles/chocola/arms/chocola_arms.mdl",				// Chocola
+	"models/player/custom_player/swoobles/fox_miku/arms/fox_miku_arms_v2.mdl"			// Fox Miku
 };
 
 new const String:g_szPlayerModelFiles[][] =
@@ -97,6 +103,9 @@ new const String:g_szPlayerModelFiles[][] =
 	"models/player/custom_player/swoobles/ada_wong_2/ada_wong.dx90.vtx",
 	"models/player/custom_player/swoobles/ada_wong_2/ada_wong.phy",
 	"models/player/custom_player/swoobles/ada_wong_2/ada_wong.vvd",
+	
+	"models/player/custom_player/swoobles/ada_wong_2/arms/ada_arms.dx90.vtx",
+	"models/player/custom_player/swoobles/ada_wong_2/arms/ada_arms.vvd",
 	
 	"materials/swoobles/player/re6_ada_wong_2/ada_bjlips.vmt",
 	"materials/swoobles/player/re6_ada_wong_2/ada_chest_blue.vmt",
@@ -129,10 +138,16 @@ new const String:g_szPlayerModelFiles[][] =
 	"materials/swoobles/player/re6_ada_wong_2/ada_shirt_red.vmt",
 	"materials/swoobles/player/re6_ada_wong_2/ada_shirt_red.vtf",
 	
+	"materials/swoobles/player/re6_ada_wong_2/ada_shirt_both.vmt",
+	"materials/swoobles/player/re6_ada_wong_2/ada_shirt_both.vtf",
+	
 	// Deadpool
 	"models/player/custom_player/swoobles/deadpool_2/deadpool.dx90.vtx",
 	"models/player/custom_player/swoobles/deadpool_2/deadpool.phy",
 	"models/player/custom_player/swoobles/deadpool_2/deadpool.vvd",
+	
+	"models/player/custom_player/swoobles/deadpool_2/arms/deadpool_arms.dx90.vtx",
+	"models/player/custom_player/swoobles/deadpool_2/arms/deadpool_arms.vvd",
 	
 	"materials/swoobles/player/deadpool_2/deadpool_body_color.vmt",
 	"materials/swoobles/player/deadpool_2/deadpool_body_color_blue.vmt",
@@ -152,10 +167,16 @@ new const String:g_szPlayerModelFiles[][] =
 	"materials/swoobles/player/deadpool_2/deadpoolsword_color.vtf",
 	"materials/swoobles/player/deadpool_2/deadpoolsword_norm.vtf",
 	
+	"materials/swoobles/player/deadpool_2/deadpool_body_color_both.vmt",
+	"materials/swoobles/player/deadpool_2/deadpool_body_color_both.vtf",
+	
 	// Duke Nukem
 	"models/player/custom_player/swoobles/duke_2/duke.phy",
 	"models/player/custom_player/swoobles/duke_2/duke.dx90.vtx",
 	"models/player/custom_player/swoobles/duke_2/duke.vvd",
+	
+	"models/player/custom_player/swoobles/duke_2/arms/duke_arms.dx90.vtx",
+	"models/player/custom_player/swoobles/duke_2/arms/duke_arms.vvd",
 	
 	"materials/swoobles/player/duke_2/duke_body.vmt",
 	"materials/swoobles/player/duke_2/duke_body_blue.vmt",
@@ -176,6 +197,12 @@ new const String:g_szPlayerModelFiles[][] =
 	"materials/swoobles/player/duke_2/duke_lightwarp.vtf",
 	"materials/swoobles/player/duke_2/duke_shades.vtf",
 	"materials/swoobles/player/duke_2/duke_shades_normal.vtf",
+	
+	"materials/swoobles/player/duke_2/duke_arms_both.vmt",
+	"materials/swoobles/player/duke_2/duke_body_both.vtf",
+	"materials/swoobles/player/duke_2/duke_fingers_both.vmt",
+	"materials/swoobles/player/duke_2/duke_hand_both.vmt",
+	"materials/swoobles/player/duke_2/duke_hand_both.vtf",
 	
 	// Ezio Auditore da Firenze
 	"models/player/custom_player/swoobles/ezio_2/ezio.dx90.vtx",
@@ -237,6 +264,9 @@ new const String:g_szPlayerModelFiles[][] =
 	"models/player/custom_player/swoobles/hitler_3/hitler.phy",
 	"models/player/custom_player/swoobles/hitler_3/hitler.vvd",
 	
+	"models/player/custom_player/swoobles/hitler_3/arms/hitler_arms.dx90.vtx",
+	"models/player/custom_player/swoobles/hitler_3/arms/hitler_arms.vvd",
+	
 	"materials/swoobles/player/hitler_2/hitlerbody_blue.vmt",
 	"materials/swoobles/player/hitler_2/hitlerbody_red.vmt",
 	"materials/swoobles/player/hitler_2/hitlerhead_colspec.vmt",
@@ -245,6 +275,9 @@ new const String:g_szPlayerModelFiles[][] =
 	"materials/swoobles/player/hitler_2/hitlerbody_red.vtf",
 	"materials/swoobles/player/hitler_2/hitlerhead_colspec.vtf",
 	"materials/swoobles/player/hitler_2/hitlerhead_normal.vtf",
+	
+	"materials/swoobles/player/hitler_2/hitler_arms.vmt",
+	"materials/swoobles/player/hitler_2/hitlerbody_colspec.vtf",
 	
 	// Hitman Agent 47
 	"models/player/custom_player/swoobles/hitman_2/hitman.phy",
@@ -308,6 +341,9 @@ new const String:g_szPlayerModelFiles[][] =
 	"models/player/custom_player/swoobles/nanosuit_2/nanosuit.phy",
 	"models/player/custom_player/swoobles/nanosuit_2/nanosuit.vvd",
 	
+	"models/player/custom_player/swoobles/nanosuit_2/arms/nanosuit_arms.dx90.vtx",
+	"models/player/custom_player/swoobles/nanosuit_2/arms/nanosuit_arms.vvd",
+	
 	"materials/swoobles/player/nanosuit_2/arms_blue.vmt",
 	"materials/swoobles/player/nanosuit_2/arms_red.vmt",
 	"materials/swoobles/player/nanosuit_2/hands_blue.vmt",
@@ -343,10 +379,20 @@ new const String:g_szPlayerModelFiles[][] =
 	"materials/swoobles/player/nanosuit_2/visor_normal.vtf",
 	"materials/swoobles/player/nanosuit_2/visor_red.vtf",
 	
+	"materials/swoobles/player/nanosuit_2/arms_both.vtf",
+	"materials/swoobles/player/nanosuit_2/arms_vmodel.vmt",
+	"materials/swoobles/player/nanosuit_2/arms2_vmodel.vmt",
+	"materials/swoobles/player/nanosuit_2/hands_both.vtf",
+	"materials/swoobles/player/nanosuit_2/hands_vmodel.vmt",
+	"materials/swoobles/player/nanosuit_2/hands2_vmodel.vmt",
+	
 	// Punished "Venom" Snake
 	"models/player/custom_player/swoobles/sneaking_suit_2/sneaking_suit.dx90.vtx",
 	"models/player/custom_player/swoobles/sneaking_suit_2/sneaking_suit.phy",
 	"models/player/custom_player/swoobles/sneaking_suit_2/sneaking_suit.vvd",
+	
+	"models/player/custom_player/swoobles/sneaking_suit_2/arms/sneaking_suit_arms.dx90.vtx",
+	"models/player/custom_player/swoobles/sneaking_suit_2/arms/sneaking_suit_arms.vvd",
 	
 	"materials/swoobles/player/sneaking_suit_2/cqc_knife_d.vmt",
 	"materials/swoobles/player/sneaking_suit_2/diamond_dog_emblem_d.vmt",
@@ -403,10 +449,16 @@ new const String:g_szPlayerModelFiles[][] =
 	"materials/swoobles/player/sneaking_suit_2/white2.vtf",
 	"materials/swoobles/player/sneaking_suit_2/white3.vtf",
 	
+	"materials/swoobles/player/sneaking_suit_2/sneaking_suit_arm_d_both.vmt",
+	"materials/swoobles/player/sneaking_suit_2/sneaking_suit_arm_d_both.vtf",
+	
 	// Reina Kousaka
 	"models/player/custom_player/swoobles/reina_kousaka_2/reina_kousaka.phy",
 	"models/player/custom_player/swoobles/reina_kousaka_2/reina_kousaka.dx90.vtx",
 	"models/player/custom_player/swoobles/reina_kousaka_2/reina_kousaka.vvd",
+	
+	"models/player/custom_player/swoobles/reina_kousaka_2/arms/reina_red_both.dx90.vtx",
+	"models/player/custom_player/swoobles/reina_kousaka_2/arms/reina_red_both.vvd",
 	
 	"materials/swoobles/player/reina_kousaka_2/drzka.vmt",
 	"materials/swoobles/player/reina_kousaka_2/obleceni.vmt",
@@ -418,6 +470,9 @@ new const String:g_szPlayerModelFiles[][] =
 	"materials/swoobles/player/reina_kousaka_2/obleceni_blue.vtf",
 	"materials/swoobles/player/reina_kousaka_2/telo.vtf",
 	"materials/swoobles/player/reina_kousaka_2/vlasy.vtf",
+	
+	"materials/swoobles/player/reina_kousaka_2/obleceni_both.vmt",
+	"materials/swoobles/player/reina_kousaka_2/obleceni_both.vtf",
 	
 	// Rocket Raccoon
 	"models/player/custom_player/swoobles/rocket_raccoon_2/rocket_raccoon.dx90.vtx",
@@ -523,7 +578,96 @@ new const String:g_szPlayerModelFiles[][] =
 	"materials/swoobles/player/goku/top.vtf",
 	"materials/swoobles/player/goku/top_blue.vtf",
 	"materials/swoobles/player/goku/top_normal.vtf",
-	"materials/swoobles/player/goku/wristband.vtf"
+	"materials/swoobles/player/goku/wristband.vtf",
+	
+	// Chocola
+	"models/player/custom_player/swoobles/chocola/chocola.dx90.vtx",
+	"models/player/custom_player/swoobles/chocola/chocola.phy",
+	"models/player/custom_player/swoobles/chocola/chocola.vvd",
+	
+	"models/player/custom_player/swoobles/chocola/arms/chocola_arms.dx90.vtx",
+	"models/player/custom_player/swoobles/chocola/arms/chocola_arms.vvd",
+	
+	"materials/swoobles/player/chocola/bow.vmt",
+	"materials/swoobles/player/chocola/eyes.vmt",
+	"materials/swoobles/player/chocola/face.vmt",
+	"materials/swoobles/player/chocola/hair.vmt",
+	"materials/swoobles/player/chocola/hair2.vmt",
+	"materials/swoobles/player/chocola/HairAho.vmt",
+	"materials/swoobles/player/chocola/hairEars.vmt",
+	"materials/swoobles/player/chocola/hairEars2.vmt",
+	"materials/swoobles/player/chocola/hands.vmt",
+	"materials/swoobles/player/chocola/headset.vmt",
+	"materials/swoobles/player/chocola/Mayu.vmt",
+	"materials/swoobles/player/chocola/mouth.vmt",
+	"materials/swoobles/player/chocola/onep1.vmt",
+	"materials/swoobles/player/chocola/onep1_red.vmt",
+	"materials/swoobles/player/chocola/onep2.vmt",
+	"materials/swoobles/player/chocola/pants.vmt",
+	"materials/swoobles/player/chocola/shoe.vmt",
+	"materials/swoobles/player/chocola/skin.vmt",
+	"materials/swoobles/player/chocola/SkinAlpha.vmt",
+	"materials/swoobles/player/chocola/SkinHi.vmt",
+	"materials/swoobles/player/chocola/stkg.vmt",
+	"materials/swoobles/player/chocola/stkg_red.vmt",
+	"materials/swoobles/player/chocola/tail.vmt",
+	"materials/swoobles/player/chocola/Dress188_accKamiSub.vtf",
+	"materials/swoobles/player/chocola/Dress188_accShippo.vtf",
+	"materials/swoobles/player/chocola/Dress188_accUde.vtf",
+	"materials/swoobles/player/chocola/Dress188_head.vtf",
+	"materials/swoobles/player/chocola/Dress188_onep1.vtf",
+	"materials/swoobles/player/chocola/Dress188_onep1_red.vtf",
+	"materials/swoobles/player/chocola/Dress188_onep2.vtf",
+	"materials/swoobles/player/chocola/Dress188_shoe.vtf",
+	"materials/swoobles/player/chocola/eye.vtf",
+	"materials/swoobles/player/chocola/face.vtf",
+	"materials/swoobles/player/chocola/Face008_Mayu (Instance)_(-81352).vtf",
+	"materials/swoobles/player/chocola/Face008_Mouth (Instance)_(-81358).vtf",
+	"materials/swoobles/player/chocola/Face008_SkinAlpha (Instance)_(-81354).vtf",
+	"materials/swoobles/player/chocola/Face008_SkinHi (Instance)_(-81350).vtf",
+	"materials/swoobles/player/chocola/Hair_Aho006a-HairAho (Instance)_(-84002).vtf",
+	"materials/swoobles/player/chocola/hair_f.vtf",
+	"materials/swoobles/player/chocola/hair_r.vtf",
+	"materials/swoobles/player/chocola/Hair_R071-HairAcc (Instance)_(-81482).vtf",
+	"materials/swoobles/player/chocola/hair_twin.vtf",
+	"materials/swoobles/player/chocola/pants.vtf",
+	"materials/swoobles/player/chocola/skin.vtf",
+	"materials/swoobles/player/chocola/stkg.vtf",
+	"materials/swoobles/player/chocola/stkg_red.vtf",
+	
+	// Fox Miku
+	"models/player/custom_player/swoobles/fox_miku/fox_miku.dx90.vtx",
+	"models/player/custom_player/swoobles/fox_miku/fox_miku.phy",
+	"models/player/custom_player/swoobles/fox_miku/fox_miku.vvd",
+	
+	"models/player/custom_player/swoobles/fox_miku/arms/fox_miku_arms_v2.dx90.vtx",
+	"models/player/custom_player/swoobles/fox_miku/arms/fox_miku_arms_v2.vvd",
+	
+	"materials/swoobles/player/fox_miku/all_cloth_blue.vmt",
+	"materials/swoobles/player/fox_miku/all_cloth_red.vmt",
+	"materials/swoobles/player/fox_miku/all_head.vmt",
+	"materials/swoobles/player/fox_miku/all_head_blue.vmt",
+	"materials/swoobles/player/fox_miku/body.vmt",
+	"materials/swoobles/player/fox_miku/body_blue.vmt",
+	"materials/swoobles/player/fox_miku/fox_tail_all.vmt",
+	"materials/swoobles/player/fox_miku/fox_tail_blue.vmt",
+	"materials/swoobles/player/fox_miku/skirt_blue.vmt",
+	"materials/swoobles/player/fox_miku/skirt_red.vmt",
+	"materials/swoobles/player/fox_miku/all_cloth_grey.vmt",
+	"materials/swoobles/player/fox_miku/all_cloth_blue.vtf",
+	"materials/swoobles/player/fox_miku/all_cloth_nor.vtf",
+	"materials/swoobles/player/fox_miku/all_cloth_red.vtf",
+	"materials/swoobles/player/fox_miku/all_head.vtf",
+	"materials/swoobles/player/fox_miku/all_head_blue.vtf",
+	"materials/swoobles/player/fox_miku/all_head_nor.vtf",
+	"materials/swoobles/player/fox_miku/body.vtf",
+	"materials/swoobles/player/fox_miku/body_blue.vtf",
+	"materials/swoobles/player/fox_miku/body_nor.vtf",
+	"materials/swoobles/player/fox_miku/fox_tail_all.vtf",
+	"materials/swoobles/player/fox_miku/fox_tail_blue.vtf",
+	"materials/swoobles/player/fox_miku/skirt_all_blue.vtf",
+	"materials/swoobles/player/fox_miku/skirt_all_red.vtf",
+	"materials/swoobles/player/fox_miku/all_cloth_grey.vtf"
 };
 
 
