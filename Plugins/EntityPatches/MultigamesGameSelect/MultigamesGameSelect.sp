@@ -9,7 +9,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Multigames Game Select";
-new const String:PLUGIN_VERSION[] = "1.8";
+new const String:PLUGIN_VERSION[] = "1.9";
 
 public Plugin:myinfo =
 {
@@ -20,8 +20,8 @@ public Plugin:myinfo =
 	url = "www.swoobles.com"
 }
 
-new g_iLastButtonUsedHammerID;
-new Handle:g_hTimer_AutoPress;
+new g_iLastEntityUsedHammerID;
+new Handle:g_hTimer_AutoActivate;
 
 new bool:g_bGameSelectedThisRound;
 new bool:g_bShouldBlockRoundEnd;
@@ -41,7 +41,7 @@ public OnPluginStart()
 
 public OnMapStart()
 {
-	g_iLastButtonUsedHammerID = 0;
+	g_iLastEntityUsedHammerID = 0;
 	RoundStart();
 }
 
@@ -52,7 +52,7 @@ public Action:Event_RoundPrestart_Pre(Handle:hEvent, const String:szName[], bool
 
 RoundStart()
 {
-	StopTimer_AutoPress();
+	StopTimer_AutoActivate();
 	
 	g_bGameSelectedThisRound = false;
 	g_bShouldBlockRoundEnd = false;
@@ -60,38 +60,36 @@ RoundStart()
 
 public OnMapEnd()
 {
-	StopTimer_AutoPress();
+	StopTimer_AutoActivate();
 }
 
-StopTimer_AutoPress()
+StopTimer_AutoActivate()
 {
-	if(g_hTimer_AutoPress == INVALID_HANDLE)
+	if(g_hTimer_AutoActivate == INVALID_HANDLE)
 		return;
 	
-	KillTimer(g_hTimer_AutoPress);
-	g_hTimer_AutoPress = INVALID_HANDLE;
+	KillTimer(g_hTimer_AutoActivate);
+	g_hTimer_AutoActivate = INVALID_HANDLE;
 }
 
-StartTimer_AutoPress()
+StartTimer_AutoActivate()
 {
-	new iAutoSelectTime = GetConVarInt(cvar_multigame_auto_select_time);
-	g_iCountDown = iAutoSelectTime;
+	g_iCountDown = GetConVarInt(cvar_multigame_auto_select_time);
 	
-	StopTimer_AutoPress();
+	StopTimer_AutoActivate();
+	g_hTimer_AutoActivate = CreateTimer(1.0, Timer_AutoActivate, _, TIMER_REPEAT);
 	
-	if(iAutoSelectTime > 0)
-	{
-		g_hTimer_AutoPress = CreateTimer(1.0, Timer_AutoPress, _, TIMER_REPEAT);
-		
-		if(g_hTimer_AutoPress != INVALID_HANDLE)
-			g_bShouldBlockRoundEnd = true;
-	}
+	if(g_hTimer_AutoActivate != INVALID_HANDLE)
+		g_bShouldBlockRoundEnd = true;
 }
 
-public Action:Timer_AutoPress(Handle:hTimer)
+public Action:Timer_AutoActivate(Handle:hTimer)
 {
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 		TryRespawnClient(iClient);
+	
+	if(!GetConVarInt(cvar_multigame_auto_select_time))
+		return Plugin_Continue;
 	
 	g_iCountDown--;
 	if(g_iCountDown > 0)
@@ -113,19 +111,66 @@ public Action:Timer_AutoPress(Handle:hTimer)
 			PushArrayCell(hEntList, iEnt);
 	}
 	
+	iEnt = -1;
+	while((iEnt = FindEntityByClassname(iEnt, "trigger_once")) != -1)
+	{
+		if(EntityHooker_IsEntityHooked(EH_TYPE_MULTIGAMES_GAME_SELECT, iEnt))
+			PushArrayCell(hEntList, iEnt);
+	}
+	
+	iEnt = -1;
+	while((iEnt = FindEntityByClassname(iEnt, "trigger_multiple")) != -1)
+	{
+		if(EntityHooker_IsEntityHooked(EH_TYPE_MULTIGAMES_GAME_SELECT, iEnt))
+			PushArrayCell(hEntList, iEnt);
+	}
+	
 	new iArraySize = GetArraySize(hEntList);
 	if(iArraySize)
 	{
+		CPrintToChatAll("{green}Automatically selecting a game...");
+		
 		iEnt = GetArrayCell(hEntList, GetRandomInt(0, iArraySize-1));
-		AcceptEntityInput(iEnt, "Use");
+		ActivateGameSelectEntity(iEnt);
 	}
 	
 	CloseHandle(hEntList);
 	
-	CPrintToChatAll("{green}Game selected.");
-	
-	g_hTimer_AutoPress = INVALID_HANDLE;
+	g_hTimer_AutoActivate = INVALID_HANDLE;
 	return Plugin_Stop;
+}
+
+ActivateGameSelectEntity(iEnt)
+{
+	decl String:szClassName[32];
+	if(!GetEntityClassname(iEnt, szClassName, sizeof(szClassName)))
+		return;
+	
+	if(StrEqual(szClassName, "func_button"))
+	{
+		AcceptEntityInput(iEnt, "Use", _, iEnt);
+	}
+	else if(StrEqual(szClassName, "trigger_once") || StrEqual(szClassName, "trigger_multiple"))
+	{
+		new iFoundClient;
+		
+		for(new iClient=1; iClient<=MaxClients; iClient++)
+		{
+			if(!IsClientInGame(iClient))
+				continue;
+			
+			if(!IsPlayerAlive(iClient))
+				continue;
+			
+			if(GetClientTeam(iClient) < CS_TEAM_T)
+				continue;
+			
+			iFoundClient = iClient;
+			break;
+		}
+		
+		AcceptEntityInput(iEnt, "StartTouch", _, iFoundClient);
+	}
 }
 
 TryRespawnClient(iClient)
@@ -141,7 +186,7 @@ TryRespawnClient(iClient)
 
 public EntityHooker_OnRegisterReady()
 {
-	EntityHooker_Register(EH_TYPE_MULTIGAMES_GAME_SELECT, "Multigames game select", "func_button");
+	EntityHooker_Register(EH_TYPE_MULTIGAMES_GAME_SELECT, "Multigames game select", "func_button", "trigger_once", "trigger_multiple");
 	
 	EntityHooker_RegisterProperty(EH_TYPE_MULTIGAMES_GAME_SELECT, Prop_Send, PropField_String, "m_iName");
 	EntityHooker_RegisterProperty(EH_TYPE_MULTIGAMES_GAME_SELECT, Prop_Data, PropField_String, "m_target");
@@ -156,14 +201,31 @@ public EntityHooker_OnEntityHooked(iHookType, iEnt)
 	if(!iHammerID)
 		return;
 	
-	if(iHammerID == g_iLastButtonUsedHammerID)
+	if(iHammerID == g_iLastEntityUsedHammerID)
 	{
 		AcceptEntityInput(iEnt, "KillHierarchy");
 		return;
 	}
 	
-	HookSingleEntityOutput(iEnt, "OnPressed", OnButtonPressed, true);
-	StartTimer_AutoPress();
+	HookGameSelectEntity(iEnt);
+	StartTimer_AutoActivate();
+}
+
+HookGameSelectEntity(iEnt)
+{
+	decl String:szClassName[32];
+	if(!GetEntityClassname(iEnt, szClassName, sizeof(szClassName)))
+		return;
+	
+	if(StrEqual(szClassName, "func_button"))
+	{
+		HookSingleEntityOutput(iEnt, "OnPressed", OnButtonPressed, true);
+	}
+	else if(StrEqual(szClassName, "trigger_once") || StrEqual(szClassName, "trigger_multiple"))
+	{
+		HookSingleEntityOutput(iEnt, "OnTrigger", OnTriggerTriggered, true);
+		HookSingleEntityOutput(iEnt, "OnStartTouch", OnTriggerTriggered, true);
+	}
 }
 
 public EntityHooker_OnEntityUnhooked(iHookType, iEnt)
@@ -176,19 +238,28 @@ public EntityHooker_OnEntityUnhooked(iHookType, iEnt)
 
 public OnButtonPressed(const String:szOutput[], iCaller, iActivator, Float:fDelay)
 {
+	OnGameSelectEntityActivated(iCaller);
+}
+
+public OnTriggerTriggered(const String:szOutput[], iCaller, iActivator, Float:fDelay)
+{
+	OnGameSelectEntityActivated(iCaller);
+}
+
+OnGameSelectEntityActivated(iEnt)
+{
 	if(g_bGameSelectedThisRound)
 		return;
 	
 	g_bShouldBlockRoundEnd = false;
 	g_bGameSelectedThisRound = true;
 	
-	StopTimer_AutoPress();
+	StopTimer_AutoActivate();
 	
-	if(g_iCountDown)
-		CPrintToChatAll("{green}Game selected.");
+	CPrintToChatAll("{green}Game selected.");
 	
-	if(iCaller > 0)
-		g_iLastButtonUsedHammerID = GetEntProp(iCaller, Prop_Data, "m_iHammerID");
+	if(iEnt > 0)
+		g_iLastEntityUsedHammerID = GetEntProp(iEnt, Prop_Data, "m_iHammerID");
 }
 
 public Action:CS_OnTerminateRound(&Float:fDelay, &CSRoundEndReason:reason)
