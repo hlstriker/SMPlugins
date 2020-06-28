@@ -17,7 +17,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Donator Item: Player Models";
-new const String:PLUGIN_VERSION[] = "1.9";
+new const String:PLUGIN_VERSION[] = "1.10";
 
 public Plugin:myinfo =
 {
@@ -56,7 +56,12 @@ new const String:g_szPlayerModelNames[][] =
 	"Samus Aran - Zero Suit",
 	"Goku",
 	"Chocola",
-	"Fox Miku"
+	"Fox Miku",
+	"Lucoa",
+	"Prinz Eugen",
+	"Putin",
+	"Trump",
+	"Kim Jong Un"
 };
 
 new const String:g_szPlayerModelPaths[][] =
@@ -75,7 +80,12 @@ new const String:g_szPlayerModelPaths[][] =
 	"models/player/custom_player/swoobles/samus_2/samus.mdl",						// Samus Aran - Zero Suit
 	"models/player/custom_player/swoobles/goku/goku.mdl",							// Goku
 	"models/player/custom_player/swoobles/chocola/chocola.mdl",						// Chocola
-	"models/player/custom_player/swoobles/fox_miku/fox_miku.mdl"					// Fox Miku
+	"models/player/custom_player/swoobles/fox_miku/fox_miku.mdl",					// Fox Miku
+	"models/player/custom_player/swoobles/lucoa/lucoa.mdl",							// Lucoa
+	"models/player/custom_player/swoobles/prinz_eugen/prinz_eugen.mdl",				// Prinz Eugen
+	"models/player/custom_player/swoobles/putin/putin.mdl",							// Putin
+	"models/player/custom_player/swoobles/trump/trump.mdl",							// Trump
+	"models/player/custom_player/swoobles/kim_jong_un/kim.mdl"						// Kim Jong Un
 };
 
 new const String:g_szArmsModelPaths[][] =
@@ -94,7 +104,13 @@ new const String:g_szArmsModelPaths[][] =
 	"",																					// Samus Aran - Zero Suit
 	"models/player/custom_player/swoobles/goku/arms.mdl",								// Goku
 	"models/player/custom_player/swoobles/chocola/arms/chocola_arms.mdl",				// Chocola
-	"models/player/custom_player/swoobles/fox_miku/arms/fox_miku_arms_v2.mdl"			// Fox Miku
+	"models/player/custom_player/swoobles/fox_miku/arms/fox_miku_arms_v2.mdl",			// Fox Miku
+	
+	"models/player/custom_player/swoobles/lucoa/arms/arms_lucoa_v2.mdl",				// Lucoa
+	"models/player/custom_player/swoobles/prinz_eugen/arms/prinz_eugen_arms.mdl",		// Prinz Eugen
+	"models/player/custom_player/swoobles/putin/arms/putin_arms.mdl",					// Putin
+	"models/player/custom_player/swoobles/trump/arms/trump_arms.mdl",					// Trump
+	"models/player/custom_player/swoobles/kim_jong_un/arms/kim_arms.mdl"				// Kim Jong Un
 };
 
 new const String:g_szPlayerModelFiles[][] =
@@ -667,7 +683,167 @@ new const String:g_szPlayerModelFiles[][] =
 	"materials/swoobles/player/fox_miku/fox_tail_blue.vtf",
 	"materials/swoobles/player/fox_miku/skirt_all_blue.vtf",
 	"materials/swoobles/player/fox_miku/skirt_all_red.vtf",
-	"materials/swoobles/player/fox_miku/all_cloth_grey.vtf"
+	"materials/swoobles/player/fox_miku/all_cloth_grey.vtf",
+	
+	// Lucoa
+	"models/player/custom_player/swoobles/lucoa/arms/arms_lucoa_v2.dx90.vtx",
+	"models/player/custom_player/swoobles/lucoa/arms/arms_lucoa_v2.vvd",
+	
+	"models/player/custom_player/swoobles/lucoa/lucoa.dx90.vtx",
+	"models/player/custom_player/swoobles/lucoa/lucoa.phy",
+	"models/player/custom_player/swoobles/lucoa/lucoa.vvd",
+	
+	"materials/swoobles/player/lucoa/blush.vmt",
+	"materials/swoobles/player/lucoa/blush.vtf",
+	"materials/swoobles/player/lucoa/blush2.vmt",
+	"materials/swoobles/player/lucoa/blush2.vtf",
+	"materials/swoobles/player/lucoa/body.vmt",
+	"materials/swoobles/player/lucoa/body.vtf",
+	"materials/swoobles/player/lucoa/body2.vmt",
+	"materials/swoobles/player/lucoa/cap.vtf",
+	"materials/swoobles/player/lucoa/cap_blue.vmt",
+	"materials/swoobles/player/lucoa/cap_blue.vtf",
+	"materials/swoobles/player/lucoa/cap_red.vmt",
+	"materials/swoobles/player/lucoa/expressions.vmt",
+	"materials/swoobles/player/lucoa/expressions.vtf",
+	"materials/swoobles/player/lucoa/expressions2.vmt",
+	"materials/swoobles/player/lucoa/expressions2.vtf",
+	"materials/swoobles/player/lucoa/eyes.vmt",
+	"materials/swoobles/player/lucoa/eyes.vtf",
+	"materials/swoobles/player/lucoa/eyes2.vmt",
+	"materials/swoobles/player/lucoa/eyes2.vtf",
+	"materials/swoobles/player/lucoa/eyestock.vmt",
+	"materials/swoobles/player/lucoa/hair.vtf",
+	"materials/swoobles/player/lucoa/hair_blue.vmt",
+	"materials/swoobles/player/lucoa/hair_red.vmt",
+	"materials/swoobles/player/lucoa/hair_red.vtf",
+	"materials/swoobles/player/lucoa/horn.vmt",
+	"materials/swoobles/player/lucoa/normal.vtf",
+	"materials/swoobles/player/lucoa/outfit.vtf",
+	"materials/swoobles/player/lucoa/outfit_blue.vmt",
+	"materials/swoobles/player/lucoa/outfit_red.vmt",
+	"materials/swoobles/player/lucoa/outfit_red.vtf",
+	"materials/swoobles/player/lucoa/phong_exp.vtf",
+	"materials/swoobles/player/lucoa/shader.vtf",
+	"materials/swoobles/player/lucoa/swimsuit.vmt",
+	"materials/swoobles/player/lucoa/swimsuit.vtf",
+	"materials/swoobles/player/lucoa/swimsuit2.vmt",
+	"materials/swoobles/player/lucoa/swimsuit2.vtf",
+	"materials/swoobles/player/lucoa/tears.vmt",
+	"materials/swoobles/player/lucoa/tears.vtf",
+	"materials/swoobles/player/lucoa/toon_cap.vtf",
+	"materials/swoobles/player/lucoa/toon_hair.vtf",
+	"materials/swoobles/player/lucoa/toon_head.vtf",
+	"materials/swoobles/player/lucoa/toon_shirt.vtf",
+	"materials/swoobles/player/lucoa/underpants.vmt",
+	"materials/swoobles/player/lucoa/underpants.vtf",
+	"materials/swoobles/player/lucoa/white.vmt",
+	"materials/swoobles/player/lucoa/white.vtf",
+	
+	// Prinz Eugen
+	"models/player/custom_player/swoobles/prinz_eugen/arms/prinz_eugen_arms.dx90.vtx",
+	"models/player/custom_player/swoobles/prinz_eugen/arms/prinz_eugen_arms.vvd",
+	
+	"models/player/custom_player/swoobles/prinz_eugen/prinz_eugen.dx90.vtx",
+	"models/player/custom_player/swoobles/prinz_eugen/prinz_eugen.phy",
+	"models/player/custom_player/swoobles/prinz_eugen/prinz_eugen.vvd",
+	
+	"materials/swoobles/player/prinz_eugen/body_blue.vmt",
+	"materials/swoobles/player/prinz_eugen/body_blue.vtf",
+	"materials/swoobles/player/prinz_eugen/body_both.vmt",
+	"materials/swoobles/player/prinz_eugen/body_both.vtf",
+	"materials/swoobles/player/prinz_eugen/body_red.vmt",
+	"materials/swoobles/player/prinz_eugen/body_red.vtf",
+	"materials/swoobles/player/prinz_eugen/face_blue.vmt",
+	"materials/swoobles/player/prinz_eugen/face_blue.vtf",
+	"materials/swoobles/player/prinz_eugen/face_red.vmt",
+	"materials/swoobles/player/prinz_eugen/face_red.vtf",
+	"materials/swoobles/player/prinz_eugen/hair_blue.vmt",
+	"materials/swoobles/player/prinz_eugen/hair_blue.vtf",
+	"materials/swoobles/player/prinz_eugen/hair_red.vmt",
+	"materials/swoobles/player/prinz_eugen/hair_red.vtf",
+	"materials/swoobles/player/prinz_eugen/misc_blue.vtf",
+	"materials/swoobles/player/prinz_eugen/misc_red.vtf",
+	"materials/swoobles/player/prinz_eugen/normal.vtf",
+	"materials/swoobles/player/prinz_eugen/shader.vtf",
+	
+	// Putin
+	"models/player/custom_player/swoobles/putin/arms/putin_arms.dx90.vtx",
+	"models/player/custom_player/swoobles/putin/arms/putin_arms.vvd",
+	
+	"models/player/custom_player/swoobles/putin/putin.dx90.vtx",
+	"models/player/custom_player/swoobles/putin/putin.phy",
+	"models/player/custom_player/swoobles/putin/putin.vvd",
+	
+	"materials/swoobles/player/putin/arms_gloves.vmt",
+	"materials/swoobles/player/putin/arms_gloves.vtf",
+	"materials/swoobles/player/putin/arms_gloves_normal.vtf",
+	"materials/swoobles/player/putin/arms_suit_both.vmt",
+	"materials/swoobles/player/putin/arms_suit_both.vtf",
+	"materials/swoobles/player/putin/arms_suit_normal.vtf",
+	"materials/swoobles/player/putin/clip_chrome.vmt",
+	"materials/swoobles/player/putin/clip_chrome.vtf",
+	"materials/swoobles/player/putin/dt_leather.vtf",
+	"materials/swoobles/player/putin/hands.vmt",
+	"materials/swoobles/player/putin/hands.vtf",
+	"materials/swoobles/player/putin/putin.vmt",
+	"materials/swoobles/player/putin/putin.vtf",
+	"materials/swoobles/player/putin/smithhead.vmt",
+	"materials/swoobles/player/putin/smithhead.vtf",
+	"materials/swoobles/player/putin/suit_blue.vmt",
+	"materials/swoobles/player/putin/suit_blue.vtf",
+	"materials/swoobles/player/putin/suit_red.vmt",
+	"materials/swoobles/player/putin/suit_red.vtf",
+	
+	// Trump
+	"models/player/custom_player/swoobles/trump/arms/trump_arms.dx90.vtx",
+	"models/player/custom_player/swoobles/trump/arms/trump_arms.vvd",
+	
+	"models/player/custom_player/swoobles/trump/trump.dx90.vtx",
+	"models/player/custom_player/swoobles/trump/trump.phy",
+	"models/player/custom_player/swoobles/trump/trump.vvd",
+	
+	"materials/swoobles/player/trump/trump_eyes.vmt",
+	"materials/swoobles/player/trump/trump_eyes.vtf",
+	"materials/swoobles/player/trump/trump_eyes_normal.vtf",
+	"materials/swoobles/player/trump/trump_hair.vmt",
+	"materials/swoobles/player/trump/trump_hair.vtf",
+	"materials/swoobles/player/trump/trump_hair_normal.vtf",
+	"materials/swoobles/player/trump/trump_hands.vmt",
+	"materials/swoobles/player/trump/trump_head.vmt",
+	"materials/swoobles/player/trump/trump_jacket.vmt",
+	"materials/swoobles/player/trump/trump_jacket_both.vmt",
+	"materials/swoobles/player/trump/trump_jacket_red.vmt",
+	"materials/swoobles/player/trump/trump_pants.vmt",
+	"materials/swoobles/player/trump/trump_pants_red.vmt",
+	"materials/swoobles/player/trump/trump_shoes.vmt",
+	"materials/swoobles/player/trump/trump_skin.vtf",
+	"materials/swoobles/player/trump/trump_skin_normal.vtf",
+	"materials/swoobles/player/trump/trump_suit.vtf",
+	"materials/swoobles/player/trump/trump_suit_both.vtf",
+	"materials/swoobles/player/trump/trump_suit_normal.vtf",
+	"materials/swoobles/player/trump/trump_suit_red.vtf",
+	
+	// Kim Jong Un
+	"models/player/custom_player/swoobles/kim_jong_un/arms/kim_arms.dx90.vtx",
+	"models/player/custom_player/swoobles/kim_jong_un/arms/kim_arms.vvd",
+	
+	"models/player/custom_player/swoobles/kim_jong_un/kim.dx90.vtx",
+	"models/player/custom_player/swoobles/kim_jong_un/kim.phy",
+	"models/player/custom_player/swoobles/kim_jong_un/kim.vvd",
+	
+	"materials/swoobles/player/kim_jong_un/badge.vmt",
+	"materials/swoobles/player/kim_jong_un/badge.vtf",
+	"materials/swoobles/player/kim_jong_un/body.vmt",
+	"materials/swoobles/player/kim_jong_un/body.vtf",
+	"materials/swoobles/player/kim_jong_un/body_normal.vtf",
+	"materials/swoobles/player/kim_jong_un/cloth.vmt",
+	"materials/swoobles/player/kim_jong_un/cloth.vtf",
+	"materials/swoobles/player/kim_jong_un/cloth_blue.vmt",
+	"materials/swoobles/player/kim_jong_un/cloth_blue.vtf",
+	"materials/swoobles/player/kim_jong_un/cloth_normal.vtf",
+	"materials/swoobles/player/kim_jong_un/cloth_red.vmt",
+	"materials/swoobles/player/kim_jong_un/cloth_red.vtf"
 };
 
 
