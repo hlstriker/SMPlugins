@@ -18,3 +18,4 @@ public SharedPlugin:__pl_hide_players =
 
 
 native bool:HidePlayers_IsClientHidingTarget(client, target_client);
+native bool:HidePlayers_SetClientHideAllowed(client, bool:allowed);

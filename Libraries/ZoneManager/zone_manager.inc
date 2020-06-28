@@ -36,6 +36,7 @@ public SharedPlugin:__pl_zone_manager =
 #define ZONE_TYPE_WEAPONSTRIP           13
 #define ZONE_TYPE_DAMAGEBLOCKER 		14
 #define ZONE_TYPE_NAMED			 		15
+#define ZONE_TYPE_HIDE_TOGGLE	 		16
 
 #define MAX_ZONE_TYPE_NAME_LEN		24
 #define MAX_ZONE_DATA_STRING_LENGTH	255

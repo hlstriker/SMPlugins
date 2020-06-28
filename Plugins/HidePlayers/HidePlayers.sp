@@ -6,7 +6,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Hide Players";
-new const String:PLUGIN_VERSION[] = "2.9";
+new const String:PLUGIN_VERSION[] = "2.10";
 
 public Plugin:myinfo =
 {
@@ -32,6 +32,7 @@ enum
 };
 
 new g_iHideMode;
+new bool:g_bHideAllowed[MAXPLAYERS+1];
 new bool:g_bShouldHideOthers[MAXPLAYERS+1];
 new Float:g_fNextHideCommand[MAXPLAYERS+1];
 #define HIDE_COMMAND_DELAY 0.7
@@ -50,6 +51,7 @@ public OnPluginStart()
 	
 	RegConsoleCmd("sm_hide", OnHidePlayers, "Toggles hiding other players on and off.");
 	
+	HookEvent("round_prestart", Event_RoundPrestart_Post, EventHookMode_PostNoCopy);
 	HookEvent("cs_intermission", Event_Intermission_Post, EventHookMode_PostNoCopy);
 }
 
@@ -62,6 +64,7 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 {
 	RegPluginLibrary("hide_players");
 	CreateNative("HidePlayers_IsClientHidingTarget", _HidePlayers_IsClientHidingTarget);
+	CreateNative("HidePlayers_SetClientHideAllowed", _HidePlayers_SetClientHideAllowed);
 	
 	return APLRes_Success;
 }
@@ -79,6 +82,11 @@ public _HidePlayers_IsClientHidingTarget(Handle:hPlugin, iNumParams)
 	}
 	
 	return true;
+}
+
+public _HidePlayers_SetClientHideAllowed(Handle:hPlugin, iNumParams)
+{
+	g_bHideAllowed[GetNativeCell(1)] = GetNativeCell(2);
 }
 
 public Action:Event_Intermission_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
@@ -137,9 +145,16 @@ public OnMapStart()
 	}
 }
 
+public Action:Event_RoundPrestart_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
+{
+	for(new iClient=1; iClient<=MaxClients; iClient++)
+		g_bHideAllowed[iClient] = true;
+}
+
 public OnClientPutInServer(iClient)
 {
 	g_fNextHideCommand[iClient] = 0.0;
+	g_bHideAllowed[iClient] = true;
 	g_bShouldHideOthers[iClient] = false;
 	SDKHook(iClient, SDKHook_SetTransmit, OnSetTransmit_Player);
 }
@@ -190,6 +205,12 @@ public Action:OnSetTransmit_Player(iPlayerEnt, iClient)
 	g_fNextTransmitClient[iClient][iPlayerEnt] = GetEngineTime() + GetRandomFloat(0.5, 0.7);
 	
 	if(g_bHasIntermissionStarted)
+	{
+		g_CachedTransmitClient[iClient][iPlayerEnt] = Plugin_Continue;
+		return Plugin_Continue;
+	}
+	
+	if(!g_bHideAllowed[iClient])
 	{
 		g_CachedTransmitClient[iClient][iPlayerEnt] = Plugin_Continue;
 		return Plugin_Continue;
