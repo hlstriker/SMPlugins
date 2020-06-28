@@ -2,11 +2,13 @@
 #include <sdkhooks>
 #include <sdktools_functions>
 #include <sdktools_entoutput>
+#include "../../Libraries/ZoneManager/zone_manager"
+#include "../../Plugins/ZoneTypes/Includes/zonetype_named"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Minigames Auto Bhop";
-new const String:PLUGIN_VERSION[] = "2.2";
+new const String:PLUGIN_VERSION[] = "2.3";
 
 public Plugin:myinfo =
 {
@@ -162,6 +164,27 @@ public OnTeleportTrigger(const String:szOutput[], iCaller, iActivator, Float:fDe
 	ActivateAutoBhop(iActivator);
 }
 
+public ZoneTypeNamed_OnStartTouch(iZoneEnt, iTouchedEnt)
+{
+	if(!(1 <= iTouchedEnt <= MaxClients))
+		return;
+	
+	if(!IsPlayerAlive(iTouchedEnt))
+		return;
+	
+	static iZoneID;
+	iZoneID = GetZoneID(iZoneEnt);
+	
+	static String:szString[7];
+	if(!ZoneManager_GetDataString(iZoneID, 1, szString, sizeof(szString)))
+		return;
+	
+	if(!StrEqual(szString, "mgbhop"))
+		return;
+	
+	ActivateAutoBhop(iTouchedEnt);
+}
+
 public OnMapStart()
 {
 	g_iForceAutoJumpTeamNum = GetForceAutoJumpTeamNum();
@@ -293,6 +316,9 @@ public OnClientPutInServer(iClient)
 
 ActivateAutoBhop(iClient)
 {
+	if(g_bAutoJumpActivated[iClient])
+		return;
+	
 	g_bAutoJumpActivated[iClient] = true;
 	SendConVarValue(iClient, cvar_autobunnyhopping, "1");
 	
@@ -314,7 +340,7 @@ public Action:OnPreThink(iClient)
 	}
 	
 	SetConVarBool(cvar_autobunnyhopping, true);
-	TryCapSpeed(iClient, 430.0);
+	//TryCapSpeed(iClient, 430.0);
 	
 	return Plugin_Continue;
 }
