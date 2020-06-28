@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Force Map End";
-new const String:PLUGIN_VERSION[] = "1.2";
+new const String:PLUGIN_VERSION[] = "1.3";
 
 public Plugin:myinfo =
 {
@@ -17,6 +17,7 @@ public Plugin:myinfo =
 }
 
 new Handle:cvar_mp_timelimit;
+new Handle:cvar_enabled;
 new Handle:cvar_waitonroundend;
 
 new Handle:g_hTimer;
@@ -29,6 +30,7 @@ public OnPluginStart()
 	
 	cvar_mp_timelimit = FindConVar("mp_timelimit");
 	
+	cvar_enabled = CreateConVar("sv_forcemapend_enabled", "1", "Enable or disable the plugin.");
 	cvar_waitonroundend = CreateConVar("sv_forcemapend_waitonroundend", "0", "0: Instantly change on time limit expiring -- 1: Wait on the round to end.");
 }
 
@@ -93,6 +95,12 @@ StartTimer_CheckTimeLeft()
 
 public Action:Timer_CheckTimeLeft(Handle:hTimer)
 {
+	if(!GetConVarBool(cvar_enabled))
+	{
+		g_hTimer = INVALID_HANDLE;
+		return Plugin_Stop;
+	}
+	
 	decl iTime;
 	if(!GetMapTimeLimit(iTime) || !iTime)
 		return Plugin_Continue;
