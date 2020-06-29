@@ -17,7 +17,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Donator Item: Player Models";
-new const String:PLUGIN_VERSION[] = "1.10";
+new const String:PLUGIN_VERSION[] = "1.11";
 
 public Plugin:myinfo =
 {
@@ -61,7 +61,11 @@ new const String:g_szPlayerModelNames[][] =
 	"Prinz Eugen",
 	"Putin",
 	"Trump",
-	"Kim Jong Un"
+	"Kim Jong Un",
+	"Bugs Bunny",
+	"Naruto",
+	"Sasuke",
+	"Vegeta"
 };
 
 new const String:g_szPlayerModelPaths[][] =
@@ -85,7 +89,11 @@ new const String:g_szPlayerModelPaths[][] =
 	"models/player/custom_player/swoobles/prinz_eugen/prinz_eugen.mdl",				// Prinz Eugen
 	"models/player/custom_player/swoobles/putin/putin.mdl",							// Putin
 	"models/player/custom_player/swoobles/trump/trump.mdl",							// Trump
-	"models/player/custom_player/swoobles/kim_jong_un/kim.mdl"						// Kim Jong Un
+	"models/player/custom_player/swoobles/kim_jong_un/kim.mdl",						// Kim Jong Un
+	"models/player/custom_player/swoobles/bugs_bunny/bugs_bunny.mdl",				// Bugs Bunny
+	"models/player/custom_player/swoobles/naruto/sixpathv3.mdl",					// Naruto
+	"models/player/custom_player/swoobles/sasuke/sasukewar.mdl",					// Sasuke
+	"models/player/custom_player/swoobles/vegeta/vegeta.mdl"						// Vegeta
 };
 
 new const String:g_szArmsModelPaths[][] =
@@ -110,7 +118,12 @@ new const String:g_szArmsModelPaths[][] =
 	"models/player/custom_player/swoobles/prinz_eugen/arms/prinz_eugen_arms.mdl",		// Prinz Eugen
 	"models/player/custom_player/swoobles/putin/arms/putin_arms.mdl",					// Putin
 	"models/player/custom_player/swoobles/trump/arms/trump_arms.mdl",					// Trump
-	"models/player/custom_player/swoobles/kim_jong_un/arms/kim_arms.mdl"				// Kim Jong Un
+	"models/player/custom_player/swoobles/kim_jong_un/arms/kim_arms.mdl",				// Kim Jong Un
+	
+	"",																					// Bugs Bunny
+	"models/player/custom_player/swoobles/naruto/arms/arms_sixpathv4.mdl",				// Naruto
+	"models/player/custom_player/swoobles/sasuke/arms/arms_sasuke2.mdl",				// Sasuke
+	"models/player/custom_player/swoobles/vegeta/arms/vegeta_arms.mdl"					// Vegeta
 };
 
 new const String:g_szPlayerModelFiles[][] =
@@ -843,7 +856,131 @@ new const String:g_szPlayerModelFiles[][] =
 	"materials/swoobles/player/kim_jong_un/cloth_blue.vtf",
 	"materials/swoobles/player/kim_jong_un/cloth_normal.vtf",
 	"materials/swoobles/player/kim_jong_un/cloth_red.vmt",
-	"materials/swoobles/player/kim_jong_un/cloth_red.vtf"
+	"materials/swoobles/player/kim_jong_un/cloth_red.vtf",
+	
+	// Bugs Bunny
+	"models/player/custom_player/swoobles/bugs_bunny/bugs_bunny.dx90.vtx",
+	"models/player/custom_player/swoobles/bugs_bunny/bugs_bunny.phy",
+	"models/player/custom_player/swoobles/bugs_bunny/bugs_bunny.vvd",
+	
+	"materials/swoobles/player/bugs_bunny/diffuse_blue.vtf",
+	"materials/swoobles/player/bugs_bunny/diffuse_red.vtf",
+	"materials/swoobles/player/bugs_bunny/mat_blue.vmt",
+	"materials/swoobles/player/bugs_bunny/mat_red.vmt",
+	"materials/swoobles/player/bugs_bunny/normal.vtf",
+	
+	// Naruto
+	"models/player/custom_player/swoobles/naruto/arms/arms_sixpathv4.dx90.vtx",
+	"models/player/custom_player/swoobles/naruto/arms/arms_sixpathv4.vvd",
+	
+	"models/player/custom_player/swoobles/naruto/sixpathv3.dx90.vtx",
+	"models/player/custom_player/swoobles/naruto/sixpathv3.phy",
+	"models/player/custom_player/swoobles/naruto/sixpathv3.vvd",
+	
+	"materials/swoobles/player/naruto/clothes.vmt",
+	"materials/swoobles/player/naruto/clothes.vtf",
+	"materials/swoobles/player/naruto/clothes_blue.vmt",
+	"materials/swoobles/player/naruto/clothes_blue.vtf",
+	"materials/swoobles/player/naruto/clothes_normal.vtf",
+	"materials/swoobles/player/naruto/clothes_red.vmt",
+	"materials/swoobles/player/naruto/clothes_red.vtf",
+	"materials/swoobles/player/naruto/eye.vmt",
+	"materials/swoobles/player/naruto/eye.vtf",
+	"materials/swoobles/player/naruto/face.vmt",
+	"materials/swoobles/player/naruto/face.vtf",
+	"materials/swoobles/player/naruto/face_normal.vtf",
+	"materials/swoobles/player/naruto/hair.vmt",
+	"materials/swoobles/player/naruto/hair.vtf",
+	"materials/swoobles/player/naruto/headband.vmt",
+	"materials/swoobles/player/naruto/headband.vtf",
+	"materials/swoobles/player/naruto/headband_normal.vtf",
+	
+	// Sasuke
+	"models/player/custom_player/swoobles/sasuke/arms/arms_sasuke2.dx90.vtx",
+	"models/player/custom_player/swoobles/sasuke/arms/arms_sasuke2.vvd",
+	
+	"models/player/custom_player/swoobles/sasuke/sasukewar.dx90.vtx",
+	"models/player/custom_player/swoobles/sasuke/sasukewar.phy",
+	"models/player/custom_player/swoobles/sasuke/sasukewar.vvd",
+	
+	"materials/swoobles/player/sasuke/body.vmt",
+	"materials/swoobles/player/sasuke/body.vtf",
+	"materials/swoobles/player/sasuke/body_n.vtf",
+	"materials/swoobles/player/sasuke/clotha.vmt",
+	"materials/swoobles/player/sasuke/clotha.vtf",
+	"materials/swoobles/player/sasuke/clotha_n.vtf",
+	"materials/swoobles/player/sasuke/eye-reflection-cubemap.vtf",
+	"materials/swoobles/player/sasuke/eyeball_l.vmt",
+	"materials/swoobles/player/sasuke/eyeball_r.vmt",
+	"materials/swoobles/player/sasuke/face.vmt",
+	"materials/swoobles/player/sasuke/face.vtf",
+	"materials/swoobles/player/sasuke/face_n.vtf",
+	"materials/swoobles/player/sasuke/hair_blue.vmt",
+	"materials/swoobles/player/sasuke/hair_blue.vtf",
+	"materials/swoobles/player/sasuke/hair_n.vtf",
+	"materials/swoobles/player/sasuke/hair_red.vmt",
+	"materials/swoobles/player/sasuke/hair_red.vtf",
+	"materials/swoobles/player/sasuke/l_eye.vtf",
+	"materials/swoobles/player/sasuke/l_eye_n.vtf",
+	"materials/swoobles/player/sasuke/mant_blue.vmt",
+	"materials/swoobles/player/sasuke/mant_blue.vtf",
+	"materials/swoobles/player/sasuke/mant_n.vtf",
+	"materials/swoobles/player/sasuke/mant_red.vmt",
+	"materials/swoobles/player/sasuke/mant_red.vtf",
+	"materials/swoobles/player/sasuke/pants.vmt",
+	"materials/swoobles/player/sasuke/pants.vtf",
+	"materials/swoobles/player/sasuke/pants_n.vtf",
+	"materials/swoobles/player/sasuke/pupil_ambient.vtf",
+	"materials/swoobles/player/sasuke/r_eye.vtf",
+	"materials/swoobles/player/sasuke/r_eye_n.vtf",
+	"materials/swoobles/player/sasuke/r_pupil.vtf",
+	"materials/swoobles/player/sasuke/weapon.vmt",
+	"materials/swoobles/player/sasuke/weapon.vtf",
+	"materials/swoobles/player/sasuke/weapon_n.vtf",
+	
+	// Vegeta
+	"models/player/custom_player/swoobles/vegeta/arms/vegeta_arms.dx90.vtx",
+	"models/player/custom_player/swoobles/vegeta/arms/vegeta_arms.vvd",
+	
+	"models/player/custom_player/swoobles/vegeta/vegeta.dx90.vtx",
+	"models/player/custom_player/swoobles/vegeta/vegeta.phy",
+	"models/player/custom_player/swoobles/vegeta/vegeta.vvd",
+	
+	"materials/swoobles/player/vegeta/armor_normal.vtf",
+	"materials/swoobles/player/vegeta/armorc_a.vmt",
+	"materials/swoobles/player/vegeta/armorc_a.vtf",
+	"materials/swoobles/player/vegeta/armorc_b.vmt",
+	"materials/swoobles/player/vegeta/armorc_b.vtf",
+	"materials/swoobles/player/vegeta/boots_normal.vtf",
+	"materials/swoobles/player/vegeta/bootsb_a.vmt",
+	"materials/swoobles/player/vegeta/bootsb_a.vtf",
+	"materials/swoobles/player/vegeta/bootsb_a_normal.vtf",
+	"materials/swoobles/player/vegeta/bootsb_b.vmt",
+	"materials/swoobles/player/vegeta/bootsb_b.vtf",
+	"materials/swoobles/player/vegeta/bust_lightwarp.vtf",
+	"materials/swoobles/player/vegeta/bust_lightwarp_2.vtf",
+	"materials/swoobles/player/vegeta/bust_lightwarp_blue.vtf",
+	"materials/swoobles/player/vegeta/bust_normal.vtf",
+	"materials/swoobles/player/vegeta/eye.vtf",
+	"materials/swoobles/player/vegeta/eye_lightwarp.vtf",
+	"materials/swoobles/player/vegeta/eyes.vmt",
+	"materials/swoobles/player/vegeta/face.vmt",
+	"materials/swoobles/player/vegeta/face.vtf",
+	"materials/swoobles/player/vegeta/face_normal.vtf",
+	"materials/swoobles/player/vegeta/hair.vmt",
+	"materials/swoobles/player/vegeta/hair.vtf",
+	"materials/swoobles/player/vegeta/hair_lightwarp.vtf",
+	"materials/swoobles/player/vegeta/hair_normal.vtf",
+	"materials/swoobles/player/vegeta/skin_busta.vmt",
+	"materials/swoobles/player/vegeta/skin_busta.vtf",
+	"materials/swoobles/player/vegeta/skin_lightwarp_blue1.vtf",
+	"materials/swoobles/player/vegeta/spat_busta_blue.vmt",
+	"materials/swoobles/player/vegeta/spat_busta_blue.vtf",
+	"materials/swoobles/player/vegeta/spat_busta_both.vmt",
+	"materials/swoobles/player/vegeta/spat_busta_both.vtf",
+	"materials/swoobles/player/vegeta/spat_busta_normal.vtf",
+	"materials/swoobles/player/vegeta/spat_busta_red.vmt",
+	"materials/swoobles/player/vegeta/spat_busta_red.vtf"
 };
 
 
