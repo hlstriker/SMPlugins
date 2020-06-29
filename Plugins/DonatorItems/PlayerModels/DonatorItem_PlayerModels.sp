@@ -17,7 +17,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Donator Item: Player Models";
-new const String:PLUGIN_VERSION[] = "1.11";
+new const String:PLUGIN_VERSION[] = "1.12";
 
 public Plugin:myinfo =
 {
@@ -120,7 +120,7 @@ new const String:g_szArmsModelPaths[][] =
 	"models/player/custom_player/swoobles/trump/arms/trump_arms.mdl",					// Trump
 	"models/player/custom_player/swoobles/kim_jong_un/arms/kim_arms.mdl",				// Kim Jong Un
 	
-	"",																					// Bugs Bunny
+	"models/player/custom_player/swoobles/fox_miku/arms/fox_miku_arms_v2.mdl",			// Bugs Bunny // TODO: Give bugs their own arms. Using another models for now just so gloves don't get applied and bug out.
 	"models/player/custom_player/swoobles/naruto/arms/arms_sixpathv4.mdl",				// Naruto
 	"models/player/custom_player/swoobles/sasuke/arms/arms_sasuke2.mdl",				// Sasuke
 	"models/player/custom_player/swoobles/vegeta/arms/vegeta_arms.mdl"					// Vegeta
