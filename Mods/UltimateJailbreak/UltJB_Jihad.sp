@@ -15,7 +15,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Jihad";
-new const String:PLUGIN_VERSION[] = "1.6";
+new const String:PLUGIN_VERSION[] = "1.7";
 
 public Plugin:myinfo =
 {
@@ -47,6 +47,7 @@ new const String:PEFFECT_EXPLODE[] = "explosion_coop_mission_c4";
 
 #define MODEL_BOMB	"models/weapons/w_c4_planted.mdl"
 
+new Handle:cvar_guards_needed;
 new Handle:cvar_bomb_timer;
 new Handle:cvar_percent_chance_to_give;
 new Handle:cvar_explode_radius;
@@ -57,6 +58,7 @@ public OnPluginStart()
 {
 	CreateConVar("ultjb_jihad_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	
+	cvar_guards_needed = CreateConVar("ultjb_jihad_guards_needed", "3", "The number of guards needed for jihad to be given.", _, true, 1.0);
 	cvar_bomb_timer = CreateConVar("ultjb_jihad_bomb_timer", "4.2", "The number of seconds before the bomb explodes.", _, true, 0.0);
 	cvar_percent_chance_to_give = CreateConVar("ultjb_jihad_percent_chance_to_give", "40", "The percent chance a single prisoner will get jihad.", _, true, 0.0, true, 100.0);
 	cvar_explode_radius = CreateConVar("ultjb_jihad_explode_radius", "750.0", "The jihad bomb explosion radius.", _, true, 1.0);
@@ -139,14 +141,23 @@ bool:SetRandomClientAsJihad()
 {
 	new Handle:hClients = CreateArray();
 	
-	decl iClient;
+	new iNumGuards;
+	decl iClient, iTeam;
 	for(iClient=1; iClient<=MaxClients; iClient++)
 	{
 		if(!IsClientInGame(iClient) || !IsPlayerAlive(iClient))
 			continue;
 		
-		if(GetClientTeam(iClient) != TEAM_PRISONERS)
+		iTeam = GetClientTeam(iClient);
+		
+		if(iTeam < TEAM_PRISONERS)
 			continue;
+		
+		if(iTeam == TEAM_GUARDS)
+		{
+			iNumGuards++;
+			continue;
+		}
 		
 		if(IsJihad(iClient))
 			continue;
@@ -155,6 +166,12 @@ bool:SetRandomClientAsJihad()
 			continue;
 		
 		PushArrayCell(hClients, iClient);
+	}
+	
+	if(iNumGuards < GetConVarInt(cvar_guards_needed))
+	{
+		CloseHandle(hClients);
+		return false;
 	}
 	
 	new iArraySize = GetArraySize(hClients);
