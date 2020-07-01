@@ -2,11 +2,12 @@
 #include <sdkhooks>
 #include <cstrike>
 #include "../../Libraries/ClientCookies/client_cookies"
+#include "hide_players"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Hide Players";
-new const String:PLUGIN_VERSION[] = "2.10";
+new const String:PLUGIN_VERSION[] = "2.11";
 
 public Plugin:myinfo =
 {
@@ -17,22 +18,8 @@ public Plugin:myinfo =
 	url = "www.swoobles.com"
 }
 
-enum
-{
-	HIDE_DISABLED = 0,
-	HIDE_ALL,
-	HIDE_TEAM_ONLY
-};
-
-enum
-{
-	OVERRIDE_NONE = 0,
-	OVERRIDE_HIDE_ALL,
-	OVERRIDE_HIDE_TEAM_ONLY
-};
-
-new g_iHideMode;
-new bool:g_bHideAllowed[MAXPLAYERS+1];
+new g_iMapsHideMode;
+new g_iPluginHideOverride[MAXPLAYERS+1];
 new bool:g_bShouldHideOthers[MAXPLAYERS+1];
 new Float:g_fNextHideCommand[MAXPLAYERS+1];
 #define HIDE_COMMAND_DELAY 0.7
@@ -47,7 +34,7 @@ public OnPluginStart()
 {
 	CreateConVar("hide_players_ver", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	
-	cvar_hide_players_override = CreateConVar("hide_players_override", "0", "0: No override -- 1: Always hide all -- 2: Always hide team only.", _, true, 0.0, true, 2.0);
+	cvar_hide_players_override = CreateConVar("hide_players_override", "0", "-1: Always disabled -- 0: No override -- 1: Always hide all -- 2: Always hide team only.", _, true, -1.0, true, 2.0);
 	
 	RegConsoleCmd("sm_hide", OnHidePlayers, "Toggles hiding other players on and off.");
 	
@@ -64,7 +51,7 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 {
 	RegPluginLibrary("hide_players");
 	CreateNative("HidePlayers_IsClientHidingTarget", _HidePlayers_IsClientHidingTarget);
-	CreateNative("HidePlayers_SetClientHideAllowed", _HidePlayers_SetClientHideAllowed);
+	CreateNative("HidePlayers_SetClientHideOverride", _HidePlayers_SetClientHideOverride);
 	
 	return APLRes_Success;
 }
@@ -75,7 +62,7 @@ public _HidePlayers_IsClientHidingTarget(Handle:hPlugin, iNumParams)
 	if(!g_bShouldHideOthers[iClient])
 		return false;
 	
-	if(GetConVarInt(cvar_hide_players_override) != OVERRIDE_HIDE_ALL && (g_iHideMode == HIDE_TEAM_ONLY || GetConVarInt(cvar_hide_players_override) == OVERRIDE_HIDE_TEAM_ONLY))
+	if(GetConVarInt(cvar_hide_players_override) != HIDE_ALL && (g_iMapsHideMode == HIDE_TEAM_ONLY || GetConVarInt(cvar_hide_players_override) == HIDE_TEAM_ONLY))
 	{
 		if(GetClientTeam(iClient) != GetClientTeam(GetNativeCell(2)))
 			return false;
@@ -84,9 +71,9 @@ public _HidePlayers_IsClientHidingTarget(Handle:hPlugin, iNumParams)
 	return true;
 }
 
-public _HidePlayers_SetClientHideAllowed(Handle:hPlugin, iNumParams)
+public _HidePlayers_SetClientHideOverride(Handle:hPlugin, iNumParams)
 {
-	g_bHideAllowed[GetNativeCell(1)] = GetNativeCell(2);
+	g_iPluginHideOverride[GetNativeCell(1)] = GetNativeCell(2);
 }
 
 public Action:Event_Intermission_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
@@ -103,44 +90,44 @@ public OnMapStart()
 {
 	g_bHasIntermissionStarted = false;
 	
-	g_iHideMode = HIDE_DISABLED;
+	g_iMapsHideMode = HIDE_DISABLED;
 	
 	decl String:szMapName[64];
 	GetCurrentMap(szMapName, sizeof(szMapName));
 	
 	if(StrContains(szMapName, "deathrun_", false) != -1)
 	{
-		g_iHideMode = HIDE_TEAM_ONLY;
+		g_iMapsHideMode = HIDE_TEAM_ONLY;
 		return;
 	}
 	
 	if(StrContains(szMapName, "dr_", false) != -1)
 	{
-		g_iHideMode = HIDE_TEAM_ONLY;
+		g_iMapsHideMode = HIDE_TEAM_ONLY;
 		return;
 	}
 	
 	if(StrContains(szMapName, "mg_", false) != -1)
 	{
-		g_iHideMode = HIDE_ALL;
+		g_iMapsHideMode = HIDE_ALL;
 		return;
 	}
 	
 	if(StrContains(szMapName, "bhop_", false) != -1)
 	{
-		g_iHideMode = HIDE_ALL;
+		g_iMapsHideMode = HIDE_ALL;
 		return;
 	}
 	
 	if(StrContains(szMapName, "kz_", false) != -1)
 	{
-		g_iHideMode = HIDE_ALL;
+		g_iMapsHideMode = HIDE_ALL;
 		return;
 	}
 	
 	if(StrContains(szMapName, "xc_", false) != -1)
 	{
-		g_iHideMode = HIDE_ALL;
+		g_iMapsHideMode = HIDE_ALL;
 		return;
 	}
 }
@@ -148,13 +135,13 @@ public OnMapStart()
 public Action:Event_RoundPrestart_Post(Handle:hEvent, const String:szName[], bool:bDontBroadcast)
 {
 	for(new iClient=1; iClient<=MaxClients; iClient++)
-		g_bHideAllowed[iClient] = true;
+		g_iPluginHideOverride[iClient] = HIDE_DEFAULT;
 }
 
 public OnClientPutInServer(iClient)
 {
 	g_fNextHideCommand[iClient] = 0.0;
-	g_bHideAllowed[iClient] = true;
+	g_iPluginHideOverride[iClient] = HIDE_DEFAULT;
 	g_bShouldHideOthers[iClient] = false;
 	SDKHook(iClient, SDKHook_SetTransmit, OnSetTransmit_Player);
 }
@@ -167,7 +154,7 @@ public Action:OnHidePlayers(iClient, iArgNum)
 	if(!IsClientInGame(iClient))
 		return Plugin_Handled;
 	
-	if(g_iHideMode == HIDE_DISABLED && GetConVarInt(cvar_hide_players_override) == OVERRIDE_NONE)
+	if(g_iMapsHideMode == HIDE_DISABLED && GetConVarInt(cvar_hide_players_override) == HIDE_DISABLED)
 	{
 		PrintToChat(iClient, "[SM] Hiding other players is disabled.");
 		return Plugin_Handled;
@@ -204,57 +191,96 @@ public Action:OnSetTransmit_Player(iPlayerEnt, iClient)
 	
 	g_fNextTransmitClient[iClient][iPlayerEnt] = GetEngineTime() + GetRandomFloat(0.5, 0.7);
 	
-	if(g_bHasIntermissionStarted)
+	// Don't hide in certain situations.
+	if(!CanHide(iClient, iPlayerEnt))
 	{
 		g_CachedTransmitClient[iClient][iPlayerEnt] = Plugin_Continue;
 		return Plugin_Continue;
 	}
 	
-	if(!g_bHideAllowed[iClient])
+	// Hide if we are hiding from another plugin overriding this client's hide value.
+	if(ShouldHideFromPluginHideOverride(iClient, iPlayerEnt))
 	{
-		g_CachedTransmitClient[iClient][iPlayerEnt] = Plugin_Continue;
-		return Plugin_Continue;
+		g_CachedTransmitClient[iClient][iPlayerEnt] = Plugin_Handled;
+		return Plugin_Handled;
 	}
+	
+	// Should hide?
+	if(ShouldHide(iClient, iPlayerEnt))
+	{
+		g_CachedTransmitClient[iClient][iPlayerEnt] = Plugin_Handled;
+		return Plugin_Handled;
+	}
+	
+	// Don't hide.
+	g_CachedTransmitClient[iClient][iPlayerEnt] = Plugin_Continue;
+	return Plugin_Continue;
+}
+
+bool:CanHide(iClient, iPlayerEnt)
+{
+	if(g_bHasIntermissionStarted)
+		return false;
 	
 	if(!g_bShouldHideOthers[iClient])
-	{
-		g_CachedTransmitClient[iClient][iPlayerEnt] = Plugin_Continue;
-		return Plugin_Continue;
-	}
+		return false;
 	
 	if(iPlayerEnt == iClient)
-	{
-		g_CachedTransmitClient[iClient][iPlayerEnt] = Plugin_Continue;
-		return Plugin_Continue;
-	}
+		return false;
 	
 	if(!(1 <= iPlayerEnt <= MaxClients))
-	{
-		g_CachedTransmitClient[iClient][iPlayerEnt] = Plugin_Continue;
-		return Plugin_Continue;
-	}
+		return false;
 	
 	if(!IsPlayerAlive(iClient))
-	{
-		g_CachedTransmitClient[iClient][iPlayerEnt] = Plugin_Continue;
-		return Plugin_Continue;
-	}
+		return false;
 	
-	if(GetConVarInt(cvar_hide_players_override) != OVERRIDE_HIDE_ALL && (g_iHideMode == HIDE_TEAM_ONLY || GetConVarInt(cvar_hide_players_override) == OVERRIDE_HIDE_TEAM_ONLY))
+	if(g_iPluginHideOverride[iClient] == HIDE_DISABLED)
+		return false;
+	
+	return true;
+}
+
+bool:ShouldHideFromPluginHideOverride(iClient, iPlayerEnt)
+{
+	switch(g_iPluginHideOverride[iClient])
 	{
-		if(GetConVarBool(cvar_mp_teammates_are_enemies) || GetClientTeam(iClient) != GetClientTeam(iPlayerEnt))
+		case HIDE_DEFAULT, HIDE_DISABLED:
 		{
-			g_CachedTransmitClient[iClient][iPlayerEnt] = Plugin_Continue;
-			return Plugin_Continue;
+			return false;
+		}
+		case HIDE_TEAM_ONLY:
+		{
+			if(!CanHideBasedOnTeam(iClient, iPlayerEnt))
+				return false;
 		}
 	}
 	
-	if(g_iHideMode == HIDE_DISABLED && GetConVarInt(cvar_hide_players_override) == OVERRIDE_NONE)
+	return true;
+}
+
+bool:ShouldHide(iClient, iPlayerEnt)
+{
+	if(g_iMapsHideMode == HIDE_DISABLED && GetConVarInt(cvar_hide_players_override) <= HIDE_DEFAULT)
 	{
-		g_CachedTransmitClient[iClient][iPlayerEnt] = Plugin_Continue;
-		return Plugin_Continue;
+		return false;
 	}
 	
-	g_CachedTransmitClient[iClient][iPlayerEnt] = Plugin_Handled;
-	return Plugin_Handled;
+	if(GetConVarInt(cvar_hide_players_override) != HIDE_ALL && (g_iMapsHideMode == HIDE_TEAM_ONLY || GetConVarInt(cvar_hide_players_override) == HIDE_TEAM_ONLY))
+	{
+		if(!CanHideBasedOnTeam(iClient, iPlayerEnt))
+			return false;
+	}
+	
+	return true;
+}
+
+bool:CanHideBasedOnTeam(iClient, iPlayerEnt)
+{
+	if(GetConVarBool(cvar_mp_teammates_are_enemies))
+		return false;
+	
+	if(GetClientTeam(iClient) != GetClientTeam(iPlayerEnt))
+		return false;
+	
+	return true;
 }

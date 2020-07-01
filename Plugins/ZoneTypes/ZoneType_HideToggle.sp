@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Zone Type: Hide Toggle";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -36,8 +36,7 @@ public OnStartTouch(iZone, iOther)
 	if(!(1 <= iOther <= MaxClients))
 		return;
 	
-	new bool:bDisableHide = bool:ZoneManager_GetDataInt(GetZoneID(iZone), 1);
-	HidePlayers_SetClientHideAllowed(iOther, !bDisableHide);
+	HidePlayers_SetClientHideOverride(iOther, ZoneManager_GetDataInt(GetZoneID(iZone), 1));
 }
 
 public OnEditData(iClient, iZoneID)
@@ -48,7 +47,11 @@ public OnEditData(iClient, iZoneID)
 DisplayMenu_EditData(iClient, iZoneID)
 {
 	decl String:szTitle[256];
-	FormatEx(szTitle, sizeof(szTitle), "Edit hide plugin status\n \nCurrently set to: %s", ZoneManager_GetDataInt(iZoneID, 1) ? "Don't allow !hide for client" : "Allow !hide for client");
+	FormatEx(szTitle, sizeof(szTitle), "Edit hide plugin status\n \nCurrently set to: %s",
+		(ZoneManager_GetDataInt(iZoneID, 1) == HIDE_DISABLED) ? "The player can not use !hide" :
+		(ZoneManager_GetDataInt(iZoneID, 1) == HIDE_DEFAULT) ? "Use the server's default hide value." : 
+		(ZoneManager_GetDataInt(iZoneID, 1) == HIDE_ALL) ? "The player's !hide will hide all." : 
+		(ZoneManager_GetDataInt(iZoneID, 1) == HIDE_TEAM_ONLY) ? "The player's !hide will hide team only." : "Unknown");
 	
 	new Handle:hMenu = CreateMenu(MenuHandle_EditData);
 	SetMenuTitle(hMenu, szTitle);
@@ -89,7 +92,11 @@ public MenuHandle_EditData(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 	if(action != MenuAction_Select)
 		return;
 	
-	ZoneManager_SetDataInt(g_iEditingZoneID[iParam1], 1, !ZoneManager_GetDataInt(g_iEditingZoneID[iParam1], 1));
+	new iHideValue = ZoneManager_GetDataInt(g_iEditingZoneID[iParam1], 1) + 1;
+	if(iHideValue > HIDE_TEAM_ONLY)
+		iHideValue = HIDE_DISABLED;
+	
+	ZoneManager_SetDataInt(g_iEditingZoneID[iParam1], 1, iHideValue);
 	
 	DisplayMenu_EditData(iParam1, g_iEditingZoneID[iParam1]);
 }

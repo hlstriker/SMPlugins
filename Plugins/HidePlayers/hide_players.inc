@@ -16,6 +16,11 @@ public SharedPlugin:__pl_hide_players =
 };
 
 
+#define HIDE_DISABLED	-1	// Disable hide
+#define HIDE_DEFAULT	0	// Use default visibility.
+#define HIDE_ALL		1	// Hide all players.
+#define HIDE_TEAM_ONLY	2	// Hide player's teammates only.
+
 
 native bool:HidePlayers_IsClientHidingTarget(client, target_client);
-native bool:HidePlayers_SetClientHideAllowed(client, bool:allowed);
+native bool:HidePlayers_SetClientHideOverride(client, hide_override=HIDE_DEFAULT);
