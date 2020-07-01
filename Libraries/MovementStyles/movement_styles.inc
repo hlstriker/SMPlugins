@@ -40,6 +40,8 @@ public SharedPlugin:__pl_movement_styles =
 #define STYLE_BIT_ONE_STRAFE_ONLY			(1<<17)
 #define STYLE_BIT_LOW_FOV					(1<<18)
 #define STYLE_BIT_STOCK_CAP					(1<<19)
+#define STYLE_BIT_BUMP_MINES				(1<<20)
+
 
 functag public Callback_OnActivated(client);
 functag public Callback_OnDeactivated(client);
