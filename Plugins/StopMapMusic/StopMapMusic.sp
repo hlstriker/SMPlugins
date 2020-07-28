@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Stop Map Music";
-new const String:PLUGIN_VERSION[] = "1.5";
+new const String:PLUGIN_VERSION[] = "1.6";
 
 public Plugin:myinfo =
 {
@@ -194,6 +194,12 @@ public Action:OnAmbientSound(String:szSample[PLATFORM_MAX_PATH], &iEntity, &Floa
 	}
 	
 	return Plugin_Stop;
+}
+
+public OnPlayerRunCmdPost(iClient, iButtons, iImpulse, const Float:fVel[3], const Float:fAngles[3], iWeapon, iSubType, iCmdNum, iTickCount, iSeed, const iMouse[2])
+{
+	if(g_iVolumePercent[iClient] == ZERO_VOLUME)
+		SetEntProp(iClient, Prop_Data, "soundscapeIndex", 0);
 }
 
 DisplayMenu_MusicVolume(iClient)
