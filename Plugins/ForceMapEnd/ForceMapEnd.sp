@@ -5,7 +5,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Force Map End";
-new const String:PLUGIN_VERSION[] = "1.3";
+new const String:PLUGIN_VERSION[] = "1.4";
 
 public Plugin:myinfo =
 {
@@ -146,6 +146,9 @@ public Action:Timer_CheckTimeLeft(Handle:hTimer)
 
 public Action:CS_OnTerminateRound(&Float:fDelay, &CSRoundEndReason:reason)
 {
+	if(!GetConVarBool(cvar_enabled))
+		return;
+	
 	if(cvar_mp_timelimit == INVALID_HANDLE)
 		return;
 	
