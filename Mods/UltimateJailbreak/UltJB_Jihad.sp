@@ -15,7 +15,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Jihad";
-new const String:PLUGIN_VERSION[] = "1.8";
+new const String:PLUGIN_VERSION[] = "1.9";
 
 public Plugin:myinfo =
 {
@@ -47,11 +47,13 @@ new const String:PEFFECT_EXPLODE[] = "explosion_coop_mission_c4";
 
 #define MODEL_BOMB	"models/weapons/w_c4_planted.mdl"
 
+new Handle:cvar_mp_teammates_are_enemies;
 new Handle:cvar_guards_needed;
 new Handle:cvar_bomb_timer;
 new Handle:cvar_percent_chance_to_give;
 new Handle:cvar_explode_radius;
 new Handle:cvar_max_damage;
+new Handle:cvar_damage_percent_to_teammates;
 
 
 public OnPluginStart()
@@ -63,11 +65,26 @@ public OnPluginStart()
 	cvar_percent_chance_to_give = CreateConVar("ultjb_jihad_percent_chance_to_give", "40", "The percent chance a single prisoner will get jihad.", _, true, 0.0, true, 100.0);
 	cvar_explode_radius = CreateConVar("ultjb_jihad_explode_radius", "750.0", "The jihad bomb explosion radius.", _, true, 1.0);
 	cvar_max_damage = CreateConVar("ultjb_jihad_max_damage", "235.0", "The jihad bomb's max damage.", _, true, 0.0);
+	cvar_damage_percent_to_teammates = CreateConVar("ultjb_damage_percent_to_teammates", "0.2", "The percent of damage the bomb does to teammates.", _, true, 0.0, true, 1.0);
 	
 	HookEvent("round_start", Event_RoundStart_Post, EventHookMode_PostNoCopy);
 	HookEvent("player_death", Event_PlayerDeath_Pre, EventHookMode_Pre);
 	
 	AddCommandListener(OnWeaponDrop, "drop");
+}
+
+public OnConfigsExecuted()
+{
+	cvar_mp_teammates_are_enemies = FindConVar("mp_teammates_are_enemies");
+	
+	/*
+	if(cvar_mp_teammates_are_enemies != INVALID_HANDLE)
+	{
+		new iCvarFlags = GetConVarFlags(cvar_mp_teammates_are_enemies);
+		iCvarFlags &= ~FCVAR_NOTIFY;
+		SetConVarFlags(cvar_mp_teammates_are_enemies, iCvarFlags);
+	}
+	*/
 }
 
 public OnMapStart()
@@ -586,10 +603,23 @@ DetonateBomb(iClient)
 KillPlayersInRadius(iExplodingClient, const Float:fExplodeOrigin[3], iC4)
 {
 	new iExplodingClientTeam = GetClientTeam(iExplodingClient);
+
+	// Make sure teammates are enemies so team damage works properly.
+	new bool:bOriginalTeammatesAreEnemies = false;
+	if(cvar_mp_teammates_are_enemies != INVALID_HANDLE)
+	{
+		bOriginalTeammatesAreEnemies = GetConVarBool(cvar_mp_teammates_are_enemies);
+		SetConVarBool(cvar_mp_teammates_are_enemies, true);
+	}
 	
 	// Kill self first.
+	new iOriginalTeam = GetEntProp(iExplodingClient, Prop_Send, "m_iTeamNum");
 	SetEntProp(iExplodingClient, Prop_Send, "m_ArmorValue", 0);
 	SDKHooks_TakeDamage(iExplodingClient, iC4, iExplodingClient, float(GetClientHealth(iExplodingClient) + 1), _, iC4);
+	new iNewTeam = GetEntProp(iExplodingClient, Prop_Send, "m_iTeamNum");
+	
+	// Set the exploding client back to their original team before they exploded. This is incase they got team switched on death.
+	SetEntProp(iExplodingClient, Prop_Send, "m_iTeamNum", iOriginalTeam);
 	
 	// Damage other clients in radius.
 	new bool:bIsInFreeForAllDay = (UltJB_Day_IsInProgress() && UltJB_Day_IsFreeForAll());
@@ -614,11 +644,11 @@ KillPlayersInRadius(iExplodingClient, const Float:fExplodeOrigin[3], iC4)
 		
 		fDamage = GetConVarFloat(cvar_max_damage) * (1.0 - (fDist / GetConVarFloat(cvar_explode_radius)));
 		
-		// Don't damage teammates, but only if not in a FFA day.
+		// Deal less damage to teammates, but only if not in a FFA day.
 		if(!bIsInFreeForAllDay)
 		{
 			if(GetClientTeam(iClient) == iExplodingClientTeam)
-				continue;
+				fDamage *= GetConVarFloat(cvar_damage_percent_to_teammates);
 		}
 		
 		iArmorValue = GetEntProp(iClient, Prop_Send, "m_ArmorValue");
@@ -628,4 +658,11 @@ KillPlayersInRadius(iExplodingClient, const Float:fExplodeOrigin[3], iC4)
 		
 		SetEntProp(iClient, Prop_Send, "m_ArmorValue", iArmorValue);
 	}
+	
+	// Set the exploding client back to their new team.
+	SetEntProp(iExplodingClient, Prop_Send, "m_iTeamNum", iNewTeam);
+	
+	// Set teammates are enemies back to its original value.
+	if(cvar_mp_teammates_are_enemies != INVALID_HANDLE)
+		SetConVarBool(cvar_mp_teammates_are_enemies, bOriginalTeammatesAreEnemies);
 }
