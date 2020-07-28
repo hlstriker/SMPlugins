@@ -15,7 +15,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Jihad";
-new const String:PLUGIN_VERSION[] = "1.7";
+new const String:PLUGIN_VERSION[] = "1.8";
 
 public Plugin:myinfo =
 {
@@ -614,11 +614,11 @@ KillPlayersInRadius(iExplodingClient, const Float:fExplodeOrigin[3], iC4)
 		
 		fDamage = GetConVarFloat(cvar_max_damage) * (1.0 - (fDist / GetConVarFloat(cvar_explode_radius)));
 		
-		// Cut damage in half if dealt to a teammate, but only if not in a FFA day.
+		// Don't damage teammates, but only if not in a FFA day.
 		if(!bIsInFreeForAllDay)
 		{
 			if(GetClientTeam(iClient) == iExplodingClientTeam)
-				fDamage * 0.5;
+				continue;
 		}
 		
 		iArmorValue = GetEntProp(iClient, Prop_Send, "m_ArmorValue");
