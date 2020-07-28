@@ -3,6 +3,7 @@
 #include "../../Libraries/ZoneManager/zone_manager"
 #include "../../Plugins/ZoneTypes/Includes/zonetype_named"
 #include "../../Plugins/UserPoints/user_points"
+#include "../../Plugins/HidePlayers/hide_players"
 #include <hls_color_chat>
 
 #pragma semicolon 1
@@ -77,6 +78,9 @@ OnClientTouchedWinZone(iClient)
 	new iPoints = GetWinnerPoints();
 	UserPoints_GivePoints(iClient, iPoints);
 	CPrintToChatAll("{lightgreen}-- {lightred}%N {olive}was awarded {lightred}%d {olive}points for winning.", iClient, iPoints);
+	
+	// Make sure we set default hide on all player's incase they were in a hide toggle zone for levels such as kz, slide, etc.
+	SetHideDefaultAll();
 }
 
 GetWinnerPoints()
@@ -94,4 +98,15 @@ GetWinnerPoints()
 	}
 	
 	return iPoints;
+}
+
+SetHideDefaultAll()
+{
+	for(new iClient=1; iClient<=MaxClients; iClient++)
+	{
+		if(!IsClientInGame(iClient))
+			continue;
+		
+		HidePlayers_SetClientHideOverride(iClient, HIDE_DEFAULT);
+	}
 }
