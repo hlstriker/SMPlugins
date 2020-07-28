@@ -15,7 +15,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Jihad";
-new const String:PLUGIN_VERSION[] = "1.9";
+new const String:PLUGIN_VERSION[] = "1.10";
 
 public Plugin:myinfo =
 {
@@ -65,7 +65,7 @@ public OnPluginStart()
 	cvar_percent_chance_to_give = CreateConVar("ultjb_jihad_percent_chance_to_give", "40", "The percent chance a single prisoner will get jihad.", _, true, 0.0, true, 100.0);
 	cvar_explode_radius = CreateConVar("ultjb_jihad_explode_radius", "750.0", "The jihad bomb explosion radius.", _, true, 1.0);
 	cvar_max_damage = CreateConVar("ultjb_jihad_max_damage", "235.0", "The jihad bomb's max damage.", _, true, 0.0);
-	cvar_damage_percent_to_teammates = CreateConVar("ultjb_damage_percent_to_teammates", "0.2", "The percent of damage the bomb does to teammates.", _, true, 0.0, true, 1.0);
+	cvar_damage_percent_to_teammates = CreateConVar("ultjb_jihad_damage_percent_to_teammates", "0.2", "The percent of damage the bomb does to teammates.", _, true, 0.0, true, 1.0);
 	
 	HookEvent("round_start", Event_RoundStart_Post, EventHookMode_PostNoCopy);
 	HookEvent("player_death", Event_PlayerDeath_Pre, EventHookMode_Pre);
