@@ -15,7 +15,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Jihad";
-new const String:PLUGIN_VERSION[] = "1.10";
+new const String:PLUGIN_VERSION[] = "1.11";
 
 public Plugin:myinfo =
 {
@@ -604,9 +604,11 @@ KillPlayersInRadius(iExplodingClient, const Float:fExplodeOrigin[3], iC4)
 {
 	new iExplodingClientTeam = GetClientTeam(iExplodingClient);
 
+	new bool:bIsInFreeForAllDay = (UltJB_Day_IsInProgress() && UltJB_Day_IsFreeForAll());
+	
 	// Make sure teammates are enemies so team damage works properly.
 	new bool:bOriginalTeammatesAreEnemies = false;
-	if(cvar_mp_teammates_are_enemies != INVALID_HANDLE)
+	if(!bIsInFreeForAllDay && cvar_mp_teammates_are_enemies != INVALID_HANDLE)
 	{
 		bOriginalTeammatesAreEnemies = GetConVarBool(cvar_mp_teammates_are_enemies);
 		SetConVarBool(cvar_mp_teammates_are_enemies, true);
@@ -622,8 +624,6 @@ KillPlayersInRadius(iExplodingClient, const Float:fExplodeOrigin[3], iC4)
 	SetEntProp(iExplodingClient, Prop_Send, "m_iTeamNum", iOriginalTeam);
 	
 	// Damage other clients in radius.
-	new bool:bIsInFreeForAllDay = (UltJB_Day_IsInProgress() && UltJB_Day_IsFreeForAll());
-	
 	decl Float:fOrigin[3], Float:fDist, Float:fDamage, iArmorValue;
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
@@ -663,6 +663,6 @@ KillPlayersInRadius(iExplodingClient, const Float:fExplodeOrigin[3], iC4)
 	SetEntProp(iExplodingClient, Prop_Send, "m_iTeamNum", iNewTeam);
 	
 	// Set teammates are enemies back to its original value.
-	if(cvar_mp_teammates_are_enemies != INVALID_HANDLE)
+	if(!bIsInFreeForAllDay && cvar_mp_teammates_are_enemies != INVALID_HANDLE)
 		SetConVarBool(cvar_mp_teammates_are_enemies, bOriginalTeammatesAreEnemies);
 }
