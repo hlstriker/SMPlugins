@@ -20,7 +20,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Settings";
-new const String:PLUGIN_VERSION[] = "1.35";
+new const String:PLUGIN_VERSION[] = "1.36";
 
 public Plugin:myinfo =
 {
@@ -187,6 +187,7 @@ public APLRes:AskPluginLoad2(Handle:hMyself, bool:bLate, String:szError[], iErrL
 	CreateNative("UltJB_Settings_StopAutoRespawning", _UltJB_Settings_StopAutoRespawning);
 	CreateNative("UltJB_Settings_SetAutoRespawnDelay", _UltJB_Settings_SetAutoRespawnDelay);
 	CreateNative("UltJB_Settings_BlockTerminateRound", _UltJB_Settings_BlockTerminateRound);
+	CreateNative("UltJB_Settings_IsBlockingTerminateRound", _UltJB_Settings_IsBlockingTerminateRound);
 	CreateNative("UltJB_Settings_SetNextRoundEndReason", _UltJB_Settings_SetNextRoundEndReason);
 	CreateNative("UltJB_Settings_GetClientHelpNumber", _UltJB_Settings_GetClientHelpNumber);
 	
@@ -231,6 +232,11 @@ BlockTerminateRound(bool:bShouldBlock)
 {
 	if(cvar_mp_ignore_round_win_conditions != INVALID_HANDLE)
 		SetConVarInt(cvar_mp_ignore_round_win_conditions, bShouldBlock ? 1 : 0);
+}
+
+public _UltJB_Settings_IsBlockingTerminateRound(Handle:hPlugin, iNumParams)
+{
+	return (cvar_mp_ignore_round_win_conditions != INVALID_HANDLE) ? GetConVarInt(cvar_mp_ignore_round_win_conditions) : 0;
 }
 
 public _UltJB_Settings_StartAutoRespawning(Handle:hPlugin, iNumParams)

@@ -75,6 +75,13 @@ native UltJB_Settings_SetAutoRespawnDelay(Float:delay, team_to_set_delay_for=ART
 native UltJB_Settings_BlockTerminateRound(bool:block_terminate_round);
 
 /**
+ * Checks if round termination is being blocked.
+ *
+ * @return		True if blocking terminate round end, false otherwise.
+ */
+native bool:UltJB_Settings_IsBlockingTerminateRound();
+
+/**
  * Sets the next terminate round reason.
  *
  * @param use_reason	True to use this reason, false to use default.
