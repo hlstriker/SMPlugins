@@ -15,7 +15,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "[UltJB] Jihad";
-new const String:PLUGIN_VERSION[] = "1.11";
+new const String:PLUGIN_VERSION[] = "1.12";
 
 public Plugin:myinfo =
 {
@@ -608,10 +608,16 @@ KillPlayersInRadius(iExplodingClient, const Float:fExplodeOrigin[3], iC4)
 	
 	// Make sure teammates are enemies so team damage works properly.
 	new bool:bOriginalTeammatesAreEnemies = false;
+	new bool:bOriginalBlockingTerminateRound = false;
+	
 	if(!bIsInFreeForAllDay && cvar_mp_teammates_are_enemies != INVALID_HANDLE)
 	{
 		bOriginalTeammatesAreEnemies = GetConVarBool(cvar_mp_teammates_are_enemies);
 		SetConVarBool(cvar_mp_teammates_are_enemies, true);
+		
+		// Block the round from terminating incase all players on one of the teams dies.
+		bOriginalBlockingTerminateRound = UltJB_Settings_IsBlockingTerminateRound();
+		UltJB_Settings_BlockTerminateRound(true);
 	}
 	
 	// Kill self first.
@@ -624,7 +630,8 @@ KillPlayersInRadius(iExplodingClient, const Float:fExplodeOrigin[3], iC4)
 	SetEntProp(iExplodingClient, Prop_Send, "m_iTeamNum", iOriginalTeam);
 	
 	// Damage other clients in radius.
-	decl Float:fOrigin[3], Float:fDist, Float:fDamage, iArmorValue;
+	decl Float:fOrigin[3], Float:fDist, Float:fDamage, iArmorValue, iTeam;
+	new iAlive[TEAM_GUARDS+1];
 	for(new iClient=1; iClient<=MaxClients; iClient++)
 	{
 		if(iClient == iExplodingClient)
@@ -635,6 +642,9 @@ KillPlayersInRadius(iExplodingClient, const Float:fExplodeOrigin[3], iC4)
 		
 		if(UltJB_LR_GetLastRequestFlags(iClient) & LR_FLAG_FREEDAY)
 			continue;
+		
+		iTeam = GetClientTeam(iClient);
+		iAlive[iTeam]++;
 		
 		GetClientAbsOrigin(iClient, fOrigin);
 		
@@ -657,6 +667,9 @@ KillPlayersInRadius(iExplodingClient, const Float:fExplodeOrigin[3], iC4)
 		SDKHooks_TakeDamage(iClient, iC4, iExplodingClient, fDamage, _, iC4);
 		
 		SetEntProp(iClient, Prop_Send, "m_ArmorValue", iArmorValue);
+		
+		if(!IsPlayerAlive(iClient))
+			iAlive[iTeam]--;
 	}
 	
 	// Set the exploding client back to their new team.
@@ -664,5 +677,24 @@ KillPlayersInRadius(iExplodingClient, const Float:fExplodeOrigin[3], iC4)
 	
 	// Set teammates are enemies back to its original value.
 	if(!bIsInFreeForAllDay && cvar_mp_teammates_are_enemies != INVALID_HANDLE)
+	{
 		SetConVarBool(cvar_mp_teammates_are_enemies, bOriginalTeammatesAreEnemies);
+		
+		// Force end the round if there are no players alive on one of the teams.
+		if(!iAlive[TEAM_PRISONERS] || !iAlive[TEAM_GUARDS])
+		{
+			decl CSRoundEndReason:endReason;
+			
+			if(iAlive[TEAM_GUARDS])
+				endReason = CSRoundEnd_CTWin;
+			else
+				endReason = CSRoundEnd_TerroristWin;
+			
+			UltJB_Settings_SetNextRoundEndReason(true, endReason);
+			CS_TerminateRound(4.0, endReason);
+		}
+		
+		// Restore the original block round terminating value.
+		UltJB_Settings_BlockTerminateRound(bOriginalBlockingTerminateRound);
+	}
 }
