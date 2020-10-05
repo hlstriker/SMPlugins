@@ -25,7 +25,7 @@
 #pragma dynamic 500000
 
 new const String:PLUGIN_NAME[] = "Map Voting";
-new const String:PLUGIN_VERSION[] = "1.26";
+new const String:PLUGIN_VERSION[] = "1.27";
 
 public Plugin:myinfo =
 {
@@ -1112,7 +1112,7 @@ HandleRockTheVoteChanging()
 			g_iMapChangeTime = CHANGETIME_INSTANTLY;
 			SetConVarInt(cvar_mp_timelimit, 0);
 			//ExtendMapTimeLimit(1); // Don't do this here.  // Extend by a second so sourcemod knows the timelimit changed.
-			CS_TerminateRound(0.1, CSRoundEnd_Draw);
+			CS_TerminateRound(0.1, CSRoundEnd_Draw, true);
 		}
 		case CHANGETIME_ROUND_END:
 		{
