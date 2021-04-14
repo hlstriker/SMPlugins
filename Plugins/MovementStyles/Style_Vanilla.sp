@@ -137,7 +137,7 @@ VNL_OnAllPluginsLoaded()
 
 VNL_OnClientPutInServer(client)
 {
-	SDKHook(client, SDKHook_PreThink, SDKHook_OnClientPreThink_Post);
+	SDKHook(client, SDKHook_PreThinkPost, SDKHook_OnClientPreThink_Post);
 	SDKHook(client, SDKHook_PostThink, SDKHook_OnClientPostThink);
 }
 
@@ -212,9 +212,4 @@ ResetConVars()
 	}
 	
 	g_bCvarsAreTweaked = false;
-}
-
-SentClientConVars()
-{
-	
 }
