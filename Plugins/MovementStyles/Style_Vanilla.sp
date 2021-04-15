@@ -8,7 +8,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Style: Vanilla";
-new const String:PLUGIN_VERSION[] = "1.0.0";
+new const String:PLUGIN_VERSION[] = "1.1.0";
 
 public Plugin:myinfo =
 {
@@ -56,15 +56,26 @@ public OnClientConnected(iClient)
 public OnActivated(iClient)
 {
 	g_bActivated[iClient] = true;
+	SendClientConVars(iClient);
 }
 
 public OnDeactivated(iClient)
 {
 	g_bActivated[iClient] = false;
+	SendClientConVars(iClient);
+}
+
+public MovementStyles_OnSpawnPostForwardsSent(iClient)
+{
+	if(!g_bActivated[iClient])
+		return;
+
+	SendClientConVars(iClient);
 }
 
 public OnClientPutInServer(iClient)
 {
+	SendClientConVars(iClient);
 	VNL_OnClientPutInServer(iClient);
 }
 
@@ -167,6 +178,7 @@ CreateConVars()
 		new Handle:hCvar = FindConVar(g_eCvars[i][Cvar_Name]);
 		SetConVarFlags(hCvar, GetConVarFlags(hCvar) & ~FCVAR_REPLICATED & ~FCVAR_NOTIFY);
 		g_eCvars[i][Cvar_Handle] = hCvar;
+		g_eCvars[i][Cvar_PreviousValue] = GetConVarFloat(hCvar);
 	}
 }
 
@@ -188,8 +200,6 @@ TweakConVars()
 	
 	for (new i = 0; i < sizeof(g_eCvars); i++)
 	{
-		g_eCvars[i][Cvar_PreviousValue] = GetConVarFloat(g_eCvars[i][Cvar_Handle]);
-		/* PrintToServer("prev %s = %f", g_eCvars[i][Cvar_Name], g_eCvars[i][Cvar_PreviousValue]); */
 		SetConVarFloat(g_eCvars[i][Cvar_Handle], g_eCvars[i][Cvar_Value], false, false);
 	}
 	g_bCvarsAreTweaked = true;
@@ -212,4 +222,31 @@ ResetConVars()
 	}
 	
 	g_bCvarsAreTweaked = false;
+}
+
+SendClientConVars(iClient)
+{
+	if (IsFakeClient(iClient))
+	{
+		return;
+	}
+	
+	decl String:szValue[32];
+	new iLen = 0;
+	for (new i = 0; i < sizeof(g_eCvars); i++)
+	{
+		if (g_bActivated[iClient])
+		{
+			iLen = FormatEx(szValue, sizeof(szValue), "%f", g_eCvars[i][Cvar_Value]);
+		}
+		else
+		{
+			iLen = FormatEx(szValue, sizeof(szValue), "%f", g_eCvars[i][Cvar_PreviousValue]);
+		}
+		
+		if (iLen)
+			SendConVarValue(iClient, g_eCvars[i][Cvar_Handle], szValue);
+			
+		PrintToConsole(iClient, "prev %s = %f", g_eCvars[i][Cvar_Name], g_eCvars[i][Cvar_PreviousValue]);
+	}
 }
