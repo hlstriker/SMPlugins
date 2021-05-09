@@ -7,7 +7,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Map tiers for map votes";
-new const String:PLUGIN_VERSION[] = "1.4";
+new const String:PLUGIN_VERSION[] = "1.5";
 
 public Plugin:myinfo =
 {
@@ -176,6 +176,8 @@ TryMovingMapsToCategories()
 		AddTierCategory("Tier 5 Staged", "T5] [S");
 		AddTierCategory("Tier 6 Linear", "T6] [L");
 		AddTierCategory("Tier 6 Staged", "T6] [S");
+		AddTierCategory("Tier 7 Linear", "T7] [L");
+		AddTierCategory("Tier 7 Staged", "T7] [S");
 	}
 	else
 	{
@@ -185,8 +187,8 @@ TryMovingMapsToCategories()
 		AddTierCategory("Tier 4", "T4");
 		AddTierCategory("Tier 5", "T5");
 		AddTierCategory("Tier 6", "T6");
+		AddTierCategory("Tier 7", "T7");
 	}
-
 	
 	decl eMapData[MapData];
 	new iArraySize = GetArraySize(g_aMapData);
