@@ -7,7 +7,7 @@
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Map tiers for map votes";
-new const String:PLUGIN_VERSION[] = "1.5";
+new const String:PLUGIN_VERSION[] = "1.6";
 
 public Plugin:myinfo =
 {
@@ -90,7 +90,7 @@ GetAllowedTiers()
 	}
 	
 	decl String:szTier[16];
-	for(new iTier=1; iTier<=6; iTier++)
+	for(new iTier=1; iTier<=7; iTier++)
 	{
 		IntToString(iTier, szTier, sizeof(szTier));
 		
