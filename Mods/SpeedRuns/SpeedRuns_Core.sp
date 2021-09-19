@@ -16,6 +16,7 @@
 
 #undef REQUIRE_PLUGIN
 #include "Includes/speed_runs_checkpoints"
+#include "Includes/speed_runs_replay_bot"
 #include "../../Plugins/EntityPatches/FixTriggerPush/fix_trigger_push"
 #include "../../Libraries/ModelSkinManager/model_skin_manager"
 #include "../../Libraries/DemoSessions/demo_sessions"
@@ -143,12 +144,6 @@ new const String:g_szSoundsUserStageRecords[][] =
 new g_iJumpsMap[MAXPLAYERS+1];
 new g_iJumpsStage[MAXPLAYERS+1];
 
-new Float:g_fTotalSpeedMap[MAXPLAYERS+1];
-new Float:g_fTotalSpeedStage[MAXPLAYERS+1];
-
-new g_iTotalSpeedMapCount[MAXPLAYERS+1];
-new g_iTotalSpeedStageCount[MAXPLAYERS+1];
-
 new Handle:cvar_sr_group_name;
 new g_iServerGroupType;
 
@@ -159,6 +154,7 @@ new g_iServerGroupType;
 new g_iLastNonSolidTick[MAXPLAYERS+1];
 
 new bool:g_bLibLoaded_CheckPoints;
+new bool:g_bLibLoaded_ReplayBot;
 new bool:g_bLibLoaded_FixTriggerPush;
 new bool:g_bLibLoaded_ModelSkinManager;
 new bool:g_bLibLoaded_DemoSessions;
@@ -672,6 +668,25 @@ Float:GetAverageSpeed(iClient, bool:bGetStageSpeed=true)
 
 InsertRecord(iClient, RecordType:iRecordType, bool:bDisplayText, const eOldRecord[Record], const eNewRecord[Record])
 {
+	new Handle:hDatabase = DB_GetDatabaseHandleFromConnectionName(g_szDatabaseConfigName);
+	if(hDatabase == INVALID_HANDLE)
+		return;
+		
+	new iStartTick = -1;
+	if (eNewRecord[Record_StageNumber] == 0)
+		iStartTick = g_iTickStartedFirst[iClient];
+	else
+		iStartTick = g_iTickStartedCurrent[iClient];
+
+	new iEndTick = Replays_GetTick(iClient);
+	
+	new Handle:hTransaction = SQL_CreateTransaction();
+	
+	if (Replays_SaveReplay(iClient, iStartTick, iEndTick, hTransaction))
+		CPrintToChat(iClient, "{lightgreen}-- {olive}Saving replay.");
+	else
+		CPrintToChat(iClient, "{lightgreen}-- {lightred}Sorry, your replay was unable to be saved, or there was an error.");
+	
 	decl iCheckPointsSaved, iCheckPointsUsed;
 	if(g_bLibLoaded_CheckPoints)
 	{
@@ -694,16 +709,21 @@ InsertRecord(iClient, RecordType:iRecordType, bool:bDisplayText, const eOldRecor
 		iDemoID = DemoSessions_GetID();
 		#endif
 	}
+	
+	decl String:szQuery[2048];
 
-	DB_TQuery(g_szDatabaseConfigName, _, DBPrio_Low, _, "\
+	FormatEx(szQuery, sizeof(szQuery), "\
 		INSERT INTO plugin_sr_records \
-		(user_id, server_group_type, server_id, map_id, stage_number, stage_time, demo_sess_id, demo_tick_start, demo_tick_end, data_int_1, data_int_2, style_bits, checkpoints_saved, checkpoints_used, utime_complete) \
+		(user_id, server_group_type, server_id, map_id, stage_number, stage_time, demo_sess_id, demo_tick_start, demo_tick_end, data_int_1, data_int_2, style_bits, checkpoints_saved, checkpoints_used, utime_complete, replay_id) \
 		VALUES \
-		(%i, %i, %i, %i, %i, %f, %i, %i, %i, %i, %i, %i, %i, %i, UNIX_TIMESTAMP())",
+		(%i, %i, %i, %i, %i, %f, %i, %i, %i, %i, %i, %i, %i, %i, UNIX_TIMESTAMP(), LAST_INSERT_ID())",
 		DBUsers_GetUserID(iClient), g_iServerGroupType, DBServers_GetServerID(), DBMaps_GetMapID(), eNewRecord[Record_StageNumber], eNewRecord[Record_StageTime], iDemoID,
 		g_iDemoTickStarted[iClient][eNewRecord[Record_StageNumber]], iDemoTick,
 		eNewRecord[Record_StageNumber] ? RoundFloat(GetAverageSpeed(iClient, true)) : RoundFloat(GetAverageSpeed(iClient, false)),
 		eNewRecord[Record_StageNumber] ? g_iJumpsStage[iClient] : g_iJumpsMap[iClient], MovementStyles_GetStyleBits(iClient), iCheckPointsSaved, iCheckPointsUsed);
+
+	SQL_AddQuery(hTransaction, szQuery);
+	SQL_ExecuteTransaction(hDatabase, hTransaction, _, Query_InsertRecord_Failure, _, DBPrio_High);
 
 	if(bDisplayText)
 	{
@@ -811,6 +831,11 @@ InsertRecord(iClient, RecordType:iRecordType, bool:bDisplayText, const eOldRecor
 	}
 
 	Forward_OnNewRecord(iClient, iRecordType, eOldRecord, eNewRecord);
+}
+
+public Query_InsertRecord_Failure(Handle:db, any:data, numQueries, const String:error[], failIndex, any:queryData[])
+{
+	PrintToServer("FAILED TO INSERT RECORD: %s", error);
 }
 
 GetRecordTimeString(const eOldRecord[Record], const eNewRecord[Record], String:szBuffer[], iMaxLength)
@@ -1004,8 +1029,6 @@ StageStart(iClient, iStageNumber, iZoneID)
 	g_iTickStartedCurrent[iClient] = Replays_GetTick(iClient);
 	g_iDemoTickStarted[iClient][iStageNumber] = iDemoTick;
 	g_iJumpsStage[iClient] = 0;
-	g_fTotalSpeedStage[iClient] = 0.0;
-	g_iTotalSpeedStageCount[iClient] = 0;
 	
 	if(iStageNumber == 1)
 	{
@@ -1014,8 +1037,6 @@ StageStart(iClient, iStageNumber, iZoneID)
 		g_iDemoTickStarted[iClient][0] = iDemoTick;
 		g_iStageLastCompleted[iClient] = 0;
 		g_iJumpsMap[iClient] = 0;
-		g_fTotalSpeedMap[iClient] = 0.0;
-		g_iTotalSpeedMapCount[iClient] = 0;
 	}
 	else if(iStageNumber > (g_iStageLastCompleted[iClient] + 1))
 	{
@@ -1527,6 +1548,15 @@ GetTimerHUD(iClient, String:szBuffer[], const iMaxLength, HudDisplay:iHudDisplay
 {
 	static iLen;
 	iLen = 0;
+	
+	new bool:bIsReplayBot = false;
+	
+	if(g_bLibLoaded_ReplayBot)
+	{
+		#if defined _speed_runs_replay_bot_included
+		bIsReplayBot = SpeedRunsReplayBot_IsClientReplayBot(iClient);
+		#endif
+	}
 
 	if(Replays_GetMode(iClient) == REPLAY_FREEZE)
 	{
@@ -1543,7 +1573,11 @@ GetTimerHUD(iClient, String:szBuffer[], const iMaxLength, HudDisplay:iHudDisplay
 
 	iSpeed = RoundFloat(GetVectorLength(fVelocity));
 
-	if(g_bFirstStarted[iClient] || g_bStageStarted[iClient])
+	if (bIsReplayBot)
+	{
+		iLen += Format(szBuffer[iLen], iMaxLength-iLen, "Replay Bot");
+	}
+	else if(g_bFirstStarted[iClient] || g_bStageStarted[iClient])
 	{
 		// Show the timer HUD.
 		if(g_bStageStarted[iClient])
@@ -1734,6 +1768,7 @@ public OnAllPluginsLoaded()
 	cvar_database_servers_configname = FindConVar("sm_database_servers_configname");
 
 	g_bLibLoaded_CheckPoints = LibraryExists("speed_runs_checkpoints");
+	g_bLibLoaded_ReplayBot = LibraryExists("speed_runs_replay_bot");
 	g_bLibLoaded_FixTriggerPush = LibraryExists("fix_trigger_push");
 	g_bLibLoaded_ModelSkinManager = LibraryExists("model_skin_manager");
 	g_bLibLoaded_DemoSessions = LibraryExists("demo_sessions");
@@ -1744,6 +1779,10 @@ public OnLibraryAdded(const String:szName[])
 	if(StrEqual(szName, "speed_runs_checkpoints"))
 	{
 		g_bLibLoaded_CheckPoints = true;
+	}
+	if(StrEqual(szName, "speed_runs_replay_bot"))
+	{
+		g_bLibLoaded_ReplayBot = true;
 	}
 	else if(StrEqual(szName, "fix_trigger_push"))
 	{
@@ -1819,6 +1858,7 @@ bool:Query_CreateRecordsTable()
 		checkpoints_saved	MEDIUMINT			NOT NULL,\
 		checkpoints_used	MEDIUMINT			NOT NULL,\
 		utime_complete		INT					NOT NULL,\
+		replay_id         INT         NOT NULL,\
 		PRIMARY KEY ( record_id ),\
 		INDEX ( map_id, user_id, style_bits, stage_number ),\
 		INDEX ( stage_number, style_bits, stage_time, map_id, user_id ),\

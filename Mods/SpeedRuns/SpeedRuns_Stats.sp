@@ -4,12 +4,13 @@
 #include "../../Libraries/DatabaseCore/database_core"
 #include "../../Libraries/MovementStyles/movement_styles"
 #include "Includes/speed_runs"
+#include "Includes/speed_runs_replay_bot"
 #include <hls_color_chat>
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Speed Runs: Stats";
-new const String:PLUGIN_VERSION[] = "2.0";
+new const String:PLUGIN_VERSION[] = "2.1";
 
 public Plugin:myinfo =
 {
@@ -381,7 +382,7 @@ public MenuHandle_RecordSelect(Handle:hMenu, MenuAction:action, iParam1, iParam2
 	new iRecordID = StringToInt(szInfo);
 
 	DB_TQuery(g_szDatabaseConfigName, Query_GetRecordStats, DBPrio_Low, iParam1 /*client*/, "\
-		SELECT SEC_TO_TIME(r.stage_time) as time_string, r.data_int_1, r.data_int_2, u2.user_name, r.user_id, u1.steam_id, \
+		SELECT r.record_id, SEC_TO_TIME(r.stage_time) as time_string, r.data_int_1, r.data_int_2, u2.user_name, r.user_id, u1.steam_id, \
 		DATE_FORMAT(FROM_UNIXTIME(utime_complete), \"%%b %%D, %%Y\") FROM plugin_sr_records r \
 		JOIN core_users u1 \
 		JOIN gs_username_stats u2 \
@@ -406,7 +407,7 @@ public Query_GetRecordStats(Handle:hDatabase, Handle:hQuery, any:iClient)
 		new String:szLabel[255];
 		
 		decl String:szTime[32];
-		SQL_FetchString(hQuery, 0, szTime, sizeof(szTime));
+		SQL_FetchString(hQuery, 1, szTime, sizeof(szTime));
 		
 		while (StrContains(szTime, "00:") == 0)
 		{
@@ -414,14 +415,14 @@ public Query_GetRecordStats(Handle:hDatabase, Handle:hQuery, any:iClient)
 		}
 		
 		decl String:szUsername[MAX_NAME_LENGTH+1];
-		SQL_FetchString(hQuery, 3, szUsername, sizeof(szUsername));
+		SQL_FetchString(hQuery, 4, szUsername, sizeof(szUsername));
 		
 		FormatEx(szLabel, sizeof(szLabel), "%s - %s", szTime, szUsername);
 		
 		SetMenuTitle(hMenu, szLabel);
 		
 		
-		SQL_FetchString(hQuery, 5, szLabel, sizeof(szLabel));
+		SQL_FetchString(hQuery, 6, szLabel, sizeof(szLabel));
 		Format(szLabel, sizeof(szLabel), "STEAM_0:%s", szLabel);
 		AddMenuItem(hMenu, "", szLabel, ITEMDRAW_DISABLED);
 		
@@ -431,13 +432,13 @@ public Query_GetRecordStats(Handle:hDatabase, Handle:hQuery, any:iClient)
 		FormatEx(szLabel, sizeof(szLabel), "Jumps: %i", SQL_FetchInt(hQuery, 2));
 		AddMenuItem(hMenu, "", szLabel, ITEMDRAW_DISABLED);
 		
-		SQL_FetchString(hQuery, 6, szLabel, sizeof(szLabel));
+		SQL_FetchString(hQuery, 7, szLabel, sizeof(szLabel));
 		AddMenuItem(hMenu, "", szLabel, ITEMDRAW_DISABLED);
 
-		//new String:szInfo[32];
-		//new iReplayID = SQL_FetchInt(hQuery, 3);
-		//IntToString(iReplayID, szInfo, sizeof(szInfo));
-		AddMenuItem(hMenu, /* szInfo */ "", "Play Replay", ITEMDRAW_DISABLED);
+		new String:szInfo[32];
+		new iRecordID = SQL_FetchInt(hQuery, 0);
+		IntToString(iRecordID, szInfo, sizeof(szInfo));
+		AddMenuItem(hMenu, szInfo, "Play Replay");
 
 		DisplayMenu(hMenu, iClient, 0);
 	}
@@ -455,9 +456,17 @@ public MenuHandle_RecordStats(Handle:hMenu, MenuAction:action, iParam1, iParam2)
 	if(action != MenuAction_Select)
 		return;
 	
-	//decl String:szInfo[12];
-	//GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
+	decl String:szInfo[12];
+	GetMenuItem(hMenu, iParam2, szInfo, sizeof(szInfo));
 	
-	//new iReplayID = StringToInt(szInfo);
-	//SpeedRunsReplays_QueueReplay(iParam1, iReplayID);
+	new iRecordID = StringToInt(szInfo);
+	new iBot = SpeedRunsReplayBot_PlayRecord(iRecordID);
+	
+	if (!iBot) {
+		CPrintToChat(iParam1, "{lightgreen}-- {red}The record was not able to be played.");
+		return;
+	}
+	
+	ChangeClientTeam(iParam1, 1);
+	SetEntPropEnt(iParam1, Prop_Send, "m_hObserverTarget", iBot);
 }

@@ -2,12 +2,11 @@
 #include <sourcemod>
 #include <sdkhooks>
 #include <sdktools_functions>
-#include "../../Libraries/Replays/replays"
 
 #pragma semicolon 1
 
 new const String:PLUGIN_NAME[] = "Auto Strafe";
-new const String:PLUGIN_VERSION[] = "1.0";
+new const String:PLUGIN_VERSION[] = "1.1";
 
 public Plugin:myinfo =
 {
@@ -31,7 +30,7 @@ public OnClientConnected(iClient)
 	g_bActivated[iClient] = false;
 }
 
-public Action:Replays_OnTick(iClient, &iButtons, &iImpulse, Float:fVel[3], Float:fAngles[3], &iWeapon, &iSubType, &iCmdNum, &iTickCount, &iSeed, iMouse[2])
+public Action:OnPlayerRunCmd(iClient, &iButtons, &iImpulse, Float:fVel[3], Float:fAngles[3], &iWeapon, &iSubType, &iCmdNum, &iTickCount, &iSeed, iMouse[2])
 {
 	if(!g_bActivated[iClient])
 		return Plugin_Continue;
